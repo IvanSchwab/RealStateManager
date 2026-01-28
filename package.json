@@ -1,0 +1,25 @@
+{
+  "name": "real-estate-management",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Full-stack Real Estate Management System with Vue 3 and Supabase",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
+    "lint": "cd frontend && npm run lint",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:status": "supabase status"
+  },
+  "keywords": [
+    "real-estate",
+    "management",
+    "vue3",
+    "supabase",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT"
+}
