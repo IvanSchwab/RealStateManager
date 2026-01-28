@@ -124,6 +124,65 @@ VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_ANON_KEY=<your-local-anon-key>
 ```
 
+## Testing Authentication
+
+### Create First Admin User
+
+1. **Start Supabase and Frontend:**
+   ```bash
+   # Terminal 1 - Start Supabase
+   supabase start
+
+   # Terminal 2 - Start Frontend
+   cd frontend
+   npm run dev
+   ```
+
+2. **Create User via Supabase Studio:**
+   - Open: http://127.0.0.1:54323
+   - Navigate to: `Authentication` → `Users`
+   - Click: `Add user`
+   - Fill in:
+     - Email: `admin@test.com`
+     - Password: `password123`
+     - **Check**: `Auto Confirm User` (important!)
+   - Click: `Create user`
+
+3. **Promote User to Admin:**
+   - Open SQL Editor in Studio
+   - Run:
+     ```sql
+     UPDATE profiles
+     SET role = 'admin', full_name = 'Admin User'
+     WHERE email = 'admin@test.com';
+     ```
+
+4. **Test Login:**
+   - Open: http://localhost:5173
+   - Should redirect to: `/login`
+   - Login with:
+     - Email: `admin@test.com`
+     - Password: `password123`
+   - Should redirect to: `/` (Dashboard)
+   - Verify TopBar shows:
+     - Email: admin@test.com
+     - Badge: `admin`
+     - Logout button works
+
+### Authentication Flow Testing
+
+**Protected Routes:**
+- Try accessing `/properties` without login → redirects to `/login?redirect=/properties`
+- Login → redirects back to `/properties`
+
+**Logout:**
+- Click user dropdown → Sign out
+- Should redirect to `/login`
+- Try accessing `/properties` → redirects to `/login`
+
+**Role Checks:**
+Currently all authenticated users can access all routes. Role-based route restrictions will be added in future phases.
+
 ## Project Status
 
 ### Implemented
@@ -134,8 +193,11 @@ VITE_SUPABASE_ANON_KEY=<your-local-anon-key>
 - [x] Layout components (MainLayout, Sidebar, TopBar)
 - [x] Placeholder views for all pages
 - [x] Supabase client setup
-- [x] Basic database schema (profiles table)
+- [x] Complete database schema with RLS policies
 - [x] Type definitions
+- [x] Authentication system (login, logout, session persistence)
+- [x] Router guards for protected routes
+- [x] Role-based user profiles (admin, manager, employee, agent)
 
 ### Pending Implementation
 See [docs/TODO.md](docs/TODO.md) for the complete list of pending features.
