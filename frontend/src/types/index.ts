@@ -92,6 +92,8 @@ export interface Tenant {
   updated_at: string
 }
 
+export type TenantFormData = Omit<Tenant, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
+
 // --- Contract ---
 
 export type AdjustmentType = 'ICL' | 'IPC' | 'fijo' | 'ninguno'
