@@ -28,6 +28,14 @@ export interface Owner {
   notes: string | null
   created_at: string
   updated_at: string
+  deleted_at?: string | null
+}
+
+export type OwnerFormData = Omit<Owner, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
+
+export interface OwnerWithProperties extends Owner {
+  properties?: Property[]
+  property_count?: number
 }
 
 // --- Property ---
@@ -43,11 +51,14 @@ export type PropertyType =
 
 export type PropertyStatus = 'disponible' | 'alquilada' | 'mantenimiento' | 'reservada'
 
+export type PropertyPurpose = 'alquiler' | 'venta'
+
 export interface Property {
   id: string
   owner_id: string | null
   name: string
   property_type: PropertyType
+  purpose: PropertyPurpose
   address_street: string
   address_number: string | null
   address_floor: string | null
@@ -96,25 +107,75 @@ export type TenantFormData = Omit<Tenant, 'id' | 'created_at' | 'updated_at' | '
 
 // --- Contract ---
 
+// Guarantor types for contract guarantees
+export type GuarantorType = 'persona_fisica' | 'finaer' | 'propiedad'
+
+export interface GuarantorPersonaFisica {
+  type: 'persona_fisica'
+  full_name: string
+  dni: string
+  cuil: string
+  phone: string
+  address: string
+}
+
+export interface GuarantorFinaer {
+  type: 'finaer'
+  company_name: string
+  cuit: string
+  guarantee_code: string
+  representative_name: string
+  representative_dni: string
+}
+
+export interface GuarantorPropiedad {
+  type: 'propiedad'
+  guarantor_name: string
+  guarantor_dni: string
+  guarantor_cuil: string
+  property_address: string
+  cadastral_data: string
+  cadastral_details?: string
+}
+
+export type Guarantor = GuarantorPersonaFisica | GuarantorFinaer | GuarantorPropiedad
+
+// Contract classification
+export type ContractType = 'vivienda' | 'comercial' | 'cochera' | 'oficina'
+
+// Contract adjustment settings
 export type AdjustmentType = 'ICL' | 'IPC' | 'fijo' | 'ninguno'
 export type AdjustmentPeriod = 'trimestral' | 'semestral' | 'anual'
+export type AdjustmentFrequency = AdjustmentPeriod // Alias for clarity
+
+// Database status values (Spanish)
 export type ContractStatus = 'borrador' | 'activo' | 'vencido' | 'rescindido' | 'renovado'
+
+// Calculated display status (used in UI)
+export type ContractDisplayStatus = 'active' | 'expiring_soon' | 'expired' | 'cancelled'
 
 export interface Contract {
   id: string
   property_id: string
+  contract_type: ContractType
   base_rent_amount: number
   current_rent_amount: number
   deposit_amount: number | null
   start_date: string
   end_date: string
+  first_payment_date: string | null
   /** Day of month when rent is due. 0 = last day of month, 1-31 = specific day. */
   payment_due_day: number
   adjustment_type: AdjustmentType | null
   adjustment_period: AdjustmentPeriod | null
   last_adjustment_date: string | null
   next_adjustment_date: string | null
+  late_payment_interest_rate: number
+  early_termination_penalty_months: number
+  non_return_penalty_rate: number
+  insurance_required: boolean
   status: ContractStatus
+  guarantors: Guarantor[]
   terms: string | null
   notes: string | null
   deleted_at: string | null
@@ -123,6 +184,40 @@ export interface Contract {
   // Relations
   property?: Property
   tenants?: ContractTenant[]
+}
+
+// Form data for creating/editing contracts
+export interface ContractFormData {
+  // Step 1: Property & Type
+  property_id: string
+  contract_type: ContractType
+
+  // Step 2: Dates
+  start_date: string
+  duration_months: number
+  end_date: string // Calculated
+  first_payment_date: string
+
+  // Step 3: Financial
+  base_rent_amount: number
+  deposit_amount: number
+  payment_due_day: number
+  adjustment_type: AdjustmentType
+  adjustment_period: AdjustmentPeriod
+  late_payment_interest_rate: number
+
+  // Step 4: Tenants
+  titular_id: string
+  co_titular_ids: string[]
+
+  // Step 5: Guarantors
+  guarantors: Guarantor[]
+
+  // Step 6: Special Clauses
+  early_termination_penalty_months: number
+  non_return_penalty_rate: number
+  insurance_required: boolean
+  notes: string
 }
 
 // --- Contract Tenant (junction) ---
@@ -137,6 +232,12 @@ export interface ContractTenant {
   // Relations
   tenant?: Tenant
   contract?: Contract
+}
+
+// Contract with fully populated relations for detail views
+export interface ContractWithRelations extends Contract {
+  property: Property
+  tenants: (ContractTenant & { tenant: Tenant })[]
 }
 
 // --- Payment ---

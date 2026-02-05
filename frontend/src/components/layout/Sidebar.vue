@@ -37,6 +37,7 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  UserCircle,
   FileText,
   CreditCard
 } from 'lucide-vue-next'
@@ -45,10 +46,11 @@ const route = useRoute()
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/properties', label: 'Properties', icon: Building2 },
-  { path: '/tenants', label: 'Tenants', icon: Users },
-  { path: '/contracts', label: 'Contracts', icon: FileText },
-  { path: '/payments', label: 'Payments', icon: CreditCard }
+  { path: '/properties', label: 'Propiedades', icon: Building2 },
+  { path: '/owners', label: 'Propietarios', icon: UserCircle },
+  { path: '/tenants', label: 'Inquilinos', icon: Users },
+  { path: '/contracts', label: 'Contratos', icon: FileText },
+  { path: '/payments', label: 'Pagos', icon: CreditCard }
 ]
 
 const isActive = (path: string) => {

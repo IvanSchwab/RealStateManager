@@ -2,44 +2,30 @@
   <form @submit.prevent="handleSubmit" class="space-y-6">
     <!-- Owner and Property Name -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CreateOwnerInline
+        v-model="form.owner_id"
+        :owners="owners"
+        @owner-created="handleOwnerCreated"
+      />
+
       <div class="space-y-2">
-        <Label for="owner_id">Owner *</Label>
-        <Select v-model="form.owner_id">
-          <SelectTrigger>
-            <SelectValue placeholder="Select an owner" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem 
-                v-for="owner in owners" 
-                :key="owner.id" 
-                :value="owner.id"
-              >
-                {{ owner.full_name }}
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div class="space-y-2">
-        <Label for="name">Property Name *</Label>
+        <Label for="name">Nombre de Propiedad *</Label>
         <Input
           id="name"
           v-model="form.name"
-          placeholder="e.g., Depto 2 amb Palermo"
+          placeholder="ej. Depto 2 amb Palermo"
           required
         />
       </div>
     </div>
 
-    <!-- Property Type and Status -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Property Type, Purpose and Status -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="space-y-2">
-        <Label for="property_type">Property Type *</Label>
+        <Label for="property_type">Tipo de Propiedad *</Label>
         <Select v-model="form.property_type" required>
           <SelectTrigger>
-            <SelectValue placeholder="Select type" />
+            <SelectValue placeholder="Seleccionar tipo" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -54,12 +40,27 @@
           </SelectContent>
         </Select>
       </div>
-      
+
       <div class="space-y-2">
-        <Label for="status">Status *</Label>
+        <Label for="purpose">Finalidad *</Label>
+        <Select v-model="form.purpose" required>
+          <SelectTrigger>
+            <SelectValue placeholder="Seleccionar finalidad" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="alquiler">Alquiler</SelectItem>
+              <SelectItem value="venta">Venta</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div class="space-y-2">
+        <Label for="status">Estado *</Label>
         <Select v-model="form.status" required>
           <SelectTrigger>
-            <SelectValue placeholder="Select status" />
+            <SelectValue placeholder="Seleccionar estado" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -75,11 +76,11 @@
 
     <!-- Address Section -->
     <div class="border-t pt-4">
-      <h3 class="text-sm font-medium text-muted-foreground mb-4">Address</h3>
+      <h3 class="text-sm font-medium text-muted-foreground mb-4">Dirección</h3>
       
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="md:col-span-3 space-y-2">
-          <Label for="address_street">Street *</Label>
+          <Label for="address_street">Calle *</Label>
           <Input
             id="address_street"
             v-model="form.address_street"
@@ -87,9 +88,9 @@
             required
           />
         </div>
-        
+
         <div class="space-y-2">
-          <Label for="address_number">Number</Label>
+          <Label for="address_number">Número</Label>
           <Input
             id="address_number"
             v-model="form.address_number"
@@ -100,16 +101,16 @@
 
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
         <div class="space-y-2">
-          <Label for="address_floor">Floor</Label>
+          <Label for="address_floor">Piso</Label>
           <Input
             id="address_floor"
             v-model="form.address_floor"
             placeholder="3"
           />
         </div>
-        
+
         <div class="space-y-2">
-          <Label for="address_apartment">Apartment</Label>
+          <Label for="address_apartment">Departamento</Label>
           <Input
             id="address_apartment"
             v-model="form.address_apartment"
@@ -118,7 +119,7 @@
         </div>
 
         <div class="space-y-2">
-          <Label for="address_city">City *</Label>
+          <Label for="address_city">Ciudad *</Label>
           <Input
             id="address_city"
             v-model="form.address_city"
@@ -128,7 +129,7 @@
         </div>
 
         <div class="space-y-2">
-          <Label for="address_state">State</Label>
+          <Label for="address_state">Provincia</Label>
           <Input
             id="address_state"
             v-model="form.address_state"
@@ -139,7 +140,7 @@
 
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
         <div class="space-y-2">
-          <Label for="address_zip_code">ZIP Code</Label>
+          <Label for="address_zip_code">Código Postal</Label>
           <Input
             id="address_zip_code"
             v-model="form.address_zip_code"
@@ -151,11 +152,11 @@
 
     <!-- Property Features -->
     <div class="border-t pt-4">
-      <h3 class="text-sm font-medium text-muted-foreground mb-4">Features</h3>
-      
+      <h3 class="text-sm font-medium text-muted-foreground mb-4">Características</h3>
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="space-y-2">
-          <Label for="bedrooms">Bedrooms</Label>
+          <Label for="bedrooms">Dormitorios</Label>
           <Input
             id="bedrooms"
             v-model.number="form.bedrooms"
@@ -164,9 +165,9 @@
             placeholder="2"
           />
         </div>
-        
+
         <div class="space-y-2">
-          <Label for="bathrooms">Bathrooms</Label>
+          <Label for="bathrooms">Baños</Label>
           <Input
             id="bathrooms"
             v-model.number="form.bathrooms"
@@ -175,9 +176,9 @@
             placeholder="1"
           />
         </div>
-        
+
         <div class="space-y-2">
-          <Label for="square_meters">Square Meters</Label>
+          <Label for="square_meters">Metros Cuadrados</Label>
           <Input
             id="square_meters"
             v-model.number="form.square_meters"
@@ -193,11 +194,11 @@
     <!-- Description -->
     <div class="border-t pt-4">
       <div class="space-y-2">
-        <Label for="description">Description</Label>
+        <Label for="description">Descripción</Label>
         <Textarea
           id="description"
           v-model="form.description"
-          placeholder="Property description..."
+          placeholder="Descripción de la propiedad..."
           rows="4"
         />
       </div>
@@ -206,11 +207,11 @@
     <!-- Form Actions -->
     <div class="flex justify-end gap-3 pt-4 border-t">
       <Button type="button" variant="outline" @click="$emit('cancel')">
-        Cancel
+        Cancelar
       </Button>
       <Button type="submit" :disabled="isSubmitting">
         <Loader2 v-if="isSubmitting" class="w-4 h-4 mr-2 animate-spin" />
-        {{ isEdit ? 'Update Property' : 'Create Property' }}
+        {{ isEdit ? 'Actualizar' : 'Crear' }} Propiedad
       </Button>
     </div>
   </form>
@@ -232,12 +233,14 @@ import {
 } from '@/components/ui/select'
 import { Loader2 } from 'lucide-vue-next'
 import { useOwners } from '@/composables/useOwners'
-import type { Property, PropertyType, PropertyStatus } from '@/types'
+import CreateOwnerInline from '@/components/owners/CreateOwnerInline.vue'
+import type { Property, PropertyType, PropertyStatus, PropertyPurpose, Owner } from '@/types'
 
 interface PropertyFormData {
   owner_id: string
   name: string
   property_type: PropertyType
+  purpose: PropertyPurpose
   status: PropertyStatus
   address_street: string
   address_number: string
@@ -269,6 +272,7 @@ const form = ref<PropertyFormData>({
   owner_id: '',
   name: '',
   property_type: 'departamento',
+  purpose: 'alquiler',
   status: 'disponible',
   address_street: '',
   address_number: '',
@@ -290,6 +294,7 @@ watch(() => props.initialData, (newData) => {
       owner_id: newData.owner_id ?? '',
       name: newData.name ?? '',
       property_type: newData.property_type ?? 'departamento',
+      purpose: newData.purpose ?? 'alquiler',
       status: newData.status ?? 'disponible',
       address_street: newData.address_street ?? '',
       address_number: newData.address_number ?? '',
@@ -305,6 +310,13 @@ watch(() => props.initialData, (newData) => {
     }
   }
 }, { immediate: true })
+
+// Handle owner created from inline dialog
+async function handleOwnerCreated(_owner: Owner) {
+  // Refresh owners list
+  await fetchOwners()
+  // Owner is already selected by CreateOwnerInline component
+}
 
 onMounted(() => {
   fetchOwners()
@@ -322,6 +334,7 @@ function handleSubmit() {
     owner_id: form.value.owner_id || null,
     name: form.value.name,
     property_type: form.value.property_type,
+    purpose: form.value.purpose,
     status: form.value.status,
     address_street: form.value.address_street,
     address_number: form.value.address_number || null,

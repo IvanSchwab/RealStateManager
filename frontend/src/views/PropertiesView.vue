@@ -3,10 +3,10 @@
     <div class="p-6">
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Properties</h1>
+        <h1 class="text-2xl font-bold">Propiedades</h1>
         <Button @click="openCreateDialog">
           <Plus class="w-4 h-4 mr-2" />
-          Add Property
+          Nueva Propiedad
         </Button>
       </div>
 
@@ -15,7 +15,7 @@
         <div class="flex-1 min-w-[200px]">
           <Input
             v-model="searchQuery"
-            placeholder="Search by name or address..."
+            placeholder="Buscar por nombre o dirección..."
             class="w-full"
           >
             <template #prefix>
@@ -26,11 +26,11 @@
         
         <Select v-model="filterType" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Property Type" />
+            <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="all">Todos los Tipos</SelectItem>
               <SelectItem value="departamento">Departamento</SelectItem>
               <SelectItem value="casa">Casa</SelectItem>
               <SelectItem value="comercial">Comercial</SelectItem>
@@ -44,15 +44,28 @@
 
         <Select v-model="filterStatus" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">Todos los Estados</SelectItem>
               <SelectItem value="disponible">Disponible</SelectItem>
               <SelectItem value="alquilada">Alquilada</SelectItem>
               <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
               <SelectItem value="reservada">Reservada</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        <Select v-model="filterPurpose" class="w-[180px]">
+          <SelectTrigger>
+            <SelectValue placeholder="Finalidad" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="alquiler">Alquiler</SelectItem>
+              <SelectItem value="venta">Venta</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -64,22 +77,22 @@
           @click="clearFilters"
         >
           <X class="w-4 h-4 mr-1" />
-          Clear filters
+          Limpiar filtros
         </Button>
       </div>
 
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Loading properties...</p>
+        <p class="mt-2">Cargando propiedades...</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error loading properties</p>
+        <p class="text-destructive font-medium mb-2">Error al cargar propiedades</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="fetchProperties">
-          Retry
+          Reintentar
         </Button>
       </div>
 
@@ -89,20 +102,20 @@
         <div v-if="filteredProperties.length === 0" class="py-12 text-center">
           <Building class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
-            {{ hasActiveFilters ? 'No properties match your filters' : 'No properties found' }}
+            {{ hasActiveFilters ? 'No se encontraron propiedades' : 'No hay propiedades registradas' }}
           </p>
           <p class="text-sm text-muted-foreground mb-4">
-            {{ hasActiveFilters 
-              ? 'Try adjusting your search or filter criteria' 
-              : 'Get started by adding your first property' 
+            {{ hasActiveFilters
+              ? 'Intente ajustar los filtros de búsqueda'
+              : 'Comience agregando su primera propiedad'
             }}
           </p>
           <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-            Clear filters
+            Limpiar filtros
           </Button>
           <Button v-else @click="openCreateDialog">
             <Plus class="w-4 h-4 mr-2" />
-            Add Property
+            Nueva Propiedad
           </Button>
         </div>
 
@@ -111,12 +124,13 @@
           <table class="w-full">
             <thead class="bg-muted/50">
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Property</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Type</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Address</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Owner</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Actions</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Propiedad</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipo</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Finalidad</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Dirección</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Propietario</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Estado</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -135,6 +149,11 @@
                 </td>
                 <td class="px-4 py-3 text-sm text-muted-foreground capitalize">
                   {{ property.property_type }}
+                </td>
+                <td class="px-4 py-3">
+                  <Badge :variant="property.purpose === 'alquiler' ? 'default' : 'secondary'">
+                    {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+                  </Badge>
                 </td>
                 <td class="px-4 py-3 text-sm text-muted-foreground">
                   {{ formatAddress(property) }}
@@ -181,8 +200,8 @@
         </div>
 
         <p class="mt-4 text-sm text-muted-foreground">
-          Showing {{ filteredProperties.length }} of {{ properties.length }} 
-          {{ properties.length === 1 ? 'property' : 'properties' }}
+          Mostrando {{ filteredProperties.length }} de {{ properties.length }}
+          {{ properties.length === 1 ? 'propiedad' : 'propiedades' }}
         </p>
       </template>
 
@@ -241,6 +260,7 @@ const { properties, loading, error, fetchProperties } = useProperties()
 const searchQuery = ref('')
 const filterType = ref('all')
 const filterStatus = ref('all')
+const filterPurpose = ref('all')
 
 // Dialog state
 const dialogOpen = ref(false)
@@ -249,8 +269,9 @@ const deleteDialogOpen = ref(false)
 const deletingProperty = ref<Property | null>(null)
 
 // Computed
-const hasActiveFilters = computed(() => 
-  searchQuery.value !== '' || filterType.value !== 'all' || filterStatus.value !== 'all'
+const hasActiveFilters = computed(() =>
+  searchQuery.value !== '' || filterType.value !== 'all' ||
+  filterStatus.value !== 'all' || filterPurpose.value !== 'all'
 )
 
 const filteredProperties = computed(() => {
@@ -274,6 +295,11 @@ const filteredProperties = computed(() => {
   // Status filter
   if (filterStatus.value !== 'all') {
     result = result.filter(p => p.status === filterStatus.value)
+  }
+
+  // Purpose filter
+  if (filterPurpose.value !== 'all') {
+    result = result.filter(p => p.purpose === filterPurpose.value)
   }
 
   return result
@@ -306,6 +332,7 @@ function clearFilters() {
   searchQuery.value = ''
   filterType.value = 'all'
   filterStatus.value = 'all'
+  filterPurpose.value = 'all'
 }
 
 function openCreateDialog() {

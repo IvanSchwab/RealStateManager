@@ -4,25 +4,25 @@
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Loading property...</p>
+        <p class="mt-2">Cargando propiedad...</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error loading property</p>
+        <p class="text-destructive font-medium mb-2">Error al cargar propiedad</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="loadProperty">
-          Retry
+          Reintentar
         </Button>
       </div>
 
       <!-- Not found state -->
       <div v-else-if="!property" class="py-12 text-center">
         <Building class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <p class="text-lg font-medium text-muted-foreground mb-2">Property not found</p>
+        <p class="text-lg font-medium text-muted-foreground mb-2">Propiedad no encontrada</p>
         <Button variant="outline" @click="goBack">
           <ArrowLeft class="w-4 h-4 mr-2" />
-          Back to Properties
+          Volver a Propiedades
         </Button>
       </div>
 
@@ -33,7 +33,7 @@
           <div>
             <Button variant="ghost" size="sm" class="mb-2" @click="goBack">
               <ArrowLeft class="w-4 h-4 mr-2" />
-              Back to Properties
+              Volver a Propiedades
             </Button>
             <h1 class="text-2xl font-bold">{{ property.name }}</h1>
             <p class="text-muted-foreground mt-1">
@@ -43,11 +43,11 @@
           <div class="flex items-center gap-2">
             <Button variant="outline" @click="openEditDialog">
               <Pencil class="w-4 h-4 mr-2" />
-              Edit
+              Editar
             </Button>
             <Button variant="destructive" @click="openDeleteDialog">
               <Trash2 class="w-4 h-4 mr-2" />
-              Delete
+              Eliminar
             </Button>
           </div>
         </div>
@@ -59,16 +59,24 @@
             <!-- Property Info Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Property Information</CardTitle>
+                <CardTitle class="text-lg">Información de la Propiedad</CardTitle>
               </CardHeader>
               <CardContent>
-                <dl class="grid grid-cols-2 gap-4">
+                <dl class="grid grid-cols-3 gap-4">
                   <div>
-                    <dt class="text-sm text-muted-foreground">Type</dt>
+                    <dt class="text-sm text-muted-foreground">Tipo</dt>
                     <dd class="font-medium capitalize">{{ property.property_type }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Status</dt>
+                    <dt class="text-sm text-muted-foreground">Finalidad</dt>
+                    <dd>
+                      <Badge :variant="property.purpose === 'alquiler' ? 'default' : 'secondary'">
+                        {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+                      </Badge>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm text-muted-foreground">Estado</dt>
                     <dd>
                       <Badge :variant="getStatusVariant(property.status)" class="capitalize">
                         {{ property.status }}
@@ -82,7 +90,7 @@
             <!-- Address Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Address</CardTitle>
+                <CardTitle class="text-lg">Dirección</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="flex items-start gap-3">
@@ -93,8 +101,8 @@
                       {{ property.address_number ? ' ' + property.address_number : '' }}
                     </p>
                     <p v-if="property.address_floor || property.address_apartment" class="text-sm text-muted-foreground">
-                      {{ property.address_floor ? 'Floor ' + property.address_floor : '' }}
-                      {{ property.address_apartment ? ', Apt ' + property.address_apartment : '' }}
+                      {{ property.address_floor ? 'Piso ' + property.address_floor : '' }}
+                      {{ property.address_apartment ? ', Depto ' + property.address_apartment : '' }}
                     </p>
                     <p class="text-sm text-muted-foreground">
                       {{ property.address_city }}
@@ -109,7 +117,7 @@
             <!-- Features Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Features</CardTitle>
+                <CardTitle class="text-lg">Características</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="grid grid-cols-3 gap-4">
@@ -118,7 +126,7 @@
                       <BedDouble class="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p class="text-sm text-muted-foreground">Bedrooms</p>
+                      <p class="text-sm text-muted-foreground">Dormitorios</p>
                       <p class="font-medium">{{ property.bedrooms ?? '-' }}</p>
                     </div>
                   </div>
@@ -127,7 +135,7 @@
                       <Bath class="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p class="text-sm text-muted-foreground">Bathrooms</p>
+                      <p class="text-sm text-muted-foreground">Baños</p>
                       <p class="font-medium">{{ property.bathrooms ?? '-' }}</p>
                     </div>
                   </div>
@@ -136,7 +144,7 @@
                       <Ruler class="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p class="text-sm text-muted-foreground">Area</p>
+                      <p class="text-sm text-muted-foreground">Superficie</p>
                       <p class="font-medium">
                         {{ property.square_meters ? property.square_meters + ' m²' : '-' }}
                       </p>
@@ -149,7 +157,7 @@
             <!-- Description Card -->
             <Card v-if="property.description">
               <CardHeader>
-                <CardTitle class="text-lg">Description</CardTitle>
+                <CardTitle class="text-lg">Descripción</CardTitle>
               </CardHeader>
               <CardContent>
                 <p class="text-muted-foreground whitespace-pre-wrap">{{ property.description }}</p>
@@ -162,38 +170,41 @@
             <!-- Owner Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Owner</CardTitle>
+                <CardTitle class="text-lg">Propietario</CardTitle>
               </CardHeader>
               <CardContent>
                 <div v-if="property.owner" class="space-y-3">
-                  <div class="flex items-center gap-3">
+                  <router-link
+                    :to="{ name: 'owner-details', params: { id: property.owner.id } }"
+                    class="flex items-center gap-3 hover:bg-muted/30 -m-2 p-2 rounded-lg transition-colors"
+                  >
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                       <User class="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p class="font-medium">{{ property.owner.full_name }}</p>
+                      <p class="font-medium hover:text-primary">{{ property.owner.full_name }}</p>
                       <p v-if="property.owner.email" class="text-sm text-muted-foreground">
                         {{ property.owner.email }}
                       </p>
                     </div>
-                  </div>
+                  </router-link>
                 </div>
-                <p v-else class="text-muted-foreground text-sm">No owner assigned</p>
+                <p v-else class="text-muted-foreground text-sm">Sin propietario asignado</p>
               </CardContent>
             </Card>
 
             <!-- Metadata Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Details</CardTitle>
+                <CardTitle class="text-lg">Detalles</CardTitle>
               </CardHeader>
               <CardContent class="space-y-3">
                 <div>
-                  <p class="text-sm text-muted-foreground">Created</p>
+                  <p class="text-sm text-muted-foreground">Creado</p>
                   <p class="font-medium">{{ formatDate(property.created_at) }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Last Updated</p>
+                  <p class="text-sm text-muted-foreground">Última Actualización</p>
                   <p class="font-medium">{{ formatDate(property.updated_at) }}</p>
                 </div>
               </CardContent>
@@ -202,11 +213,11 @@
             <!-- Contracts Placeholder -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Contracts</CardTitle>
+                <CardTitle class="text-lg">Contratos</CardTitle>
               </CardHeader>
               <CardContent>
                 <p class="text-sm text-muted-foreground">
-                  Contract history will be displayed here in a future update.
+                  El historial de contratos se mostrará aquí en una actualización futura.
                 </p>
               </CardContent>
             </Card>

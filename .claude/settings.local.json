@@ -7,7 +7,8 @@
       "Bash(ls -la \"d:\\\\Archives\\\\Proyectos\\\\RealStateManager\\\\frontend\\\\src\\\\components\\\\ui\"\" 2>/dev/null || echo \"Directory may not exist or is empty \")",
       "Bash(npx shadcn-vue@latest add:*)",
       "Bash(npx vue-tsc:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(npm run build)"
     ]
   }
 }

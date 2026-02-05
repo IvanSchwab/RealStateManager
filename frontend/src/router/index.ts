@@ -42,9 +42,27 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/owners',
+      name: 'owners',
+      component: () => import('@/views/OwnersView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/owners/:id',
+      name: 'owner-details',
+      component: () => import('@/views/OwnerDetailsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/contracts',
-      name: 'contracts',
+      name: 'Contracts',
       component: () => import('@/views/ContractsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/contracts/:id',
+      name: 'contract-details',
+      component: () => import('@/views/ContractDetailsView.vue'),
       meta: { requiresAuth: true },
     },
     {
