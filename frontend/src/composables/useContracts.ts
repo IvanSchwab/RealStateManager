@@ -171,7 +171,8 @@ export function useContracts() {
                         id, name, property_type,
                         address_street, address_number, address_floor, address_apartment,
                         address_city, address_state, address_zip_code, status,
-                        bedrooms, bathrooms, square_meters, description
+                        bedrooms, bathrooms, square_meters, description,
+                        owner:owners(id, full_name, email, phone, address, cuit_cuil)
                     ),
                     tenants:contract_tenants(
                         contract_id, tenant_id, role, created_at,

@@ -140,6 +140,13 @@ export interface GuarantorPropiedad {
 
 export type Guarantor = GuarantorPersonaFisica | GuarantorFinaer | GuarantorPropiedad
 
+// Custom clause for PDF generation
+export interface CustomClause {
+  number: string // e.g., "VIGÉSIMA QUINTA"
+  title: string
+  content: string
+}
+
 // Contract classification
 export type ContractType = 'vivienda' | 'comercial' | 'cochera' | 'oficina'
 
@@ -181,6 +188,16 @@ export interface Contract {
   deleted_at: string | null
   created_at: string
   updated_at: string
+  // PDF generation fields
+  property_description?: string
+  custom_clauses?: CustomClause[]
+  clause_overrides?: Record<string, string>
+  owner_legal_address?: string
+  owner_cuit?: string
+  daily_penalty_rate?: number
+  daily_interest_rate?: number
+  payment_location?: string
+  payment_hours?: string
   // Relations
   property?: Property
   tenants?: ContractTenant[]

@@ -37,7 +37,7 @@
             </Button>
             <h1 class="text-2xl font-bold">Contrato - {{ propertyAddress }}</h1>
             <div class="flex items-center gap-2 mt-2">
-              <Badge :variant="getStatusVariant(displayStatus)">
+              <Badge :class="getStatusBadgeClass(displayStatus)">
                 {{ statusLabels[displayStatus] }}
               </Badge>
               <Badge variant="outline" class="capitalize">
@@ -50,9 +50,9 @@
               <Pencil class="w-4 h-4 mr-2" />
               Editar
             </Button>
-            <Button variant="outline" disabled title="Disponible en Fase 3">
-              <Printer class="w-4 h-4 mr-2" />
-              Imprimir
+            <Button variant="outline" @click="openPDFEditor">
+              <FileText class="w-4 h-4 mr-2" />
+              Generar PDF
             </Button>
             <Button variant="destructive" @click="openCancelDialog">
               <XCircle class="w-4 h-4 mr-2" />
@@ -90,7 +90,7 @@
                   <div>
                     <dt class="text-sm text-muted-foreground">Estado</dt>
                     <dd>
-                      <Badge :variant="getStatusVariant(displayStatus)" class="mt-1">
+                      <Badge :class="['mt-1', getStatusBadgeClass(displayStatus)]">
                         {{ statusLabels[displayStatus] }}
                       </Badge>
                     </dd>
@@ -447,9 +447,9 @@
                   <Pencil class="w-4 h-4 mr-2" />
                   Editar Contrato
                 </Button>
-                <Button variant="outline" class="w-full justify-start" disabled>
-                  <Printer class="w-4 h-4 mr-2" />
-                  Generar PDF (Fase 3)
+                <Button variant="outline" class="w-full justify-start" @click="openPDFEditor">
+                  <FileText class="w-4 h-4 mr-2" />
+                  Generar PDF
                 </Button>
                 <Button variant="outline" class="w-full justify-start text-destructive hover:text-destructive" @click="openCancelDialog">
                   <XCircle class="w-4 h-4 mr-2" />
@@ -477,6 +477,14 @@
         :tenant-name="titularName"
         @confirm="handleCancelSuccess"
       />
+
+      <!-- PDF Editor Dialog -->
+      <ContractPDFEditor
+        v-if="contract"
+        v-model:open="pdfEditorOpen"
+        :contract-id="contract.id"
+        @success="handlePDFSuccess"
+      />
     </div>
   </MainLayout>
 </template>
@@ -491,6 +499,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
+import ContractPDFEditor from '@/components/contracts/ContractPDFEditor.vue'
 import {
   ArrowLeft,
   Pencil,
@@ -502,7 +511,6 @@ import {
   ShieldCheck,
   ShieldX,
   CreditCard,
-  Printer,
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import type {
@@ -531,6 +539,7 @@ const {
 const contract = ref<ContractWithRelations | null>(null)
 const dialogOpen = ref(false)
 const cancelDialogOpen = ref(false)
+const pdfEditorOpen = ref(false)
 
 const contractId = computed(() => route.params.id as string)
 
@@ -628,19 +637,14 @@ function formatCurrency(amount: number | null): string {
   }).format(amount)
 }
 
-function getStatusVariant(status: ContractDisplayStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'active':
-      return 'default'
-    case 'expiring_soon':
-      return 'outline'
-    case 'expired':
-      return 'destructive'
-    case 'cancelled':
-      return 'secondary'
-    default:
-      return 'default'
+function getStatusBadgeClass(status: ContractDisplayStatus): string {
+  const classes: Record<ContractDisplayStatus, string> = {
+    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
+    expiring_soon: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
+    expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
+    cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
   }
+  return classes[status] ?? classes.active
 }
 
 function goBack() {
@@ -666,6 +670,14 @@ async function handleEditSuccess() {
 
 function handleCancelSuccess() {
   router.push({ name: 'Contracts' })
+}
+
+function openPDFEditor() {
+  pdfEditorOpen.value = true
+}
+
+async function handlePDFSuccess() {
+  await loadContract()
 }
 
 onMounted(() => {

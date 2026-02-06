@@ -148,7 +148,7 @@
                   {{ formatCurrency(contract.current_rent_amount) }}
                 </td>
                 <td class="px-4 py-3">
-                  <Badge :variant="getStatusVariant(calculateDisplayStatus(contract))">
+                  <Badge :class="getStatusBadgeClass(calculateDisplayStatus(contract))">
                     {{ statusLabels[calculateDisplayStatus(contract)] }}
                   </Badge>
                 </td>
@@ -198,7 +198,7 @@
                 <h3 class="font-medium">{{ formatPropertyAddress(contract) }}</h3>
                 <p class="text-sm text-muted-foreground">{{ getTitularName(contract) }}</p>
               </div>
-              <Badge :variant="getStatusVariant(calculateDisplayStatus(contract))">
+              <Badge :class="getStatusBadgeClass(calculateDisplayStatus(contract))">
                 {{ statusLabels[calculateDisplayStatus(contract)] }}
               </Badge>
             </div>
@@ -416,19 +416,14 @@ function formatCurrency(amount: number | null): string {
   }).format(amount)
 }
 
-function getStatusVariant(status: ContractDisplayStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'active':
-      return 'default'
-    case 'expiring_soon':
-      return 'outline'
-    case 'expired':
-      return 'destructive'
-    case 'cancelled':
-      return 'secondary'
-    default:
-      return 'default'
+function getStatusBadgeClass(status: ContractDisplayStatus): string {
+  const classes: Record<ContractDisplayStatus, string> = {
+    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
+    expiring_soon: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
+    expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
+    cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
   }
+  return classes[status] ?? classes.active
 }
 
 function clearFilters() {
