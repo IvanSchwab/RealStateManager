@@ -267,20 +267,62 @@ export interface Payment {
   contract_id: string
   period_month: number
   period_year: number
+  // Legacy field (backward compatibility)
   expected_amount: number
+  // New fields for payment module
+  rent_amount: number | null
+  total_amount: number | null
   actual_amount: number | null
   due_date: string
   payment_date: string | null
   status: PaymentStatus
   payment_method: PaymentMethod | null
   reference_number: string | null
+  receipt_pdf_url: string | null
   paid_by_tenant_id: string | null
   notes: string | null
+  notification_sent_at: string | null
   created_at: string
   updated_at: string
   // Relations
   contract?: Contract
   paid_by_tenant?: Tenant
+  concepts?: PaymentConcept[]
+}
+
+// --- Payment Concept ---
+
+export interface PaymentConcept {
+  id: string
+  payment_id: string
+  concept_name: string
+  amount: number
+  is_recurring: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Common concept names for UI suggestions
+export const COMMON_CONCEPT_NAMES = [
+  'ABL',
+  'Expensas',
+  'Expensas Extraordinarias',
+  'Gas',
+  'Agua',
+  'Luz',
+  'Internet',
+  'Reparaciones',
+  'Multas',
+  'Otros',
+] as const
+
+export type CommonConceptName = (typeof COMMON_CONCEPT_NAMES)[number]
+
+// --- Payment With Details ---
+
+export interface PaymentWithDetails extends Payment {
+  contract: ContractWithRelations
+  concepts: PaymentConcept[]
 }
 
 // --- Document ---

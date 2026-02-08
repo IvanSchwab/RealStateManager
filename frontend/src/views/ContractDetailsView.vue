@@ -61,6 +61,13 @@
           </div>
         </div>
 
+        <!-- Rent Adjustment Alert -->
+        <AdjustmentAlert
+          v-if="contract && displayStatus === 'active'"
+          :contract="contract"
+          @apply-adjustment="showAdjustmentDialog = true"
+        />
+
         <!-- Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Main Column -->
@@ -128,13 +135,13 @@
                       <div>
                         <p class="text-sm text-muted-foreground">Alquiler Base</p>
                         <p class="text-2xl font-bold text-primary">
-                          {{ formatCurrency(contract.base_rent_amount) }}
+                          {{ formatContractCurrency(contract.base_rent_amount) }}
                         </p>
                       </div>
                       <div v-if="contract.current_rent_amount !== contract.base_rent_amount">
                         <p class="text-sm text-muted-foreground">Alquiler Actual</p>
                         <p class="text-2xl font-bold text-primary">
-                          {{ formatCurrency(contract.current_rent_amount) }}
+                          {{ formatContractCurrency(contract.current_rent_amount) }}
                         </p>
                       </div>
                     </div>
@@ -142,7 +149,7 @@
 
                   <div>
                     <dt class="text-sm text-muted-foreground">Depósito</dt>
-                    <dd class="font-medium">{{ formatCurrency(contract.deposit_amount) }}</dd>
+                    <dd class="font-medium">{{ formatContractCurrency(contract.deposit_amount) }}</dd>
                   </div>
                   <div>
                     <dt class="text-sm text-muted-foreground">Día de Pago</dt>
@@ -346,20 +353,121 @@
               </CardContent>
             </Card>
 
-            <!-- Payments Placeholder Card -->
+            <!-- Payments Section -->
             <Card>
-              <CardHeader>
+              <CardHeader class="flex flex-row items-center justify-between">
                 <CardTitle class="text-lg">Historial de Pagos</CardTitle>
+                <div class="flex gap-2">
+                  <Button
+                    v-if="paymentsSummary.total === 0 && contract"
+                    size="sm"
+                    @click="showGeneratePaymentsDialog = true"
+                  >
+                    <Plus class="w-4 h-4 mr-2" />
+                    Generar Pagos
+                  </Button>
+                  <RouterLink
+                    v-if="paymentsSummary.total > 0"
+                    :to="{ name: 'payments', query: { contractId: contract?.id } }"
+                  >
+                    <Button variant="outline" size="sm">
+                      Ver Todos
+                      <ChevronRight class="w-4 h-4 ml-1" />
+                    </Button>
+                  </RouterLink>
+                </div>
               </CardHeader>
               <CardContent>
-                <div class="py-8 text-center">
+                <!-- Loading State -->
+                <div v-if="loadingPayments" class="py-4 text-center">
+                  <Loader2 class="w-6 h-6 mx-auto animate-spin text-muted-foreground" />
+                </div>
+
+                <!-- Summary -->
+                <div v-else-if="paymentsSummary.total > 0" class="space-y-4">
+                  <!-- Summary Stats -->
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                      <p class="text-lg font-bold text-green-600 dark:text-green-400">
+                        {{ paymentsSummary.paid }}
+                      </p>
+                      <p class="text-xs text-green-700 dark:text-green-300">Pagados</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
+                      <p class="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        {{ paymentsSummary.pending }}
+                      </p>
+                      <p class="text-xs text-blue-700 dark:text-blue-300">Pendientes</p>
+                    </div>
+                    <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
+                      <p class="text-lg font-bold text-red-600 dark:text-red-400">
+                        {{ paymentsSummary.overdue }}
+                      </p>
+                      <p class="text-xs text-red-700 dark:text-red-300">Vencidos</p>
+                    </div>
+                    <div class="p-3 bg-muted rounded-lg text-center">
+                      <p class="text-lg font-bold">{{ paymentsSummary.total }}</p>
+                      <p class="text-xs text-muted-foreground">Total</p>
+                    </div>
+                  </div>
+
+                  <!-- Amount Summary -->
+                  <div class="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <span class="text-sm text-muted-foreground">Total cobrado:</span>
+                    <span class="font-semibold text-green-600">
+                      {{ formatCurrency(paymentsSummary.paidAmount) }}
+                    </span>
+                  </div>
+
+                  <!-- Recent Payments Preview -->
+                  <div v-if="recentPayments.length > 0" class="space-y-2">
+                    <p class="text-sm font-medium text-muted-foreground">Pagos recientes:</p>
+                    <div
+                      v-for="payment in recentPayments"
+                      :key="payment.id"
+                      class="flex items-center justify-between p-2 border rounded-lg"
+                    >
+                      <div>
+                        <p class="text-sm font-medium">{{ getMonthName(payment.period_month) }} {{ payment.period_year }}</p>
+                        <p class="text-xs text-muted-foreground">{{ formatDate(payment.payment_date || payment.due_date) }}</p>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-semibold">{{ formatCurrency(payment.total_amount || payment.expected_amount) }}</span>
+                        <Badge :class="getPaymentStatusClass(payment.status)">
+                          {{ getPaymentStatusLabel(payment.status) }}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="py-8 text-center">
                   <CreditCard class="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                  <p class="text-sm text-muted-foreground">
-                    Los pagos se implementarán próximamente.
+                  <p class="text-sm text-muted-foreground mb-3">
+                    No hay pagos generados para este contrato
                   </p>
+                  <Button
+                    v-if="contract"
+                    variant="outline"
+                    size="sm"
+                    @click="showGeneratePaymentsDialog = true"
+                  >
+                    <Plus class="w-4 h-4 mr-2" />
+                    Generar Pagos
+                  </Button>
                 </div>
               </CardContent>
             </Card>
+
+            <!-- Generate Payments Dialog -->
+            <GeneratePaymentsDialog
+              v-if="contract"
+              v-model:open="showGeneratePaymentsDialog"
+              :contract-id="contract.id"
+              :contract="contract"
+              @success="handlePaymentsGenerated"
+            />
           </div>
 
           <!-- Sidebar -->
@@ -485,6 +593,14 @@
         :contract-id="contract.id"
         @success="handlePDFSuccess"
       />
+
+      <!-- Rent Adjustment Dialog -->
+      <RentAdjustmentDialog
+        v-if="contract"
+        v-model:open="showAdjustmentDialog"
+        :contract="contract"
+        @success="handleAdjustmentApplied"
+      />
     </div>
   </MainLayout>
 </template>
@@ -511,8 +627,14 @@ import {
   ShieldCheck,
   ShieldX,
   CreditCard,
+  Plus,
+  ChevronRight,
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
+import { usePayments } from '@/composables/usePayments'
+import AdjustmentAlert from '@/components/payments/AdjustmentAlert.vue'
+import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
+import RentAdjustmentDialog from '@/components/payments/RentAdjustmentDialog.vue'
 import type {
   ContractWithRelations,
   ContractType,
@@ -522,6 +644,8 @@ import type {
   GuarantorPersonaFisica,
   GuarantorFinaer,
   GuarantorPropiedad,
+  Payment,
+  PaymentStatus,
 } from '@/types'
 
 const route = useRoute()
@@ -540,6 +664,28 @@ const contract = ref<ContractWithRelations | null>(null)
 const dialogOpen = ref(false)
 const cancelDialogOpen = ref(false)
 const pdfEditorOpen = ref(false)
+const showGeneratePaymentsDialog = ref(false)
+const showAdjustmentDialog = ref(false)
+
+// Payments
+const {
+  getPaymentsSummary,
+  fetchPayments,
+  formatCurrency,
+  getMonthName,
+  getStatusLabel: getPaymentStatusLabel,
+} = usePayments()
+
+const loadingPayments = ref(false)
+const recentPayments = ref<Payment[]>([])
+const paymentsSummary = ref({
+  total: 0,
+  paid: 0,
+  pending: 0,
+  overdue: 0,
+  totalAmount: 0,
+  paidAmount: 0,
+})
 
 const contractId = computed(() => route.params.id as string)
 
@@ -627,7 +773,7 @@ function formatDateTime(dateString: string): string {
   })
 }
 
-function formatCurrency(amount: number | null): string {
+function formatContractCurrency(amount: number | null): string {
   if (amount === null) return '-'
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -635,6 +781,16 @@ function formatCurrency(amount: number | null): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
+}
+
+function getPaymentStatusClass(status: PaymentStatus): string {
+  const classes: Record<PaymentStatus, string> = {
+    pendiente: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    pagado: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    vencido: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    pago_parcial: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  }
+  return classes[status] || ''
 }
 
 function getStatusBadgeClass(status: ContractDisplayStatus): string {
@@ -680,7 +836,37 @@ async function handlePDFSuccess() {
   await loadContract()
 }
 
-onMounted(() => {
-  loadContract()
+async function loadPaymentsData() {
+  if (!contractId.value) return
+
+  loadingPayments.value = true
+  try {
+    // Get summary
+    paymentsSummary.value = await getPaymentsSummary(contractId.value)
+
+    // Get recent payments (last 3)
+    const payments = await fetchPayments({ contractId: contractId.value })
+    if (payments) {
+      recentPayments.value = payments.slice(0, 3)
+    }
+  } catch (e) {
+    console.error('Error loading payments:', e)
+  } finally {
+    loadingPayments.value = false
+  }
+}
+
+async function handlePaymentsGenerated() {
+  await loadPaymentsData()
+}
+
+async function handleAdjustmentApplied() {
+  await loadContract()
+  await loadPaymentsData()
+}
+
+onMounted(async () => {
+  await loadContract()
+  await loadPaymentsData()
 })
 </script>

@@ -310,7 +310,8 @@ export function useContractPDF() {
         return `${clauseKey} (${CLAUSE_TITLES[clauseKey]}): ${locatario} no ${podra} realizar mejoras, modificaciones o refacciones en el inmueble sin previa autorización escrita de ${locador}. En caso de autorizarse, las mismas quedarán en beneficio del inmueble sin derecho a indemnización alguna. Las mejoras realizadas sin autorización deberán ser removidas al finalizar el contrato a costa de ${locatarioMin}.`
 
       case 10: // DÉCIMA - ESTADO DEL INMUEBLE
-        return `${clauseKey} (${CLAUSE_TITLES[clauseKey]}): ${locatario} recibe el inmueble en perfecto estado de conservación y funcionamiento, conforme al inventario adjunto, obligándose a mantenerlo en las mismas condiciones y a efectuar a su cargo las reparaciones menores y locativas que fueren necesarias durante la vigencia del contrato.`
+        const recibe = isPlural ? 'reciben' : 'recibe'
+        return `${clauseKey} (${CLAUSE_TITLES[clauseKey]}): ${locatario} ${recibe} el inmueble en perfecto estado de conservación y funcionamiento, conforme al inventario adjunto, obligándose a mantenerlo en las mismas condiciones y a efectuar a su cargo las reparaciones menores y locativas que fueren necesarias durante la vigencia del contrato.`
 
       case 11: // UNDÉCIMA - DEVOLUCIÓN
         return `${clauseKey} (${CLAUSE_TITLES[clauseKey]}): Al vencimiento del plazo contractual o ante cualquier causa de rescisión, ${locatario} ${debera} restituir el inmueble libre de ocupantes y de cualquier efecto personal, en el mismo estado en que lo recibió, salvo el deterioro normal por el uso. La entrega se efectuará mediante acta con verificación del inventario.`
@@ -356,7 +357,8 @@ export function useContractPDF() {
 
       case 23: // VIGÉSIMA TERCERA - PENALIDADES
         const penaltyRate = contract.daily_penalty_rate || contract.non_return_penalty_rate || 10
-        return `${clauseKey} (${CLAUSE_TITLES[clauseKey]}): En caso de que ${locatario} no restituyere el inmueble al vencimiento del contrato o de cualquier prórroga, deberá abonar una penalidad equivalente al ${penaltyRate}% (${numberToSpanishWords(penaltyRate)} por ciento) diario del valor del último alquiler, sin perjuicio de las acciones legales que correspondan para obtener el desalojo.`
+        const restituyere = isPlural ? 'restituyeren' : 'restituyere'
+        return `${clauseKey} (${CLAUSE_TITLES[clauseKey]}): En caso de que ${locatario} no ${restituyere} el inmueble al vencimiento del contrato o de cualquier prórroga, ${debera} abonar una penalidad equivalente al ${penaltyRate}% (${numberToSpanishWords(penaltyRate)} por ciento) diario del valor del último alquiler, sin perjuicio de las acciones legales que correspondan para obtener el desalojo.`
 
       case 24: // VIGÉSIMA CUARTA - DISPOSICIONES FINALES
         return `${clauseKey} (${CLAUSE_TITLES[clauseKey]}): El presente contrato se celebra de conformidad con lo dispuesto por el Código Civil y Comercial de la Nación y la Ley de Alquileres vigente. Las partes declaran conocer y aceptar todas las cláusulas del presente, firmando tres ejemplares de un mismo tenor y a un solo efecto, en la Ciudad de Buenos Aires, a los días del mes de ${new Date().toLocaleDateString('es-AR', { month: 'long' })} de ${new Date().getFullYear()}.`
@@ -467,7 +469,8 @@ export function useContractPDF() {
       : allTenantNames.slice(0, -1).join(', ') + ' y ' + allTenantNames[allTenantNames.length - 1]
 
     contractText += '_'.repeat(28) + '              ' + '_'.repeat(28) + '\n'
-    contractText += '       EL LOCADOR                              EL LOCATARIO\n'
+    const locatarioLabel = isPlural ? 'LOS LOCATARIOS' : 'EL LOCATARIO'
+    contractText += `       EL LOCADOR                              ${locatarioLabel}\n`
     contractText += `  ${ownerName.padEnd(30)}      ${titularFullName.padEnd(30)}\n`
     contractText += `  CUIT: ${ownerCuit.padEnd(22)}      DNI: ${titularDni.padEnd(24)}\n`
 

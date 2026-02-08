@@ -57,6 +57,44 @@
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
+
+  <!-- Success Dialog: Ask to generate payments -->
+  <AlertDialog :open="showPaymentsPrompt" @update:open="showPaymentsPrompt = $event">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle class="flex items-center gap-2">
+          <CheckCircle class="w-5 h-5 text-green-600" />
+          Contrato Creado Exitosamente
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          El contrato ha sido creado correctamente. ¿Deseas generar los pagos mensuales para este contrato ahora?
+          <div class="mt-3 p-3 bg-muted rounded-lg text-sm">
+            <p><strong>Propiedad:</strong> {{ createdContractProperty }}</p>
+            <p><strong>Duración:</strong> {{ createdContractDuration }} meses</p>
+            <p><strong>Alquiler:</strong> {{ formatCurrency(createdContractRent) }}</p>
+          </div>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="skipPaymentsGeneration">
+          Más tarde
+        </AlertDialogCancel>
+        <AlertDialogAction @click="openPaymentsGeneration">
+          <CreditCard class="w-4 h-4 mr-2" />
+          Generar Pagos
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+
+  <!-- Generate Payments Dialog -->
+  <GeneratePaymentsDialog
+    v-if="createdContract"
+    v-model:open="showGeneratePaymentsDialog"
+    :contract-id="createdContract.id"
+    :contract="createdContract"
+    @success="handlePaymentsGenerated"
+  />
 </template>
 
 <script setup lang="ts">
@@ -79,8 +117,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, CheckCircle, CreditCard } from 'lucide-vue-next'
 import ContractFormWizard from './ContractFormWizard.vue'
+import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
 import { useContracts } from '@/composables/useContracts'
 import type { Contract, ContractFormData, ContractWithRelations } from '@/types'
 
@@ -104,7 +143,24 @@ const hasChanges = ref(false)
 const showUnsavedChangesDialog = ref(false)
 const pendingClose = ref(false)
 
+// Payment generation after contract creation
+const showPaymentsPrompt = ref(false)
+const showGeneratePaymentsDialog = ref(false)
+const createdContract = ref<ContractWithRelations | null>(null)
+const createdContractProperty = ref('')
+const createdContractDuration = ref(0)
+const createdContractRent = ref(0)
+
 const isEditMode = computed(() => !!props.contractId)
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 
 // Load contract data when dialog opens in edit mode
 watch([() => props.open, () => props.contractId], async ([open, id]) => {
@@ -169,19 +225,72 @@ async function handleSubmit(formData: ContractFormData) {
     if (isEditMode.value && props.contractId) {
       await updateContract(props.contractId, formData)
       alert('Contrato actualizado correctamente')
+      hasChanges.value = false
+      emit('success')
+      emit('update:open', false)
     } else {
-      await createContract(formData)
-      alert('Contrato creado correctamente')
-    }
+      // Create the contract
+      const newContract = await createContract(formData)
 
-    hasChanges.value = false
-    emit('success')
-    emit('update:open', false)
+      hasChanges.value = false
+      emit('update:open', false)
+
+      // If contract was created successfully, show payments prompt
+      if (newContract) {
+        // Fetch the full contract with relations
+        const fullContract = await fetchContractById(newContract.id)
+        if (fullContract) {
+          createdContract.value = fullContract
+          createdContractProperty.value = formatPropertyAddress(fullContract)
+          createdContractDuration.value = calculateDuration(fullContract.start_date, fullContract.end_date)
+          createdContractRent.value = fullContract.base_rent_amount
+          showPaymentsPrompt.value = true
+        } else {
+          emit('success')
+        }
+      } else {
+        emit('success')
+      }
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Error en la operación'
     alert(`Error: ${message}`)
   } finally {
     isSubmitting.value = false
   }
+}
+
+function formatPropertyAddress(contract: ContractWithRelations): string {
+  if (!contract.property) return 'Propiedad no disponible'
+  const prop = contract.property
+  let address = prop.address_street
+  if (prop.address_number) address += ` ${prop.address_number}`
+  if (prop.address_floor) address += `, Piso ${prop.address_floor}`
+  if (prop.address_apartment) address += `, Depto ${prop.address_apartment}`
+  return address
+}
+
+function calculateDuration(startDate: string, endDate: string): number {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const diffTime = end.getTime() - start.getTime()
+  return Math.round(diffTime / (1000 * 60 * 60 * 24 * 30))
+}
+
+function skipPaymentsGeneration() {
+  showPaymentsPrompt.value = false
+  createdContract.value = null
+  emit('success')
+}
+
+function openPaymentsGeneration() {
+  showPaymentsPrompt.value = false
+  showGeneratePaymentsDialog.value = true
+}
+
+function handlePaymentsGenerated() {
+  showGeneratePaymentsDialog.value = false
+  createdContract.value = null
+  emit('success')
 }
 </script>
