@@ -395,8 +395,42 @@ export interface AdjustmentHistory {
   source: AdjustmentSource
   notes: string | null
   created_at: string
+  /** True if adjustment used estimated inflation data */
+  is_estimated: boolean
+  /** References the adjustment that corrected this estimation */
+  corrected_by_id: string | null
+  /** Human-readable inflation period (e.g., "Nov 2025 - Ene 2026") */
+  inflation_period: string | null
   // Relations
-  contract?: Contract
+  contract?: Contract & { property?: Property }
+}
+
+// --- Automatic Adjustment Types ---
+
+/** Calculation result for an automatic rent adjustment */
+export interface AdjustmentCalculation {
+  contractId: string
+  propertyAddress: string
+  previousAmount: number
+  newAmount: number
+  percentage: number
+  isEstimated: boolean
+  inflationPeriod: string
+  indexUsed: 'ICL' | 'IPC'
+}
+
+/** A single inflation data point from external API */
+export interface InflationDataPoint {
+  fecha: string
+  valor: number
+}
+
+/** Result of inflation calculation for a period */
+export interface InflationPeriodResult {
+  values: InflationDataPoint[]
+  isEstimated: boolean
+  accumulated: number
+  periodLabel: string
 }
 
 // --- Index Values ---
