@@ -1,6 +1,5 @@
 <template>
-  <MainLayout>
-    <div class="p-6">
+  <div class="p-6">
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
@@ -372,14 +371,12 @@
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  </MainLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import MainLayout from '@/components/layout/MainLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

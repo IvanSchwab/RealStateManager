@@ -34,6 +34,7 @@ const error = ref<string | null>(null)
 let channel: RealtimeChannel | null = null
 let currentUserId: string | null = null
 let isSubscribed = false
+let isInitialized = false
 
 export function useNotifications() {
   const unreadCount = computed(() =>
@@ -191,10 +192,19 @@ export function useNotifications() {
       channel = null
       isSubscribed = false
     }
+    // Reset initialization flag so next login will re-initialize
+    isInitialized = false
+    currentUserId = null
+    notifications.value = []
   }
 
   // Initialize: fetch notifications and subscribe to realtime
+  // This should only run once per session - subsequent calls are no-ops
   async function initialize() {
+    if (isInitialized) {
+      return
+    }
+    isInitialized = true
     await fetchNotifications()
     subscribeToRealtime()
   }
@@ -204,6 +214,35 @@ export function useNotifications() {
   // 2. The NotificationBell may remount on navigation
   // 3. We want to keep the subscription alive while the app is running
   // The subscription will be cleaned up when the user logs out or closes the app
+
+  async function sendTestNotification(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        return { success: false, error: 'Usuario no autenticado' }
+      }
+
+      const { error: insertError } = await supabase.from('notifications').insert({
+        user_id: user.id,
+        title: 'Notificación de prueba',
+        message: 'Esta es una notificación de prueba para verificar que el sistema funciona correctamente.',
+        type: 'general',
+        status: 'no_leida',
+        is_archived: false,
+      })
+
+      if (insertError) throw insertError
+
+      return { success: true }
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Error al enviar notificación de prueba'
+      console.error('Error sending test notification:', e)
+      return { success: false, error: errorMessage }
+    }
+  }
 
   return {
     notifications,
@@ -216,5 +255,6 @@ export function useNotifications() {
     initialize,
     subscribeToRealtime,
     unsubscribeFromRealtime,
+    sendTestNotification,
   }
 }

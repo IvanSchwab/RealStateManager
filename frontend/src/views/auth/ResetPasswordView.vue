@@ -36,11 +36,11 @@
           <div class="space-y-2">
             <p class="font-medium text-foreground">Contraseña actualizada</p>
             <p class="text-sm text-muted-foreground">
-              Su contraseña ha sido restablecida exitosamente. Ya puede iniciar sesión con su nueva contraseña.
+              Su contraseña ha sido restablecida exitosamente. Redirigiendo al inicio de sesión en {{ redirectCountdown }}...
             </p>
           </div>
-          <Button class="mt-4" @click="$router.push({ name: 'login' })">
-            Ir a iniciar sesión
+          <Button class="mt-4" @click="router.push({ name: 'login' })">
+            Ir a iniciar sesión ahora
           </Button>
         </div>
 
@@ -104,12 +104,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { Lock, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-vue-next'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+
+const router = useRouter()
 
 const password = ref('')
 const confirmPassword = ref('')
@@ -120,6 +123,7 @@ const isSubmitting = ref(false)
 const loading = ref(true)
 const success = ref(false)
 const tokenError = ref(false)
+const redirectCountdown = ref(3)
 
 function clearErrors() {
   passwordError.value = ''
@@ -157,13 +161,32 @@ async function handleSubmit() {
   errorMessage.value = ''
 
   try {
-    const { error } = await supabase.auth.updateUser({
+    const { data, error } = await supabase.auth.updateUser({
       password: password.value,
     })
 
     if (error) throw error
 
+    // Password updated successfully
+    // Sign out to clear the recovery session - user will login with new password
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Ignore sign out errors - session might already be invalid
+    }
+
+    // Set success state after signOut to prevent auth state changes from interfering
     success.value = true
+    isSubmitting.value = false
+
+    // Auto-redirect to login after a brief countdown
+    const countdownInterval = setInterval(() => {
+      redirectCountdown.value--
+      if (redirectCountdown.value <= 0) {
+        clearInterval(countdownInterval)
+        router.push({ name: 'login' })
+      }
+    }, 1000)
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error desconocido'
 
@@ -176,7 +199,6 @@ async function handleSubmit() {
     } else {
       errorMessage.value = `Error al actualizar la contraseña: ${message}`
     }
-  } finally {
     isSubmitting.value = false
   }
 }
@@ -198,9 +220,13 @@ onMounted(async () => {
         // Give it a moment to process
         await new Promise(resolve => setTimeout(resolve, 500))
 
-        const { data: { session: newSession } } = await supabase.auth.getSession()
+        try {
+          const { data: { session: newSession } } = await supabase.auth.getSession()
 
-        if (!newSession) {
+          if (!newSession) {
+            tokenError.value = true
+          }
+        } catch {
           tokenError.value = true
         }
       } else if (!session) {

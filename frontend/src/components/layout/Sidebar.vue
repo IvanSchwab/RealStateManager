@@ -39,7 +39,8 @@ import {
   Users,
   UserCircle,
   FileText,
-  CreditCard
+  CreditCard,
+  Settings
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -50,7 +51,8 @@ const navItems = [
   { path: '/owners', label: 'Propietarios', icon: UserCircle },
   { path: '/tenants', label: 'Inquilinos', icon: Users },
   { path: '/contracts', label: 'Contratos', icon: FileText },
-  { path: '/payments', label: 'Pagos', icon: CreditCard }
+  { path: '/payments', label: 'Pagos', icon: CreditCard },
+  { path: '/settings', label: 'Configuracion', icon: Settings }
 ]
 
 const isActive = (path: string) => {

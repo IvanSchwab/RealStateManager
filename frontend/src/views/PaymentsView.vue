@@ -1,6 +1,5 @@
 <template>
-  <MainLayout>
-    <div class="p-6">
+  <div class="p-6">
       <!-- Header -->
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
@@ -460,13 +459,11 @@
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  </MainLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import MainLayout from '@/components/layout/MainLayout.vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -775,5 +772,12 @@ onMounted(async () => {
   await updateOverduePayments()
   // Then load payments
   await loadPayments()
+})
+
+onUnmounted(() => {
+  // Clean up any pending search timeout to prevent memory leaks
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
 })
 </script>

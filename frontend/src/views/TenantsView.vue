@@ -1,6 +1,5 @@
 <template>
-  <MainLayout>
-    <div class="p-6">
+  <div class="p-6">
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold">Tenants</h1>
@@ -248,14 +247,12 @@
         :tenant-name="deletingTenantName"
         @confirm="handleDeleteSuccess"
       />
-    </div>
-  </MainLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import MainLayout from '@/components/layout/MainLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'

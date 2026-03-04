@@ -1,6 +1,5 @@
 <template>
-  <MainLayout>
-    <div class="p-6 space-y-6">
+  <div class="p-6 space-y-6">
       <!-- Header -->
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -162,12 +161,10 @@
         />
       </DialogContent>
     </Dialog>
-  </MainLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import MainLayout from '@/components/layout/MainLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
