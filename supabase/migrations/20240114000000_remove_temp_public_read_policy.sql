@@ -1,0 +1,26 @@
+-- ============================================
+-- REMOVE TEMPORARY PUBLIC READ POLICY ON PROPERTIES
+-- ============================================
+-- Migration: 20240114000000_remove_temp_public_read_policy.sql
+-- Description: Drops the temporary public read policy that allowed unauthenticated
+--              access to the properties table. This policy was created during
+--              initial development before authentication was implemented.
+-- Depends on: 20240102000000_complete_schema.sql (created the temp policy)
+--
+-- Security Note:
+--   The "temp_public_read_properties" policy allowed ANY user (including
+--   unauthenticated users) to read all non-deleted properties. This was
+--   a deliberate development convenience but represents a security risk
+--   in production. With authentication now implemented, this policy is
+--   no longer needed.
+--
+--   After this migration, property access is controlled by the existing
+--   role-based policies:
+--     - admin_all_properties: Admins have full access
+--     - staff_select_properties: Employees/managers can read non-deleted
+--     - agent_select_properties: Agents can read their assigned properties
+-- ============================================
+
+-- Drop the temporary public read policy
+-- This policy was originally created in 20240102000000_complete_schema.sql
+DROP POLICY IF EXISTS "temp_public_read_properties" ON properties;

@@ -2,8 +2,9 @@
 -- This migration creates only the minimal required tables for the initial setup.
 -- Additional tables (properties, tenants, contracts, payments) will be added in subsequent migrations.
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Note: uuid-ossp extension is not needed in PostgreSQL 14+
+-- gen_random_uuid() is built-in and preferred over uuid_generate_v4()
+-- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =============================================================================
 -- PROFILES TABLE

@@ -19,7 +19,7 @@
 -- ============================================
 
 CREATE TABLE payment_concepts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   payment_id UUID NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
 
   -- Concept details

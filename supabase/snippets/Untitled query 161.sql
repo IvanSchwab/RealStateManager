@@ -1,3 +1,3 @@
 UPDATE profiles 
 SET role = 'admin'
-WHERE email = 'admin@test.com';
+WHERE email = 'ivan_schwab@outlook.com';

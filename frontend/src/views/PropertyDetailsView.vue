@@ -163,6 +163,16 @@
                 <p class="text-muted-foreground whitespace-pre-wrap">{{ property.description }}</p>
               </CardContent>
             </Card>
+
+            <!-- Photos Card -->
+            <Card>
+              <CardHeader>
+                <CardTitle class="text-lg">Fotos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PropertyImageGallery :property-id="property.id" />
+              </CardContent>
+            </Card>
           </div>
 
           <!-- Sidebar -->
@@ -253,6 +263,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PropertyDialog from '@/components/properties/PropertyDialog.vue'
 import DeletePropertyDialog from '@/components/properties/DeletePropertyDialog.vue'
+import PropertyImageGallery from '@/components/properties/PropertyImageGallery.vue'
 import { 
   ArrowLeft, 
   Pencil, 

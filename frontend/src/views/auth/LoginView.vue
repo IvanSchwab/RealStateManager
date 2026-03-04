@@ -29,7 +29,15 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="password">Password</Label>
+            <div class="flex items-center justify-between">
+              <Label for="password">Password</Label>
+              <router-link
+                :to="{ name: 'forgot-password' }"
+                class="text-sm text-primary hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </router-link>
+            </div>
             <Input
               id="password"
               v-model="password"

@@ -272,6 +272,26 @@ Deno.serve(async (req) => {
             .from('payments')
             .update({ notification_sent_at: new Date().toISOString() })
             .eq('id', payment.id)
+
+          // Create in-app notifications for admin/manager users
+          const { data: staffUsers } = await supabase
+            .from('profiles')
+            .select('id')
+            .in('role', ['admin', 'manager'])
+
+          if (staffUsers && staffUsers.length > 0) {
+            const notificationRecords = staffUsers.map((user) => ({
+              user_id: user.id,
+              type: 'pago_vencido',
+              title: subject,
+              message: `${tenantName} - ${propertyAddress} - ${periodLabel}. ${daysOverdue} días de atraso.`,
+              payment_id: payment.id,
+              contract_id: payment.contract.id,
+              status: 'no_leida',
+            }))
+
+            await supabase.from('notifications').insert(notificationRecords)
+          }
         }
 
         results.push({

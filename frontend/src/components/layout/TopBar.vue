@@ -3,12 +3,7 @@
     <div></div>
 
     <div class="flex items-center gap-4">
-      <button
-        class="relative p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-      >
-        <Bell class="w-5 h-5" />
-        <span class="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-      </button>
+      <NotificationBell />
 
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
@@ -50,7 +45,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { Bell, User as UserIcon, LogOut, ChevronDown } from 'lucide-vue-next'
+import { User as UserIcon, LogOut, ChevronDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -61,6 +56,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import NotificationBell from '@/components/notifications/NotificationBell.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

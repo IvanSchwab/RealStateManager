@@ -20,7 +20,9 @@
 -- EXTENSIONS
 -- ============================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Note: uuid-ossp extension is not needed in PostgreSQL 14+
+-- gen_random_uuid() is built-in and preferred over gen_random_uuid()
+-- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
 -- HELPER FUNCTIONS
@@ -48,7 +50,7 @@ COMMENT ON TABLE profiles IS
 -- may not have an account in the system.
 
 CREATE TABLE owners (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   full_name TEXT NOT NULL,
   email TEXT,
   phone TEXT,
@@ -69,7 +71,7 @@ COMMENT ON COLUMN owners.cuit_cuil IS
 -- ============================================
 
 CREATE TABLE properties (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID REFERENCES owners(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   property_type TEXT NOT NULL CHECK (property_type IN (
@@ -112,7 +114,7 @@ COMMENT ON COLUMN properties.address_state IS
 -- ============================================
 
 CREATE TABLE tenants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   email TEXT,
@@ -151,7 +153,7 @@ COMMENT ON COLUMN tenants.monthly_income IS
 -- ============================================
 
 CREATE TABLE contracts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id UUID NOT NULL REFERENCES properties(id) ON DELETE RESTRICT,
   -- Financial terms
   base_rent_amount NUMERIC(12, 2) NOT NULL CHECK (base_rent_amount > 0),
@@ -224,7 +226,7 @@ COMMENT ON COLUMN contract_tenants.role IS
 -- ============================================
 
 CREATE TABLE payments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contract_id UUID NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
   -- Period identification
   period_month INTEGER NOT NULL CHECK (period_month BETWEEN 1 AND 12),
@@ -277,7 +279,7 @@ COMMENT ON COLUMN payments.status IS
 --              Orphaned documents are acceptable (storage cleanup job).
 
 CREATE TABLE documents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   entity_type TEXT NOT NULL CHECK (entity_type IN (
     'tenant', 'contract', 'payment', 'property'
   )),
@@ -310,7 +312,7 @@ COMMENT ON COLUMN documents.storage_path IS
 -- ============================================
 
 CREATE TABLE notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN (
     'vencimiento_contrato', 'pago_proximo', 'pago_vencido',
@@ -342,7 +344,7 @@ COMMENT ON COLUMN notifications.is_archived IS
 -- ============================================
 
 CREATE TABLE adjustment_history (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contract_id UUID NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
   executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   effective_from_period TEXT NOT NULL,
@@ -371,7 +373,7 @@ COMMENT ON COLUMN adjustment_history.source IS
 -- ============================================
 
 CREATE TABLE index_values (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   index_type TEXT NOT NULL CHECK (index_type IN ('ICL', 'IPC', 'USD_OFICIAL', 'USD_MEP')),
   period TEXT NOT NULL,
   value NUMERIC(12, 6) NOT NULL,
@@ -397,7 +399,7 @@ COMMENT ON COLUMN index_values.source IS
 -- ============================================
 
 CREATE TABLE agent_assignments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
   assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

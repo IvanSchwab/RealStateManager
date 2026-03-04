@@ -1,13 +1,15 @@
-// TODO: Implement formatters
+import { format } from 'date-fns'
 
 /**
  * Format a number as currency
  * @param amount - The amount to format
- * @param currency - The currency code (default: 'USD')
+ * @param currency - The currency code (default: 'ARS')
  */
-export function formatCurrency(amount: number, currency = 'USD'): string {
-  // TODO: Implement currency formatting
-  return `$${amount.toFixed(2)}`
+export function formatCurrency(amount: number, currency = 'ARS'): string {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency,
+  }).format(amount)
 }
 
 /**
@@ -15,8 +17,7 @@ export function formatCurrency(amount: number, currency = 'USD'): string {
  * @param date - The date to format
  */
 export function formatDate(date: Date | string): string {
-  // TODO: Implement date formatting with date-fns
-  return new Date(date).toLocaleDateString()
+  return format(new Date(date), 'dd/MM/yyyy')
 }
 
 /**
@@ -24,6 +25,20 @@ export function formatDate(date: Date | string): string {
  * @param phone - The phone number to format
  */
 export function formatPhone(phone: string): string {
-  // TODO: Implement phone formatting
+  const digits = phone.replace(/\D/g, '')
+
+  if (digits.length === 10) {
+    return `${digits.slice(0, 2)} ${digits.slice(2, 6)}-${digits.slice(6)}`
+  }
+
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 7)}-${digits.slice(7)}`
+  }
+
+  if (digits.length >= 12 && digits.startsWith('54')) {
+    const local = digits.slice(2)
+    return `+54 ${local.slice(0, 2)} ${local.slice(2, 6)}-${local.slice(6)}`
+  }
+
   return phone
 }
