@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen flex bg-background">
+  <div class="min-h-screen bg-background">
     <Sidebar />
-    <div class="flex-1 flex flex-col">
+    <div class="ml-64 h-screen flex flex-col overflow-y-auto">
       <TopBar />
-      <main class="flex-1 overflow-auto">
+      <main class="flex-1">
         <slot />
       </main>
     </div>

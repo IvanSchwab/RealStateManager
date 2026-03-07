@@ -6,15 +6,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import MainLayout from '@/components/layout/MainLayout.vue'
+import { useTheme } from '@/composables/useTheme'
 
 const authStore = useAuthStore()
 const route = useRoute()
+const { initTheme } = useTheme()
 
 authStore.initialize()
+
+onMounted(() => {
+  initTheme()
+})
 
 // Show MainLayout only for authenticated users who have completed onboarding
 // Exclude: login, forgot-password, reset-password, onboarding
