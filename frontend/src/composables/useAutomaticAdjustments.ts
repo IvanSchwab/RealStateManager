@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useInflationData } from './useInflationData'
+import { useAuth } from './useAuth'
 import type {
   Contract,
   AdjustmentHistory,
@@ -39,6 +40,7 @@ export function useAutomaticAdjustments() {
   const error = ref<string | null>(null)
   const pendingAdjustments = ref<AdjustmentCalculation[]>([])
   const estimatedAdjustments = ref<AdjustmentHistory[]>([])
+  const { organizationId } = useAuth()
 
   const { getInflationForPeriod, formatYearMonth } = useInflationData()
 
@@ -111,6 +113,11 @@ export function useAutomaticAdjustments() {
    * Checks for active contracts where next_adjustment_date <= today
    */
   async function detectPendingAdjustments(): Promise<ContractWithProperty[]> {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping detectPendingAdjustments')
+      return []
+    }
+
     const today = new Date().toISOString().split('T')[0]
 
     const { data: contracts, error: fetchError } = await supabase
@@ -119,6 +126,7 @@ export function useAutomaticAdjustments() {
         *,
         property:properties(*)
       `)
+      .eq('organization_id', organizationId.value)
       .eq('status', 'activo')
       .in('adjustment_type', ['IPC', 'ICL'])
       .lte('next_adjustment_date', today)
@@ -172,6 +180,10 @@ export function useAutomaticAdjustments() {
     calculation: AdjustmentCalculation,
     contract: ContractWithProperty
   ): Promise<void> {
+    if (!organizationId.value) {
+      throw new Error('No organization_id available')
+    }
+
     const today = new Date().toISOString().split('T')[0]
     const effectivePeriod = formatYearMonth(new Date())
 
@@ -228,6 +240,7 @@ export function useAutomaticAdjustments() {
         notes: calculation.isEstimated
           ? 'Ajuste con datos estimados - pendiente de corrección'
           : null,
+        organization_id: organizationId.value,
       })
 
     if (historyError) {
@@ -273,6 +286,10 @@ export function useAutomaticAdjustments() {
    * Get adjustment counts for dashboard display
    */
   async function getAdjustmentCounts(): Promise<AdjustmentCounts> {
+    if (!organizationId.value) {
+      return { applied: 0, estimated: 0, pending: 0 }
+    }
+
     const today = new Date()
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
     const firstOfMonthStr = firstOfMonth.toISOString().split('T')[0]
@@ -282,6 +299,7 @@ export function useAutomaticAdjustments() {
     const { count: appliedCount } = await supabase
       .from('adjustment_history')
       .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId.value)
       .gte('executed_at', firstOfMonthStr)
       .eq('source', 'automatico')
 
@@ -289,6 +307,7 @@ export function useAutomaticAdjustments() {
     const { count: estimatedCount } = await supabase
       .from('adjustment_history')
       .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId.value)
       .eq('is_estimated', true)
       .is('corrected_by_id', null)
 
@@ -296,6 +315,7 @@ export function useAutomaticAdjustments() {
     const { count: pendingCount } = await supabase
       .from('contracts')
       .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId.value)
       .eq('status', 'activo')
       .in('adjustment_type', ['IPC', 'ICL'])
       .lte('next_adjustment_date', todayStr)
@@ -312,6 +332,10 @@ export function useAutomaticAdjustments() {
    * Get estimated adjustments that can be corrected with official data
    */
   async function getEstimatedAdjustments(): Promise<AdjustmentHistory[]> {
+    if (!organizationId.value) {
+      return []
+    }
+
     const { data, error: fetchError } = await supabase
       .from('adjustment_history')
       .select(`
@@ -321,6 +345,7 @@ export function useAutomaticAdjustments() {
           property:properties(*)
         )
       `)
+      .eq('organization_id', organizationId.value)
       .eq('is_estimated', true)
       .is('corrected_by_id', null)
       .order('executed_at', { ascending: false })
@@ -341,6 +366,10 @@ export function useAutomaticAdjustments() {
     adjustmentId: string,
     officialPercentage: number
   ): Promise<AdjustmentHistory | null> {
+    if (!organizationId.value) {
+      throw new Error('No organization_id available')
+    }
+
     loading.value = true
     error.value = null
 
@@ -350,6 +379,7 @@ export function useAutomaticAdjustments() {
         .from('adjustment_history')
         .select('*')
         .eq('id', adjustmentId)
+        .eq('organization_id', organizationId.value)
         .single()
 
       if (fetchError || !original) {
@@ -404,6 +434,7 @@ export function useAutomaticAdjustments() {
           is_estimated: false,
           inflation_period: original.inflation_period,
           notes: `Corrección de ajuste estimado. IPC oficial: ${officialPercentage.toFixed(2)}%`,
+          organization_id: organizationId.value,
         })
         .select()
         .single()
@@ -460,6 +491,10 @@ export function useAutomaticAdjustments() {
    * Get adjustment history for display
    */
   async function getAdjustmentHistory(limit: number = 20): Promise<AdjustmentHistory[]> {
+    if (!organizationId.value) {
+      return []
+    }
+
     const { data, error: fetchError } = await supabase
       .from('adjustment_history')
       .select(`
@@ -469,6 +504,7 @@ export function useAutomaticAdjustments() {
           property:properties(*)
         )
       `)
+      .eq('organization_id', organizationId.value)
       .order('executed_at', { ascending: false })
       .limit(limit)
 

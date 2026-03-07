@@ -10,6 +10,7 @@ import type {
     AdjustmentPeriod,
     Guarantor,
 } from '@/types'
+import { useAuth } from './useAuth'
 
 export interface ContractFilters {
     search?: string
@@ -22,6 +23,7 @@ export function useContracts() {
     const contracts = ref<ContractWithRelations[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const { organizationId } = useAuth()
 
     /**
      * Calculate the display status of a contract based on dates and deleted_at
@@ -78,6 +80,11 @@ export function useContracts() {
      * Fetch all contracts with relations
      */
     async function fetchContracts(filters?: ContractFilters) {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -96,6 +103,7 @@ export function useContracts() {
                         tenant:tenants(id, first_name, last_name, email, phone)
                     )
                 `)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
 
@@ -159,6 +167,11 @@ export function useContracts() {
      * Fetch a single contract by ID with all relations
      */
     async function fetchContractById(id: string): Promise<ContractWithRelations | null> {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -180,6 +193,7 @@ export function useContracts() {
                     )
                 `)
                 .eq('id', id)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .single()
 
@@ -200,6 +214,10 @@ export function useContracts() {
      * This performs multiple operations that should ideally be transactional
      */
     async function createContract(formData: ContractFormData): Promise<Contract | null> {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot create contract')
+        }
+
         loading.value = true
         error.value = null
 
@@ -231,6 +249,7 @@ export function useContracts() {
                 guarantors: formData.guarantors as unknown as Guarantor[],
                 notes: formData.notes || null,
                 status: 'activo' as ContractStatus,
+                organization_id: organizationId.value,
             }
 
             // 1. Insert contract
@@ -243,7 +262,7 @@ export function useContracts() {
             if (contractError) throw contractError
             if (!contract) throw new Error('No se pudo crear el contrato')
 
-            // 2. Insert contract_tenants (titular)
+            // 2. Insert contract_tenants (titular) - no organization_id needed for junction table
             const tenantEntries = [
                 {
                     contract_id: contract.id,
@@ -305,12 +324,18 @@ export function useContracts() {
         id: string,
         formData: Partial<ContractFormData>
     ): Promise<Contract | null> {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot update contract')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             // Build update object
-            const updates: Record<string, unknown> = {}
+            const updates: Record<string, unknown> = {
+                organization_id: organizationId.value,
+            }
 
             // Direct field mappings
             if (formData.contract_type !== undefined) updates.contract_type = formData.contract_type
@@ -358,7 +383,7 @@ export function useContracts() {
 
             if (updateError) throw updateError
 
-            // 2. Update tenants if changed
+            // 2. Update tenants if changed - no organization_id needed for junction table
             if (formData.titular_id || formData.co_titular_ids) {
                 // Remove existing tenant associations
                 await supabase

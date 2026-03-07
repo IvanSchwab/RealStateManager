@@ -16,8 +16,14 @@ const route = useRoute()
 
 authStore.initialize()
 
-// Show MainLayout only for authenticated routes (not login, forgot-password, reset-password)
+// Show MainLayout only for authenticated users who have completed onboarding
+// Exclude: login, forgot-password, reset-password, onboarding
 const showMainLayout = computed(() => {
-  return authStore.isAuthenticated && route.meta.requiresAuth !== false
+  const publicRoutes = ['login', 'forgot-password', 'reset-password', 'onboarding']
+  return (
+    authStore.isAuthenticated &&
+    !publicRoutes.includes(route.name as string) &&
+    !!authStore.profile?.organization_id
+  )
 })
 </script>

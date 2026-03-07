@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { Owner, OwnerFormData, OwnerWithProperties } from '@/types'
+import { useAuth } from './useAuth'
 
 export interface OwnerFilters {
     search?: string
@@ -11,9 +12,15 @@ export function useOwners() {
     const owners = ref<Owner[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const { organizationId } = useAuth()
 
     // Fetch all owners (non-deleted) with optional filters
     async function fetchOwners(filters?: OwnerFilters) {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -21,6 +28,7 @@ export function useOwners() {
             let query = supabase
                 .from('owners')
                 .select('*')
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('full_name', { ascending: true })
 
@@ -47,6 +55,7 @@ export function useOwners() {
                     const { data: propertyCounts } = await supabase
                         .from('properties')
                         .select('owner_id')
+                        .eq('organization_id', organizationId.value)
                         .in('owner_id', ownerIds)
                         .is('deleted_at', null)
 
@@ -77,6 +86,11 @@ export function useOwners() {
 
     // Fetch single owner by ID with properties
     async function fetchOwnerById(id: string): Promise<OwnerWithProperties | null> {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -85,6 +99,7 @@ export function useOwners() {
                 .from('owners')
                 .select('*')
                 .eq('id', id)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .single()
 
@@ -95,6 +110,7 @@ export function useOwners() {
                 .from('properties')
                 .select('*')
                 .eq('owner_id', id)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
 
@@ -116,11 +132,16 @@ export function useOwners() {
 
     // Get property count for an owner (useful for delete warning)
     async function getOwnerPropertyCount(ownerId: string): Promise<number> {
+        if (!organizationId.value) {
+            return 0
+        }
+
         try {
             const { count, error: countError } = await supabase
                 .from('properties')
                 .select('*', { count: 'exact', head: true })
                 .eq('owner_id', ownerId)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
 
             if (countError) throw countError
@@ -133,13 +154,20 @@ export function useOwners() {
 
     // Create new owner
     async function createOwner(ownerData: OwnerFormData): Promise<Owner> {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot create owner')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             const { data, error: createError } = await supabase
                 .from('owners')
-                .insert([ownerData])
+                .insert([{
+                    ...ownerData,
+                    organization_id: organizationId.value,
+                }])
                 .select()
                 .single()
 
@@ -162,13 +190,20 @@ export function useOwners() {
 
     // Update existing owner
     async function updateOwner(id: string, updates: Partial<OwnerFormData>): Promise<Owner> {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot update owner')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             const { data, error: updateError } = await supabase
                 .from('owners')
-                .update(updates)
+                .update({
+                    ...updates,
+                    organization_id: organizationId.value,
+                })
                 .eq('id', id)
                 .select()
                 .single()

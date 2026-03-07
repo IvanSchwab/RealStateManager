@@ -1,14 +1,21 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types'
+import { useAuth } from './useAuth'
 
 export function useProperties() {
     const properties = ref<Property[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const { organizationId } = useAuth()
 
     // Fetch all properties (non-deleted)
     async function fetchProperties() {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -19,6 +26,7 @@ export function useProperties() {
           *,
           owner:owners(id, full_name, email)
         `)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
 
@@ -37,6 +45,11 @@ export function useProperties() {
 
     // Fetch single property by ID
     async function fetchPropertyById(id: string) {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -48,6 +61,7 @@ export function useProperties() {
           owner:owners(id, full_name, email)
         `)
                 .eq('id', id)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .single()
 
@@ -65,13 +79,20 @@ export function useProperties() {
 
     // Create new property
     async function createProperty(propertyData: Partial<Property>) {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot create property')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             const { data, error: createError } = await supabase
                 .from('properties')
-                .insert([propertyData])
+                .insert([{
+                    ...propertyData,
+                    organization_id: organizationId.value,
+                }])
                 .select()
                 .single()
 
@@ -94,13 +115,20 @@ export function useProperties() {
 
     // Update existing property
     async function updateProperty(id: string, updates: Partial<Property>) {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot update property')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             const { data, error: updateError } = await supabase
                 .from('properties')
-                .update(updates)
+                .update({
+                    ...updates,
+                    organization_id: organizationId.value,
+                })
                 .eq('id', id)
                 .select(`
           *,

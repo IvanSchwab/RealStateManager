@@ -7,7 +7,9 @@ import { useNotifications } from './useNotifications'
 const user = ref<User | null>(null)
 const profile = ref<Profile | null>(null)
 const loading = ref(true)
+const isInitialized = ref(false)
 let authSubscription: Subscription | null = null
+let initializePromise: Promise<void> | null = null
 
 export function useAuth() {
   const isAuthenticated = computed(() => !!user.value)
@@ -16,6 +18,7 @@ export function useAuth() {
   const isEmployee = computed(() => profile.value?.role === 'employee')
   const isAgent = computed(() => profile.value?.role === 'agent')
   const userRole = computed(() => profile.value?.role ?? null)
+  const organizationId = computed(() => profile.value?.organization_id ?? null)
 
   async function signIn(email: string, password: string) {
     loading.value = true
@@ -108,7 +111,23 @@ export function useAuth() {
     }
   }
 
-  async function initialize() {
+  async function initialize(): Promise<void> {
+    // If already initialized, return immediately
+    if (isInitialized.value) {
+      return
+    }
+
+    // If initialization is in progress, return the existing promise
+    if (initializePromise) {
+      return initializePromise
+    }
+
+    // Start initialization
+    initializePromise = doInitialize()
+    return initializePromise
+  }
+
+  async function doInitialize(): Promise<void> {
     loading.value = true
 
     try {
@@ -118,10 +137,14 @@ export function useAuth() {
 
       if (session?.user) {
         user.value = session.user
-        await loadProfile()
+        await loadProfile() // MUST complete before isInitialized = true
+      } else {
+        // Explicitly clear state when no session
+        user.value = null
+        profile.value = null
       }
 
-      // Clean up previous subscription if exists (e.g., when initialize is called multiple times)
+      // Clean up previous subscription if exists
       if (authSubscription) {
         authSubscription.unsubscribe()
         authSubscription = null
@@ -151,6 +174,7 @@ export function useAuth() {
       console.error('Auth initialization error:', error)
     } finally {
       loading.value = false
+      isInitialized.value = true // Only set AFTER profile is fully loaded
     }
   }
 
@@ -158,12 +182,14 @@ export function useAuth() {
     user,
     profile,
     loading,
+    isInitialized,
     isAuthenticated,
     isAdmin,
     isManager,
     isEmployee,
     isAgent,
     userRole,
+    organizationId,
     signIn,
     signUp,
     signOut,

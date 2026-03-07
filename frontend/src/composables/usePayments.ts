@@ -8,6 +8,7 @@ import type {
   PaymentConcept,
   Contract,
 } from '@/types'
+import { useAuth } from './useAuth'
 
 export interface PaymentFilters {
   search?: string
@@ -34,6 +35,7 @@ export function usePayments() {
   const payments = ref<PaymentWithDetails[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const { organizationId } = useAuth()
 
   /**
    * Format currency in Argentine style
@@ -96,6 +98,11 @@ export function usePayments() {
    * Fetch all payments with filters
    */
   async function fetchPayments(filters?: PaymentFilters) {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetch')
+      return null
+    }
+
     loading.value = true
     error.value = null
 
@@ -119,6 +126,7 @@ export function usePayments() {
           ),
           concepts:payment_concepts(*)
         `)
+        .eq('organization_id', organizationId.value)
         .is('contract.deleted_at', null)
         .order('due_date', { ascending: false })
 
@@ -199,6 +207,11 @@ export function usePayments() {
    * Fetch a single payment by ID
    */
   async function fetchPaymentById(id: string): Promise<PaymentWithDetails | null> {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetch')
+      return null
+    }
+
     loading.value = true
     error.value = null
 
@@ -223,6 +236,7 @@ export function usePayments() {
           concepts:payment_concepts(*)
         `)
         .eq('id', id)
+        .eq('organization_id', organizationId.value)
         .single()
 
       if (fetchError) throw fetchError
@@ -256,6 +270,10 @@ export function usePayments() {
     contractId: string,
     recurringConcepts?: RecurringConcept[]
   ): Promise<Payment[] | null> {
+    if (!organizationId.value) {
+      throw new Error('No organization_id available, cannot generate payments')
+    }
+
     loading.value = true
     error.value = null
 
@@ -265,6 +283,7 @@ export function usePayments() {
         .from('contracts')
         .select('*')
         .eq('id', contractId)
+        .eq('organization_id', organizationId.value)
         .single()
 
       if (contractError) throw contractError
@@ -272,7 +291,7 @@ export function usePayments() {
 
       const startDate = new Date(contract.start_date)
       const endDate = new Date(contract.end_date)
-      const paymentsToCreate: Partial<Payment>[] = []
+      const paymentsToCreate: Partial<Payment & { organization_id: string }>[] = []
 
       // Calculate concepts total for initial total_amount
       const conceptsTotal = recurringConcepts?.reduce((sum, c) => sum + c.amount, 0) || 0
@@ -293,6 +312,7 @@ export function usePayments() {
           total_amount: contract.current_rent_amount + conceptsTotal,
           expected_amount: contract.current_rent_amount + conceptsTotal,
           status: 'pendiente',
+          organization_id: organizationId.value,
         })
 
         // Move to next month
@@ -308,7 +328,7 @@ export function usePayments() {
       if (insertError) throw insertError
       if (!createdPayments) throw new Error('No se pudieron crear los pagos')
 
-      // Add recurring concepts if provided
+      // Add recurring concepts if provided - no organization_id needed for payment_concepts
       if (recurringConcepts && recurringConcepts.length > 0) {
         const conceptsToCreate = createdPayments.flatMap(payment =>
           recurringConcepts.map(concept => ({
@@ -412,13 +432,18 @@ export function usePayments() {
    * Generate next receipt number (format: REC-YYYYMM-XXXX)
    */
   async function generateReceiptNumber(date: Date = new Date()): Promise<string> {
+    if (!organizationId.value) {
+      throw new Error('No organization_id available')
+    }
+
     const yearMonth = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`
     const prefix = `REC-${yearMonth}-`
 
-    // Get the highest existing receipt number for this month
+    // Get the highest existing receipt number for this month within the organization
     const { data, error: queryError } = await supabase
       .from('payments')
       .select('reference_number')
+      .eq('organization_id', organizationId.value)
       .like('reference_number', `${prefix}%`)
       .order('reference_number', { ascending: false })
       .limit(1)
@@ -443,12 +468,17 @@ export function usePayments() {
    * Update overdue payments status
    */
   async function updateOverduePayments(): Promise<number> {
+    if (!organizationId.value) {
+      return 0
+    }
+
     try {
       const today = new Date().toISOString().split('T')[0]
 
       const { data, error: updateError } = await supabase
         .from('payments')
         .update({ status: 'vencido' })
+        .eq('organization_id', organizationId.value)
         .eq('status', 'pendiente')
         .lt('due_date', today)
         .select('id')
@@ -485,6 +515,10 @@ export function usePayments() {
     percentage?: number,
     notes?: string
   ): Promise<boolean> {
+    if (!organizationId.value) {
+      throw new Error('No organization_id available')
+    }
+
     loading.value = true
     error.value = null
 
@@ -494,6 +528,7 @@ export function usePayments() {
         .from('contracts')
         .select('current_rent_amount, adjustment_type')
         .eq('id', contractId)
+        .eq('organization_id', organizationId.value)
         .single()
 
       if (contractError) throw contractError
@@ -512,6 +547,7 @@ export function usePayments() {
           index_value_used: percentage ? 1 + percentage / 100 : null,
           source: 'manual',
           notes,
+          organization_id: organizationId.value,
         })
 
       if (historyError) throw historyError
@@ -576,11 +612,23 @@ export function usePayments() {
     totalAmount: number
     paidAmount: number
   }> {
+    if (!organizationId.value) {
+      return {
+        total: 0,
+        paid: 0,
+        pending: 0,
+        overdue: 0,
+        totalAmount: 0,
+        paidAmount: 0,
+      }
+    }
+
     try {
       const { data, error: fetchError } = await supabase
         .from('payments')
         .select('status, total_amount, actual_amount')
         .eq('contract_id', contractId)
+        .eq('organization_id', organizationId.value)
 
       if (fetchError) throw fetchError
 
@@ -644,6 +692,10 @@ export function usePayments() {
    * Get payment history for a contract (all payments ordered by period)
    */
   async function getPaymentHistory(contractId: string): Promise<PaymentWithDetails[]> {
+    if (!organizationId.value) {
+      return []
+    }
+
     try {
       const { data, error: fetchError } = await supabase
         .from('payments')
@@ -665,6 +717,7 @@ export function usePayments() {
           concepts:payment_concepts(*)
         `)
         .eq('contract_id', contractId)
+        .eq('organization_id', organizationId.value)
         .order('period_year', { ascending: true })
         .order('period_month', { ascending: true })
 
@@ -740,7 +793,7 @@ export function usePayments() {
    * Fetch multiple payments by IDs
    */
   async function fetchPaymentsByIds(ids: string[]): Promise<PaymentWithDetails[]> {
-    if (ids.length === 0) return []
+    if (ids.length === 0 || !organizationId.value) return []
 
     try {
       const { data, error: fetchError } = await supabase
@@ -762,6 +815,7 @@ export function usePayments() {
           ),
           concepts:payment_concepts(*)
         `)
+        .eq('organization_id', organizationId.value)
         .in('id', ids)
 
       if (fetchError) throw fetchError

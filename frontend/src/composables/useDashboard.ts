@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from './useAuth'
 
 // Types for dashboard data
 export interface IncomeKPIs {
@@ -64,6 +65,7 @@ export function useDashboard() {
   // State
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const { organizationId } = useAuth()
 
   // KPIs
   const incomeKPIs = ref<IncomeKPIs>({
@@ -151,6 +153,11 @@ export function useDashboard() {
    * Fetch income KPIs from Supabase
    */
   async function fetchIncomeKPIs() {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetchIncomeKPIs')
+      return
+    }
+
     const now = new Date()
     const currentMonth = now.getMonth() + 1
     const currentYear = now.getFullYear()
@@ -165,6 +172,7 @@ export function useDashboard() {
       const { data: currentMonthPayments, error: currentError } = await supabase
         .from('payments')
         .select('total_amount, status, due_date')
+        .eq('organization_id', organizationId.value)
         .eq('period_month', currentMonth)
         .eq('period_year', currentYear)
 
@@ -174,6 +182,7 @@ export function useDashboard() {
       const { data: prevMonthPayments, error: prevError } = await supabase
         .from('payments')
         .select('total_amount, status')
+        .eq('organization_id', organizationId.value)
         .eq('period_month', prevMonth)
         .eq('period_year', prevYear)
         .eq('status', 'pagado')
@@ -184,6 +193,7 @@ export function useDashboard() {
       const { data: overduePayments, error: overdueError } = await supabase
         .from('payments')
         .select('total_amount')
+        .eq('organization_id', organizationId.value)
         .lt('due_date', today)
         .neq('status', 'pagado')
 
@@ -318,6 +328,11 @@ export function useDashboard() {
    * Fetch chart data for income over last N months
    */
   async function fetchChartData(months: number = 6) {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetchChartData')
+      return
+    }
+
     const now = new Date()
     const data: MonthlyIncomeData[] = []
 
@@ -333,6 +348,7 @@ export function useDashboard() {
       const { data: payments, error: fetchError } = await supabase
         .from('payments')
         .select('period_month, period_year, total_amount, status')
+        .eq('organization_id', organizationId.value)
         .gte('due_date', startStr)
         .lte('due_date', endStr)
 
@@ -375,6 +391,11 @@ export function useDashboard() {
    * Fetch payment distribution for current month
    */
   async function fetchPaymentDistribution() {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetchPaymentDistribution')
+      return
+    }
+
     const now = new Date()
     const currentMonth = now.getMonth() + 1
     const currentYear = now.getFullYear()
@@ -384,6 +405,7 @@ export function useDashboard() {
       const { data: payments, error: fetchError } = await supabase
         .from('payments')
         .select('total_amount, status, due_date')
+        .eq('organization_id', organizationId.value)
         .eq('period_month', currentMonth)
         .eq('period_year', currentYear)
 
@@ -411,6 +433,11 @@ export function useDashboard() {
    * Fetch recent payments (last 5)
    */
   async function fetchRecentPayments() {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetchRecentPayments')
+      return
+    }
+
     try {
       const { data: payments, error: fetchError } = await supabase
         .from('payments')
@@ -433,6 +460,7 @@ export function useDashboard() {
             )
           )
         `)
+        .eq('organization_id', organizationId.value)
         .eq('status', 'pagado')
         .not('payment_date', 'is', null)
         .order('payment_date', { ascending: false })
@@ -482,6 +510,11 @@ export function useDashboard() {
    * Fetch contracts expiring in the next 30 days
    */
   async function fetchExpiringContracts() {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetchExpiringContracts')
+      return
+    }
+
     const now = new Date()
     const today = now.toISOString().split('T')[0]
     const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
@@ -507,6 +540,7 @@ export function useDashboard() {
             )
           )
         `)
+        .eq('organization_id', organizationId.value)
         .eq('status', 'activo')
         .is('deleted_at', null)
         .gte('end_date', today)
@@ -558,6 +592,11 @@ export function useDashboard() {
    * Fetch all dashboard data
    */
   async function fetchAllData(chartMonths: number = 6) {
+    if (!organizationId.value) {
+      console.warn('No organization_id available, skipping fetchAllData')
+      return
+    }
+
     loading.value = true
     error.value = null
 

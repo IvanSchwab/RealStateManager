@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { Document, DocumentEntityType, DocumentType } from '@/types'
-import { useAuthStore } from '@/stores/auth'
+import { useAuth } from './useAuth'
 
 // Allowed MIME types and max file size
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
@@ -18,9 +18,15 @@ export function useDocuments() {
     const loading = ref(false)
     const error = ref<string | null>(null)
     const uploadProgress = ref<UploadProgress | null>(null)
+    const { user, organizationId } = useAuth()
 
     // Fetch documents for a specific entity
     async function fetchDocuments(entityType: DocumentEntityType, entityId: string) {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -28,6 +34,7 @@ export function useDocuments() {
             const { data, error: fetchError } = await supabase
                 .from('documents')
                 .select('*')
+                .eq('organization_id', organizationId.value)
                 .eq('entity_type', entityType)
                 .eq('entity_id', entityId)
                 .order('created_at', { ascending: false })
@@ -71,6 +78,10 @@ export function useDocuments() {
         entityId: string,
         documentType: DocumentType
     ): Promise<Document | null> {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot upload document')
+        }
+
         loading.value = true
         error.value = null
         uploadProgress.value = null
@@ -83,8 +94,7 @@ export function useDocuments() {
             }
 
             // Get current user ID for storage path
-            const authStore = useAuthStore()
-            const userId = authStore.user?.id
+            const userId = user.value?.id
             if (!userId) {
                 throw new Error('User not authenticated')
             }
@@ -113,7 +123,8 @@ export function useDocuments() {
                 file_size: file.size,
                 mime_type: file.type,
                 storage_path: storagePath,
-                uploaded_by: userId
+                uploaded_by: userId,
+                organization_id: organizationId.value,
             }
 
             const { data: document, error: insertError } = await supabase

@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { Tenant, TenantFormData } from '@/types'
+import { useAuth } from './useAuth'
 
 export interface TenantFilters {
     search?: string
@@ -13,9 +14,15 @@ export function useTenants() {
     const tenants = ref<Tenant[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const { organizationId } = useAuth()
 
     // Fetch all tenants (non-deleted) with optional filters
     async function fetchTenants(filters?: TenantFilters) {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -23,6 +30,7 @@ export function useTenants() {
             let query = supabase
                 .from('tenants')
                 .select('*')
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
 
@@ -65,6 +73,11 @@ export function useTenants() {
 
     // Fetch single tenant by ID
     async function fetchTenantById(id: string) {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return null
+        }
+
         loading.value = true
         error.value = null
 
@@ -73,6 +86,7 @@ export function useTenants() {
                 .from('tenants')
                 .select('*')
                 .eq('id', id)
+                .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .single()
 
@@ -90,13 +104,20 @@ export function useTenants() {
 
     // Create new tenant
     async function createTenant(tenantData: TenantFormData) {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot create tenant')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             const { data, error: createError } = await supabase
                 .from('tenants')
-                .insert([tenantData])
+                .insert([{
+                    ...tenantData,
+                    organization_id: organizationId.value,
+                }])
                 .select()
                 .single()
 
@@ -119,13 +140,20 @@ export function useTenants() {
 
     // Update existing tenant
     async function updateTenant(id: string, updates: Partial<TenantFormData>) {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot update tenant')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             const { data, error: updateError } = await supabase
                 .from('tenants')
-                .update(updates)
+                .update({
+                    ...updates,
+                    organization_id: organizationId.value,
+                })
                 .eq('id', id)
                 .select()
                 .single()

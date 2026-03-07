@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { useAuth } from './useAuth'
 
 // Database notification types (Spanish, matching the DB schema)
 export type NotificationTypeDB =
@@ -33,10 +34,13 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 let channel: RealtimeChannel | null = null
 let currentUserId: string | null = null
+let currentOrganizationId: string | null = null
 let isSubscribed = false
 let isInitialized = false
 
 export function useNotifications() {
+  const { organizationId } = useAuth()
+
   const unreadCount = computed(() =>
     notifications.value.filter((n) => n.status === 'no_leida').length
   )
@@ -56,11 +60,19 @@ export function useNotifications() {
       }
 
       currentUserId = user.id
+      currentOrganizationId = organizationId.value
+
+      if (!currentOrganizationId) {
+        console.warn('No organization_id available, skipping fetch')
+        notifications.value = []
+        return
+      }
 
       const { data, error: fetchError } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
+        .eq('organization_id', currentOrganizationId)
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
         .limit(limit)
@@ -102,12 +114,13 @@ export function useNotifications() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (!user || !currentOrganizationId) return
 
       const { error: updateError } = await supabase
         .from('notifications')
         .update({ status: 'leida' })
         .eq('user_id', user.id)
+        .eq('organization_id', currentOrganizationId)
         .eq('status', 'no_leida')
 
       if (updateError) throw updateError
@@ -126,8 +139,8 @@ export function useNotifications() {
 
   function subscribeToRealtime() {
     // Prevent duplicate subscriptions
-    if (isSubscribed || !currentUserId) {
-      console.log('Realtime subscription skipped:', { isSubscribed, currentUserId })
+    if (isSubscribed || !currentUserId || !currentOrganizationId) {
+      console.log('Realtime subscription skipped:', { isSubscribed, currentUserId, currentOrganizationId })
       return
     }
 
@@ -137,10 +150,12 @@ export function useNotifications() {
       channel = null
     }
 
-    console.log('Setting up realtime subscription for user:', currentUserId)
+    console.log('Setting up realtime subscription for user:', currentUserId, 'org:', currentOrganizationId)
 
+    // Note: Supabase Realtime filter only supports one filter per subscription
+    // We filter by user_id here and the RLS policy handles organization_id filtering
     channel = supabase
-      .channel(`notifications-${currentUserId}`)
+      .channel(`notifications-${currentUserId}-${currentOrganizationId}`)
       .on(
         'postgres_changes',
         {
@@ -195,6 +210,7 @@ export function useNotifications() {
     // Reset initialization flag so next login will re-initialize
     isInitialized = false
     currentUserId = null
+    currentOrganizationId = null
     notifications.value = []
   }
 
@@ -225,6 +241,10 @@ export function useNotifications() {
         return { success: false, error: 'Usuario no autenticado' }
       }
 
+      if (!organizationId.value) {
+        return { success: false, error: 'No organization_id available' }
+      }
+
       const { error: insertError } = await supabase.from('notifications').insert({
         user_id: user.id,
         title: 'Notificación de prueba',
@@ -232,6 +252,7 @@ export function useNotifications() {
         type: 'general',
         status: 'no_leida',
         is_archived: false,
+        organization_id: organizationId.value,
       })
 
       if (insertError) throw insertError

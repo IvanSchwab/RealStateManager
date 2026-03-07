@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -22,6 +21,12 @@ const router = createRouter({
       name: 'reset-password',
       component: () => import('@/views/auth/ResetPasswordView.vue'),
       meta: { requiresAuth: false },
+    },
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: () => import('@/views/OnboardingView.vue'),
+      meta: { requiresAuth: true, requiresOnboarding: false },
     },
     {
       path: '/',
@@ -92,35 +97,44 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // Wait for auth to finish initializing
-  if (authStore.loading) {
-    await new Promise<void>((resolve) => {
-      const unwatch = watch(
-        () => authStore.loading,
-        (isLoading) => {
-          if (!isLoading) {
-            unwatch()
-            resolve()
-          }
-        },
-        { immediate: true },
-      )
-    })
+  // Public routes that don't require any auth checks
+  const publicRoutes = ['login', 'forgot-password', 'reset-password']
+  const isPublicRoute = publicRoutes.includes(to.name as string)
+
+  // 1. Always allow public routes immediately — no auth checks needed
+  if (isPublicRoute) {
+    return next()
   }
 
-  const requiresAuth = to.meta.requiresAuth !== false
+  // 2. For ALL protected routes, wait for auth to fully initialize
+  // initialize() is idempotent — safe to call multiple times
+  await authStore.initialize()
+
   const isAuthenticated = authStore.isAuthenticated
+  const profile = authStore.profile
 
-  if (requiresAuth && !isAuthenticated) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+  // 3. Not authenticated → go to login
+  if (!isAuthenticated) {
+    return next({ name: 'login', query: { redirect: to.fullPath } })
   }
 
-  if (to.name === 'login' && isAuthenticated) {
-    return { name: 'dashboard' }
+  const hasOrganization = profile?.organization_id != null
+
+  // 4. Authenticated but no organization → go to onboarding
+  if (!hasOrganization && to.name !== 'onboarding') {
+    return next({ name: 'onboarding' })
   }
+
+  // 5. Authenticated with organization, trying to access onboarding → go to dashboard
+  if (hasOrganization && to.name === 'onboarding') {
+    return next({ name: 'dashboard' })
+  }
+
+  // 6. All good — allow navigation
+  return next()
 })
 
 export default router

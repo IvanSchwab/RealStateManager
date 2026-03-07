@@ -12,6 +12,7 @@ export interface Profile {
   email: string
   full_name: string | null
   role: UserRole
+  organization_id: string | null  // null until onboarding is complete
   created_at: string
   updated_at: string
 }
@@ -20,6 +21,7 @@ export interface Profile {
 
 export interface Owner {
   id: string
+  organization_id: string
   full_name: string
   email: string | null
   phone: string | null
@@ -31,7 +33,7 @@ export interface Owner {
   deleted_at?: string | null
 }
 
-export type OwnerFormData = Omit<Owner, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
+export type OwnerFormData = Omit<Owner, 'id' | 'organization_id' | 'created_at' | 'updated_at' | 'deleted_at'>
 
 export interface OwnerWithProperties extends Owner {
   properties?: Property[]
@@ -55,6 +57,7 @@ export type PropertyPurpose = 'alquiler' | 'venta'
 
 export interface Property {
   id: string
+  organization_id: string
   owner_id: string | null
   name: string
   property_type: PropertyType
@@ -84,6 +87,7 @@ export type TenantStatus = 'activo' | 'inactivo'
 
 export interface Tenant {
   id: string
+  organization_id: string
   first_name: string
   last_name: string
   email: string | null
@@ -103,7 +107,7 @@ export interface Tenant {
   updated_at: string
 }
 
-export type TenantFormData = Omit<Tenant, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
+export type TenantFormData = Omit<Tenant, 'id' | 'organization_id' | 'created_at' | 'updated_at' | 'deleted_at'>
 
 // --- Contract ---
 
@@ -163,6 +167,7 @@ export type ContractDisplayStatus = 'active' | 'expiring_soon' | 'expired' | 'ca
 
 export interface Contract {
   id: string
+  organization_id: string
   property_id: string
   contract_type: ContractType
   base_rent_amount: number
@@ -264,6 +269,7 @@ export type PaymentMethod = 'efectivo' | 'transferencia' | 'cheque' | 'tarjeta' 
 
 export interface Payment {
   id: string
+  organization_id: string
   contract_id: string
   period_month: number
   period_year: number
@@ -341,6 +347,7 @@ export type DocumentType =
 
 export interface Document {
   id: string
+  organization_id: string
   entity_type: DocumentEntityType
   entity_id: string
   document_type: DocumentType
@@ -366,6 +373,7 @@ export type NotificationStatus = 'no_leida' | 'leida' | 'archivada'
 
 export interface Notification {
   id: string
+  organization_id: string
   user_id: string
   type: NotificationType
   title: string
@@ -384,6 +392,7 @@ export type AdjustmentSource = 'automatico' | 'manual'
 
 export interface AdjustmentHistory {
   id: string
+  organization_id: string
   contract_id: string
   executed_at: string
   /** Period in YYYY-MM format */
