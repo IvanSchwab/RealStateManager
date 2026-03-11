@@ -33,7 +33,16 @@ export function useProfile() {
 
       if (updateError) throw updateError
 
-      // Reload profile to update reactive state across the app
+      // Immediately patch local state for instant UI feedback
+      if (profile.value) {
+        profile.value = {
+          ...profile.value,
+          ...data,
+          updated_at: new Date().toISOString()
+        }
+      }
+
+      // Also reload from DB to ensure full sync (belt and suspenders)
       await loadProfile()
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error al actualizar el perfil'
