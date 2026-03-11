@@ -20,9 +20,9 @@
       </Avatar>
       <div class="flex-1 min-w-0">
         <h1 class="text-sm font-semibold text-foreground truncate">
-          {{ organization?.name || 'Cargando...' }}
+          {{ organization?.name || $t('common.loading') }}
         </h1>
-        <p class="text-xs text-muted-foreground">Sistema de Gestion</p>
+        <p class="text-xs text-muted-foreground">{{ $t('nav.managementSystem') }}</p>
       </div>
     </RouterLink>
 
@@ -47,23 +47,23 @@
 
     <div class="p-4 border-t border-border space-y-2">
       <RouterLink
-        :to="settingsItem.path"
+        to="/settings"
         class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors"
         :class="[
-          isActive(settingsItem.path)
+          isActive('/settings')
             ? 'bg-primary text-primary-foreground'
             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
         ]"
       >
-        <component :is="settingsItem.icon" class="w-5 h-5" />
-        {{ settingsItem.label }}
+        <Settings class="w-5 h-5" />
+        {{ $t('nav.settings') }}
       </RouterLink>
       <div class="flex items-center justify-between">
         <p class="text-xs text-muted-foreground">v0.1.0 - Development</p>
         <button
           @click="toggleTheme"
           class="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          :title="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+          :title="isDark ? $t('settings.themeLight') : $t('settings.themeDark')"
         >
           <Sun v-if="isDark" class="h-4 w-4" />
           <Moon v-else class="h-4 w-4" />
@@ -76,6 +76,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   LayoutDashboard,
   Building2,
@@ -91,6 +92,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { useOrganization } from '@/composables/useOrganization'
 import { useTheme } from '@/composables/useTheme'
 
+const { t } = useI18n()
 const route = useRoute()
 const { organization, fetchOrganization, getInitials, getAvatarColor } = useOrganization()
 const { isDark, toggleTheme } = useTheme()
@@ -98,16 +100,14 @@ const { isDark, toggleTheme } = useTheme()
 const initials = computed(() => getInitials(organization.value?.name || ''))
 const avatarColor = computed(() => getAvatarColor(organization.value?.name || ''))
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/properties', label: 'Propiedades', icon: Building2 },
-  { path: '/owners', label: 'Propietarios', icon: UserCircle },
-  { path: '/tenants', label: 'Inquilinos', icon: Users },
-  { path: '/contracts', label: 'Contratos', icon: FileText },
-  { path: '/payments', label: 'Pagos', icon: CreditCard }
-]
-
-const settingsItem = { path: '/settings', label: 'Configuracion', icon: Settings }
+const navItems = computed(() => [
+  { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
+  { path: '/properties', label: t('nav.properties'), icon: Building2 },
+  { path: '/owners', label: t('nav.owners'), icon: UserCircle },
+  { path: '/tenants', label: t('nav.tenants'), icon: Users },
+  { path: '/contracts', label: t('nav.contracts'), icon: FileText },
+  { path: '/payments', label: t('nav.payments'), icon: CreditCard }
+])
 
 const isActive = (path: string) => {
   if (path === '/') {

@@ -4,12 +4,12 @@
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <History class="w-5 h-5" />
-          Historial de Pagos
+          {{ $t('contracts.paymentHistory') }}
         </DialogTitle>
         <DialogDescription v-if="contract">
           {{ tenantName }} - {{ propertyAddress }}
           <span class="ml-2 text-xs">
-            ({{ paidCount }}/{{ payments.length }} pagados)
+            ({{ paidCount }}/{{ payments.length }} {{ $t('contracts.paid') }})
           </span>
         </DialogDescription>
       </DialogHeader>
@@ -25,22 +25,22 @@
         <div class="grid grid-cols-3 gap-3 mb-4">
           <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
             <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ paidCount }}</p>
-            <p class="text-xs text-muted-foreground">Pagados</p>
+            <p class="text-xs text-muted-foreground">{{ $t('contracts.paid') }}</p>
           </div>
           <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
             <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ pendingCount }}</p>
-            <p class="text-xs text-muted-foreground">Pendientes</p>
+            <p class="text-xs text-muted-foreground">{{ $t('contracts.pending') }}</p>
           </div>
           <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
             <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ overdueCount }}</p>
-            <p class="text-xs text-muted-foreground">Vencidos</p>
+            <p class="text-xs text-muted-foreground">{{ $t('contracts.overdue') }}</p>
           </div>
         </div>
 
         <!-- Progress Bar -->
         <div class="mb-4">
           <div class="flex justify-between text-sm mb-1">
-            <span class="text-muted-foreground">Progreso del contrato</span>
+            <span class="text-muted-foreground">{{ $t('payments.contractProgress') }}</span>
             <span class="font-medium">{{ progressPercentage }}%</span>
           </div>
           <div class="h-2 bg-muted rounded-full overflow-hidden">
@@ -55,12 +55,12 @@
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead class="w-24">Periodo</TableHead>
-              <TableHead>Vencimiento</TableHead>
-              <TableHead class="text-right">Monto</TableHead>
-              <TableHead>Pagado</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead class="w-20">Acciones</TableHead>
+              <TableHead class="w-24">{{ $t('payments.period') }}</TableHead>
+              <TableHead>{{ $t('payments.dueDate') }}</TableHead>
+              <TableHead class="text-right">{{ $t('payments.totalAmount') }}</TableHead>
+              <TableHead>{{ $t('payments.paidDate') }}</TableHead>
+              <TableHead>{{ $t('common.status') }}</TableHead>
+              <TableHead class="w-20">{{ $t('common.actions') }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -93,7 +93,7 @@
                     size="icon"
                     class="h-7 w-7"
                     @click="handleRegisterPayment(payment)"
-                    title="Registrar pago"
+                    :title="$t('payments.registerPayment')"
                   >
                     <DollarSign class="w-4 h-4" />
                   </Button>
@@ -103,7 +103,7 @@
                     size="icon"
                     class="h-7 w-7"
                     @click="handlePrintReceipt(payment)"
-                    title="Imprimir recibo"
+                    :title="$t('payments.printReceipt')"
                   >
                     <Printer class="w-4 h-4" />
                   </Button>
@@ -117,10 +117,10 @@
       <!-- Footer -->
       <div class="flex justify-between items-center pt-4 border-t">
         <div class="text-sm text-muted-foreground">
-          Total cobrado: <span class="font-semibold text-green-600">{{ formatCurrency(totalCollected) }}</span>
+          {{ $t('contracts.totalCollected') }} <span class="font-semibold text-green-600">{{ formatCurrency(totalCollected) }}</span>
         </div>
         <Button variant="outline" @click="$emit('update:open', false)">
-          Cerrar
+          {{ $t('common.close') }}
         </Button>
       </div>
     </DialogContent>
@@ -136,6 +136,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
@@ -169,6 +170,7 @@ const emit = defineEmits<{
   (e: 'payment-registered'): void
 }>()
 
+const { t } = useI18n()
 const {
   loading,
   getPaymentHistory,
@@ -193,7 +195,7 @@ const contract = computed(() => {
 
 const tenantName = computed(() => {
   const titular = contract.value?.tenants?.find(ct => ct.role === 'titular')?.tenant
-  if (!titular) return 'Sin inquilino'
+  if (!titular) return t('contracts.noTenantAssigned')
   return `${titular.first_name} ${titular.last_name}`
 })
 

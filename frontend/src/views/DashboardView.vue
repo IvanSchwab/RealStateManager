@@ -3,9 +3,9 @@
       <!-- Header -->
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 class="text-2xl font-bold">Dashboard</h1>
+          <h1 class="text-2xl font-bold">{{ $t('dashboard.title') }}</h1>
           <p class="text-muted-foreground text-sm">
-            Resumen de ingresos e indicadores - {{ currentMonthLabel }}
+            {{ $t('dashboard.summary') }} - {{ currentMonthLabel }}
           </p>
         </div>
         <Button
@@ -14,36 +14,36 @@
           variant="outline"
         >
           <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': loading }" />
-          Actualizar
+          {{ $t('dashboard.refresh') }}
         </Button>
       </div>
 
       <!-- Section 1: Income KPIs -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Ingresos del Mes"
+          :title="$t('dashboard.monthlyIncome')"
           :value="formatCurrency(incomeKPIs.currentMonthIncome)"
           icon="income"
           :loading="loading"
         />
 
         <KPICard
-          title="Pendiente de Cobro"
+          :title="$t('dashboard.pendingCollection')"
           :value="formatCurrency(incomeKPIs.pendingIncome)"
           icon="pending"
           :loading="loading"
         />
 
         <KPICard
-          title="Pagos Vencidos"
+          :title="$t('dashboard.overduePayments')"
           :value="formatCurrency(incomeKPIs.overdueAmount)"
           icon="overdue"
-          :subtitle="`${incomeKPIs.overdueCount} pagos vencidos`"
+          :subtitle="$t('dashboard.overdueCount', { count: incomeKPIs.overdueCount })"
           :loading="loading"
         />
 
         <KPICard
-          title="vs. Mes Anterior"
+          :title="$t('dashboard.vsPreviousMonth')"
           :value="incomeKPIs.previousMonthIncome > 0 ? formatCurrency(incomeKPIs.previousMonthIncome) : '$0'"
           icon="trend"
           :trend="getTrend(incomeKPIs.monthOverMonthChange)"
@@ -55,7 +55,7 @@
       <!-- Section 2: Economic Indicators + Adjustments -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <EconomicIndicatorCard
-          title="Dólar Blue"
+          :title="$t('dashboard.dolarBlue')"
           type="dolar"
           variant="blue"
           :buy-price="economicIndicators.dolarBlue.compra"
@@ -66,7 +66,7 @@
         />
 
         <EconomicIndicatorCard
-          title="Dólar Oficial"
+          :title="$t('dashboard.dolarOficial')"
           type="dolar"
           variant="oficial"
           :buy-price="economicIndicators.dolarOficial.compra"
@@ -77,7 +77,7 @@
         />
 
         <EconomicIndicatorCard
-          title="Inflación Mensual (IPC)"
+          :title="$t('dashboard.monthlyInflation')"
           type="inflacion"
           :value="economicIndicators.inflacion.valor"
           :period="economicIndicators.inflacion.mes"
@@ -104,7 +104,7 @@
         <Card>
           <CardHeader class="pb-2">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <CardTitle class="text-lg">Ingresos por Mes</CardTitle>
+              <CardTitle class="text-lg">{{ $t('dashboard.incomeByMonth') }}</CardTitle>
               <div class="flex gap-1">
                 <Button
                   v-for="option in chartPeriodOptions"
@@ -126,7 +126,7 @@
         <!-- Donut Chart: Payment Distribution -->
         <Card>
           <CardHeader class="pb-2">
-            <CardTitle class="text-lg">Distribución de Pagos - {{ currentMonthLabel }}</CardTitle>
+            <CardTitle class="text-lg">{{ $t('dashboard.paymentDistribution') }} - {{ currentMonthLabel }}</CardTitle>
           </CardHeader>
           <CardContent>
             <PaymentDistributionChart :data="paymentDistribution" :loading="loading" />
@@ -165,6 +165,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
@@ -192,6 +193,8 @@ import { useDashboard } from '@/composables/useDashboard'
 import { useAutomaticAdjustments } from '@/composables/useAutomaticAdjustments'
 import { useInflationData } from '@/composables/useInflationData'
 import type { AdjustmentHistory } from '@/types'
+
+const { t } = useI18n()
 
 const {
   loading,
@@ -224,11 +227,11 @@ const { getLatestInflation } = useInflationData()
 
 // Chart period state
 const chartPeriod = ref(6)
-const chartPeriodOptions = [
-  { label: '3 meses', value: 3 },
-  { label: '6 meses', value: 6 },
-  { label: '12 meses', value: 12 },
-]
+const chartPeriodOptions = computed(() => [
+  { label: t('dashboard.months3'), value: 3 },
+  { label: t('dashboard.months6'), value: 6 },
+  { label: t('dashboard.months12'), value: 12 },
+])
 
 // Adjustment state
 const adjustmentCounts = ref({ applied: 0, estimated: 0, pending: 0 })

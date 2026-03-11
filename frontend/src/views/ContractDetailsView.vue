@@ -3,25 +3,25 @@
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Cargando contrato...</p>
+        <p class="mt-2">{{ $t('contracts.loadingContracts') }}</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error al cargar contrato</p>
+        <p class="text-destructive font-medium mb-2">{{ $t('contracts.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="loadContract">
-          Reintentar
+          {{ $t('common.retry') }}
         </Button>
       </div>
 
       <!-- Not found state -->
       <div v-else-if="!contract" class="py-12 text-center">
         <FileText class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <p class="text-lg font-medium text-muted-foreground mb-2">Contrato no encontrado</p>
+        <p class="text-lg font-medium text-muted-foreground mb-2">{{ $t('contracts.contractNotFound') }}</p>
         <Button variant="outline" @click="goBack">
           <ArrowLeft class="w-4 h-4 mr-2" />
-          Volver al listado
+          {{ $t('contracts.backToList') }}
         </Button>
       </div>
 
@@ -32,30 +32,30 @@
           <div>
             <Button variant="ghost" size="sm" class="mb-2" @click="goBack">
               <ArrowLeft class="w-4 h-4 mr-2" />
-              Volver a Contratos
+              {{ $t('contracts.backToContracts') }}
             </Button>
-            <h1 class="text-2xl font-bold">Contrato - {{ propertyAddress }}</h1>
+            <h1 class="text-2xl font-bold">{{ $t('contracts.contractTitle') }} - {{ propertyAddress }}</h1>
             <div class="flex items-center gap-2 mt-2">
               <Badge :class="getStatusBadgeClass(displayStatus)">
-                {{ statusLabels[displayStatus] }}
+                {{ $t(`contracts.${displayStatus}`) }}
               </Badge>
               <Badge variant="outline" class="capitalize">
-                {{ contractTypeLabels[contract.contract_type] }}
+                {{ $t(`contracts.${contract.contract_type}`) }}
               </Badge>
             </div>
           </div>
           <div class="flex items-center gap-2">
             <Button variant="outline" @click="openEditDialog">
               <Pencil class="w-4 h-4 mr-2" />
-              Editar
+              {{ $t('common.edit') }}
             </Button>
             <Button variant="outline" @click="openPDFEditor">
               <FileText class="w-4 h-4 mr-2" />
-              Generar PDF
+              {{ $t('contracts.generatePDF') }}
             </Button>
             <Button variant="destructive" @click="openCancelDialog">
               <XCircle class="w-4 h-4 mr-2" />
-              Cancelar Contrato
+              {{ $t('contracts.cancelContract') }}
             </Button>
           </div>
         </div>
@@ -74,12 +74,12 @@
             <!-- General Information Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Información General</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.generalInfo') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="md:col-span-2">
-                    <dt class="text-sm text-muted-foreground">Propiedad</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.property') }}</dt>
                     <dd class="font-medium">
                       <RouterLink
                         :to="{ name: 'property-details', params: { id: contract.property_id } }"
@@ -90,31 +90,31 @@
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Tipo de Contrato</dt>
-                    <dd class="font-medium capitalize">{{ contractTypeLabels[contract.contract_type] }}</dd>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.contractType') }}</dt>
+                    <dd class="font-medium capitalize">{{ $t(`contracts.${contract.contract_type}`) }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Estado</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.status') }}</dt>
                     <dd>
                       <Badge :class="['mt-1', getStatusBadgeClass(displayStatus)]">
-                        {{ statusLabels[displayStatus] }}
+                        {{ $t(`contracts.${displayStatus}`) }}
                       </Badge>
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Fecha Inicio</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.startDate') }}</dt>
                     <dd class="font-medium">{{ formatDate(contract.start_date) }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Fecha Fin</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.endDate') }}</dt>
                     <dd class="font-medium">{{ formatDate(contract.end_date) }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Duración</dt>
-                    <dd class="font-medium">{{ contractDuration }} meses</dd>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.duration') }}</dt>
+                    <dd class="font-medium">{{ $t('contracts.durationMonths', { months: contractDuration }) }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Primer Pago</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.firstPayment') }}</dt>
                     <dd class="font-medium">{{ formatDate(contract.first_payment_date) }}</dd>
                   </div>
                 </dl>
@@ -124,7 +124,7 @@
             <!-- Financial Terms Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Condiciones Financieras</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.financialTerms') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -132,13 +132,13 @@
                   <div class="md:col-span-2 p-4 bg-primary/5 rounded-lg">
                     <div class="grid grid-cols-2 gap-4">
                       <div>
-                        <p class="text-sm text-muted-foreground">Alquiler Base</p>
+                        <p class="text-sm text-muted-foreground">{{ $t('contracts.baseRent') }}</p>
                         <p class="text-2xl font-bold text-primary">
                           {{ formatContractCurrency(contract.base_rent_amount) }}
                         </p>
                       </div>
                       <div v-if="contract.current_rent_amount !== contract.base_rent_amount">
-                        <p class="text-sm text-muted-foreground">Alquiler Actual</p>
+                        <p class="text-sm text-muted-foreground">{{ $t('contracts.currentRent') }}</p>
                         <p class="text-2xl font-bold text-primary">
                           {{ formatContractCurrency(contract.current_rent_amount) }}
                         </p>
@@ -147,25 +147,25 @@
                   </div>
 
                   <div>
-                    <dt class="text-sm text-muted-foreground">Depósito</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.deposit') }}</dt>
                     <dd class="font-medium">{{ formatContractCurrency(contract.deposit_amount) }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Día de Pago</dt>
-                    <dd class="font-medium">Día {{ contract.payment_due_day }} de cada mes</dd>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.paymentDay') }}</dt>
+                    <dd class="font-medium">{{ $t('contracts.paymentDayOfMonth', { day: contract.payment_due_day }) }}</dd>
                   </div>
 
                   <Separator class="md:col-span-2" />
 
                   <div>
-                    <dt class="text-sm text-muted-foreground">Tipo de Ajuste</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.adjustmentType') }}</dt>
                     <dd class="font-medium">
-                      {{ contract.adjustment_type ?? 'Sin ajuste' }}
-                      {{ contract.adjustment_period ? adjustmentPeriodLabels[contract.adjustment_period] : '' }}
+                      {{ contract.adjustment_type ?? $t('contracts.noAdjustment') }}
+                      {{ contract.adjustment_period ? $t(`contracts.${contract.adjustment_period}`) : '' }}
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Próximo Ajuste</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.nextAdjustment') }}</dt>
                     <dd class="font-medium">
                       <span v-if="contract.next_adjustment_date" :class="isAdjustmentSoon ? 'text-yellow-600' : ''">
                         {{ formatDate(contract.next_adjustment_date) }}
@@ -177,16 +177,16 @@
                   <Separator class="md:col-span-2" />
 
                   <div>
-                    <dt class="text-sm text-muted-foreground">Interés por Mora</dt>
-                    <dd class="font-medium">{{ contract.late_payment_interest_rate }}% diario</dd>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.lateInterestRate') }}</dt>
+                    <dd class="font-medium">{{ $t('contracts.dailyRate', { rate: contract.late_payment_interest_rate }) }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Penalidad Rescisión Anticipada</dt>
-                    <dd class="font-medium">{{ contract.early_termination_penalty_months }} meses de alquiler</dd>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.earlyTerminationPenalty') }}</dt>
+                    <dd class="font-medium">{{ $t('contracts.monthsOfRent', { months: contract.early_termination_penalty_months }) }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Penalidad por No Devolución</dt>
-                    <dd class="font-medium">{{ contract.non_return_penalty_rate }}% diario</dd>
+                    <dt class="text-sm text-muted-foreground">{{ $t('contracts.nonReturnPenaltyRate') }}</dt>
+                    <dd class="font-medium">{{ $t('contracts.dailyRate', { rate: contract.non_return_penalty_rate }) }}</dd>
                   </div>
                 </div>
               </CardContent>
@@ -195,7 +195,7 @@
             <!-- Guarantors Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Garantes ({{ contract.guarantors?.length ?? 0 }})</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.guarantors') }} ({{ contract.guarantors?.length ?? 0 }})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div v-if="contract.guarantors && contract.guarantors.length > 0" class="space-y-4">
@@ -207,27 +207,27 @@
                     <!-- Persona Física -->
                     <template v-if="guarantor.type === 'persona_fisica'">
                       <div class="flex items-center gap-2 mb-3">
-                        <Badge variant="outline">Persona Física</Badge>
+                        <Badge variant="outline">{{ $t('contracts.personaFisica') }}</Badge>
                       </div>
                       <dl class="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <dt class="text-muted-foreground">Nombre</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.guarantorName') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPersonaFisica).full_name }}</dd>
                         </div>
                         <div>
-                          <dt class="text-muted-foreground">DNI</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.guarantorDni') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPersonaFisica).dni }}</dd>
                         </div>
                         <div>
-                          <dt class="text-muted-foreground">CUIL</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.guarantorCuil') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPersonaFisica).cuil }}</dd>
                         </div>
                         <div>
-                          <dt class="text-muted-foreground">Teléfono</dt>
+                          <dt class="text-muted-foreground">{{ $t('common.phone') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPersonaFisica).phone || '-' }}</dd>
                         </div>
                         <div class="col-span-2">
-                          <dt class="text-muted-foreground">Dirección</dt>
+                          <dt class="text-muted-foreground">{{ $t('common.address') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPersonaFisica).address || '-' }}</dd>
                         </div>
                       </dl>
@@ -236,26 +236,26 @@
                     <!-- FINAER -->
                     <template v-else-if="guarantor.type === 'finaer'">
                       <div class="flex items-center gap-2 mb-3">
-                        <Badge variant="outline">FINAER</Badge>
+                        <Badge variant="outline">{{ $t('contracts.finaer') }}</Badge>
                       </div>
                       <dl class="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <dt class="text-muted-foreground">Empresa</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.companyName') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorFinaer).company_name }}</dd>
                         </div>
                         <div>
-                          <dt class="text-muted-foreground">CUIT</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.companyCuit') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorFinaer).cuit }}</dd>
                         </div>
                         <div>
-                          <dt class="text-muted-foreground">Código Garantía</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.guaranteeCode') }}</dt>
                           <dd class="font-medium font-mono">{{ (guarantor as GuarantorFinaer).guarantee_code }}</dd>
                         </div>
                         <div>
-                          <dt class="text-muted-foreground">Representante</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.representative') }}</dt>
                           <dd class="font-medium">
                             {{ (guarantor as GuarantorFinaer).representative_name }}
-                            <span class="text-muted-foreground">(DNI: {{ (guarantor as GuarantorFinaer).representative_dni }})</span>
+                            <span class="text-muted-foreground">({{ $t('contracts.guarantorDni') }}: {{ (guarantor as GuarantorFinaer).representative_dni }})</span>
                           </dd>
                         </div>
                       </dl>
@@ -264,31 +264,31 @@
                     <!-- Propiedad en Garantía -->
                     <template v-else-if="guarantor.type === 'propiedad'">
                       <div class="flex items-center gap-2 mb-3">
-                        <Badge variant="outline">Propiedad en Garantía</Badge>
+                        <Badge variant="outline">{{ $t('contracts.propiedad') }}</Badge>
                       </div>
                       <dl class="grid grid-cols-2 gap-3 text-sm">
                         <div class="col-span-2">
-                          <dt class="text-muted-foreground">Garante</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.guarantorName') }}</dt>
                           <dd class="font-medium">
                             {{ (guarantor as GuarantorPropiedad).guarantor_name }}
                             <span class="text-muted-foreground">
-                              (DNI: {{ (guarantor as GuarantorPropiedad).guarantor_dni }}
+                              ({{ $t('contracts.guarantorDni') }}: {{ (guarantor as GuarantorPropiedad).guarantor_dni }}
                               <span v-if="(guarantor as GuarantorPropiedad).guarantor_cuil">
-                                , CUIL: {{ (guarantor as GuarantorPropiedad).guarantor_cuil }}
+                                , {{ $t('contracts.guarantorCuil') }}: {{ (guarantor as GuarantorPropiedad).guarantor_cuil }}
                               </span>)
                             </span>
                           </dd>
                         </div>
                         <div class="col-span-2">
-                          <dt class="text-muted-foreground">Dirección Propiedad</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.propertyAddress') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPropiedad).property_address }}</dd>
                         </div>
                         <div class="col-span-2">
-                          <dt class="text-muted-foreground">Datos Catastrales</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.cadastralData') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPropiedad).cadastral_data }}</dd>
                         </div>
                         <div v-if="(guarantor as GuarantorPropiedad).cadastral_details" class="col-span-2">
-                          <dt class="text-muted-foreground">Detalles Catastrales</dt>
+                          <dt class="text-muted-foreground">{{ $t('contracts.cadastralDetails') }}</dt>
                           <dd class="font-medium">{{ (guarantor as GuarantorPropiedad).cadastral_details }}</dd>
                         </div>
                       </dl>
@@ -298,7 +298,7 @@
 
                 <div v-else class="py-8 text-center">
                   <Shield class="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                  <p class="text-sm text-muted-foreground">No hay garantes registrados</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('contracts.noGuarantors') }}</p>
                 </div>
               </CardContent>
             </Card>
@@ -306,7 +306,7 @@
             <!-- Special Clauses Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Cláusulas Especiales</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.specialClauses') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="space-y-4">
@@ -319,9 +319,9 @@
                       <ShieldX v-else class="w-4 h-4" />
                     </div>
                     <div>
-                      <p class="font-medium">Seguro de Inquilino</p>
+                      <p class="font-medium">{{ $t('contracts.tenantInsurance') }}</p>
                       <p class="text-sm text-muted-foreground">
-                        {{ contract.insurance_required ? 'Requerido' : 'No requerido' }}
+                        {{ contract.insurance_required ? $t('contracts.required') : $t('contracts.notRequired') }}
                       </p>
                     </div>
                   </div>
@@ -329,9 +329,9 @@
                   <Separator />
 
                   <div>
-                    <p class="text-sm text-muted-foreground mb-2">Notas Adicionales</p>
+                    <p class="text-sm text-muted-foreground mb-2">{{ $t('contracts.additionalNotes') }}</p>
                     <p v-if="contract.notes" class="whitespace-pre-wrap">{{ contract.notes }}</p>
-                    <p v-else class="text-muted-foreground italic">Sin notas adicionales</p>
+                    <p v-else class="text-muted-foreground italic">{{ $t('contracts.noAdditionalNotes') }}</p>
                   </div>
                 </div>
               </CardContent>
@@ -340,13 +340,13 @@
             <!-- Documents Placeholder Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Documentos del Contrato</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.contractDocuments') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="py-8 text-center">
                   <FileText class="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                   <p class="text-sm text-muted-foreground">
-                    La funcionalidad de carga de documentos estará disponible en Fase 2.
+                    {{ $t('contracts.documentsPlaceholder') }}
                   </p>
                 </div>
               </CardContent>
@@ -355,7 +355,7 @@
             <!-- Payments Section -->
             <Card>
               <CardHeader class="flex flex-row items-center justify-between">
-                <CardTitle class="text-lg">Historial de Pagos</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.paymentHistory') }}</CardTitle>
                 <div class="flex gap-2">
                   <Button
                     v-if="paymentsSummary.total === 0 && contract"
@@ -363,14 +363,14 @@
                     @click="showGeneratePaymentsDialog = true"
                   >
                     <Plus class="w-4 h-4 mr-2" />
-                    Generar Pagos
+                    {{ $t('contracts.generatePayments') }}
                   </Button>
                   <RouterLink
                     v-if="paymentsSummary.total > 0"
                     :to="{ name: 'payments', query: { contractId: contract?.id } }"
                   >
                     <Button variant="outline" size="sm">
-                      Ver Todos
+                      {{ $t('contracts.viewAll') }}
                       <ChevronRight class="w-4 h-4 ml-1" />
                     </Button>
                   </RouterLink>
@@ -390,29 +390,29 @@
                       <p class="text-lg font-bold text-green-600 dark:text-green-400">
                         {{ paymentsSummary.paid }}
                       </p>
-                      <p class="text-xs text-green-700 dark:text-green-300">Pagados</p>
+                      <p class="text-xs text-green-700 dark:text-green-300">{{ $t('contracts.paid') }}</p>
                     </div>
                     <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
                       <p class="text-lg font-bold text-blue-600 dark:text-blue-400">
                         {{ paymentsSummary.pending }}
                       </p>
-                      <p class="text-xs text-blue-700 dark:text-blue-300">Pendientes</p>
+                      <p class="text-xs text-blue-700 dark:text-blue-300">{{ $t('contracts.pending') }}</p>
                     </div>
                     <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
                       <p class="text-lg font-bold text-red-600 dark:text-red-400">
                         {{ paymentsSummary.overdue }}
                       </p>
-                      <p class="text-xs text-red-700 dark:text-red-300">Vencidos</p>
+                      <p class="text-xs text-red-700 dark:text-red-300">{{ $t('contracts.overdue') }}</p>
                     </div>
                     <div class="p-3 bg-muted rounded-lg text-center">
                       <p class="text-lg font-bold">{{ paymentsSummary.total }}</p>
-                      <p class="text-xs text-muted-foreground">Total</p>
+                      <p class="text-xs text-muted-foreground">{{ $t('contracts.total') }}</p>
                     </div>
                   </div>
 
                   <!-- Amount Summary -->
                   <div class="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <span class="text-sm text-muted-foreground">Total cobrado:</span>
+                    <span class="text-sm text-muted-foreground">{{ $t('contracts.totalCollected') }}</span>
                     <span class="font-semibold text-green-600">
                       {{ formatCurrency(paymentsSummary.paidAmount) }}
                     </span>
@@ -420,7 +420,7 @@
 
                   <!-- Recent Payments Preview -->
                   <div v-if="recentPayments.length > 0" class="space-y-2">
-                    <p class="text-sm font-medium text-muted-foreground">Pagos recientes:</p>
+                    <p class="text-sm font-medium text-muted-foreground">{{ $t('contracts.recentPayments') }}</p>
                     <div
                       v-for="payment in recentPayments"
                       :key="payment.id"
@@ -444,7 +444,7 @@
                 <div v-else class="py-8 text-center">
                   <CreditCard class="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                   <p class="text-sm text-muted-foreground mb-3">
-                    No hay pagos generados para este contrato
+                    {{ $t('contracts.noPaymentsGenerated') }}
                   </p>
                   <Button
                     v-if="contract"
@@ -453,7 +453,7 @@
                     @click="showGeneratePaymentsDialog = true"
                   >
                     <Plus class="w-4 h-4 mr-2" />
-                    Generar Pagos
+                    {{ $t('contracts.generatePayments') }}
                   </Button>
                 </div>
               </CardContent>
@@ -474,13 +474,13 @@
             <!-- Tenants Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Inquilinos</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.tenants') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="space-y-4">
                   <!-- Titular -->
                   <div v-if="titular">
-                    <p class="text-sm text-muted-foreground mb-2">Titular</p>
+                    <p class="text-sm text-muted-foreground mb-2">{{ $t('contracts.titular') }}</p>
                     <div class="flex items-center gap-3">
                       <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                         <User class="w-5 h-5 text-primary" />
@@ -501,7 +501,7 @@
                   <!-- Co-titulares -->
                   <div v-if="coTitulares.length > 0">
                     <Separator class="my-3" />
-                    <p class="text-sm text-muted-foreground mb-2">Co-titulares</p>
+                    <p class="text-sm text-muted-foreground mb-2">{{ $t('contracts.coTitulares') }}</p>
                     <div class="space-y-3">
                       <div v-for="coTitular in coTitulares" :key="coTitular.id" class="flex items-center gap-3">
                         <div class="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
@@ -521,7 +521,7 @@
                   </div>
 
                   <div v-if="!titular && coTitulares.length === 0" class="text-center py-4">
-                    <p class="text-sm text-muted-foreground">Sin inquilinos asignados</p>
+                    <p class="text-sm text-muted-foreground">{{ $t('contracts.noTenantsAssigned') }}</p>
                   </div>
                 </div>
               </CardContent>
@@ -530,15 +530,15 @@
             <!-- Metadata Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Detalles</CardTitle>
+                <CardTitle class="text-lg">{{ $t('common.details') }}</CardTitle>
               </CardHeader>
               <CardContent class="space-y-3">
                 <div>
-                  <p class="text-sm text-muted-foreground">Creado</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('common.created') }}</p>
                   <p class="font-medium">{{ formatDateTime(contract.created_at) }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Última Actualización</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('common.lastUpdated') }}</p>
                   <p class="font-medium">{{ formatDateTime(contract.updated_at) }}</p>
                 </div>
               </CardContent>
@@ -547,20 +547,20 @@
             <!-- Quick Actions Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Acciones Rápidas</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contracts.quickActions') }}</CardTitle>
               </CardHeader>
               <CardContent class="space-y-2">
                 <Button variant="outline" class="w-full justify-start" @click="openEditDialog">
                   <Pencil class="w-4 h-4 mr-2" />
-                  Editar Contrato
+                  {{ $t('contracts.editContract') }}
                 </Button>
                 <Button variant="outline" class="w-full justify-start" @click="openPDFEditor">
                   <FileText class="w-4 h-4 mr-2" />
-                  Generar PDF
+                  {{ $t('contracts.generatePDF') }}
                 </Button>
                 <Button variant="outline" class="w-full justify-start text-destructive hover:text-destructive" @click="openCancelDialog">
                   <XCircle class="w-4 h-4 mr-2" />
-                  Cancelar Contrato
+                  {{ $t('contracts.cancelContract') }}
                 </Button>
               </CardContent>
             </Card>
@@ -605,6 +605,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -629,14 +630,13 @@ import {
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import { usePayments } from '@/composables/usePayments'
+import { useDate } from '@/composables/useDate'
 import AdjustmentAlert from '@/components/payments/AdjustmentAlert.vue'
 import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
 import RentAdjustmentDialog from '@/components/payments/RentAdjustmentDialog.vue'
 import type {
   ContractWithRelations,
-  ContractType,
   ContractDisplayStatus,
-  AdjustmentPeriod,
   Tenant,
   GuarantorPersonaFisica,
   GuarantorFinaer,
@@ -645,6 +645,7 @@ import type {
   PaymentStatus,
 } from '@/types'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {
@@ -656,6 +657,8 @@ const {
   getTitular,
   getCoTitulares,
 } = useContracts()
+
+const { formatDate, formatDateTime, getMonthName } = useDate()
 
 const contract = ref<ContractWithRelations | null>(null)
 const dialogOpen = ref(false)
@@ -669,7 +672,6 @@ const {
   getPaymentsSummary,
   fetchPayments,
   formatCurrency,
-  getMonthName,
   getStatusLabel: getPaymentStatusLabel,
 } = usePayments()
 
@@ -685,27 +687,6 @@ const paymentsSummary = ref({
 })
 
 const contractId = computed(() => route.params.id as string)
-
-// Labels
-const contractTypeLabels: Record<ContractType, string> = {
-  vivienda: 'Vivienda',
-  comercial: 'Comercial',
-  cochera: 'Cochera',
-  oficina: 'Oficina',
-}
-
-const statusLabels: Record<ContractDisplayStatus, string> = {
-  active: 'Activo',
-  expiring_soon: 'Por Vencer',
-  expired: 'Vencido',
-  cancelled: 'Cancelado',
-}
-
-const adjustmentPeriodLabels: Record<AdjustmentPeriod, string> = {
-  trimestral: 'Trimestral',
-  semestral: 'Semestral',
-  anual: 'Anual',
-}
 
 // Computed
 const displayStatus = computed<ContractDisplayStatus>(() => {
@@ -750,26 +731,6 @@ const isAdjustmentSoon = computed(() => {
 })
 
 // Methods
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr + 'T00:00:00')
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
-
-function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-AR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 function formatContractCurrency(amount: number | null): string {
   if (amount === null) return '-'
   return new Intl.NumberFormat('es-AR', {

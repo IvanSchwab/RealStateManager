@@ -2,10 +2,10 @@
   <div class="p-6">
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Tenants</h1>
+        <h1 class="text-2xl font-bold">{{ $t('tenants.title') }}</h1>
         <Button @click="openCreateDialog">
           <Plus class="w-4 h-4 mr-2" />
-          Add Tenant
+          {{ $t('tenants.newTenant') }}
         </Button>
       </div>
 
@@ -14,7 +14,7 @@
         <div class="flex-1 min-w-[200px]">
           <Input
             v-model="searchQuery"
-            placeholder="Search by name, email or phone..."
+            :placeholder="$t('tenants.searchPlaceholder')"
             class="w-full"
           >
             <template #prefix>
@@ -25,26 +25,26 @@
 
         <Select v-model="filterStatus" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Status" />
+            <SelectValue :placeholder="$t('common.status')" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="activo">Activo</SelectItem>
-              <SelectItem value="inactivo">Inactivo</SelectItem>
+              <SelectItem value="all">{{ $t('tenants.allStatus') }}</SelectItem>
+              <SelectItem value="activo">{{ $t('tenants.activo') }}</SelectItem>
+              <SelectItem value="inactivo">{{ $t('tenants.inactivo') }}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
 
         <Select v-model="filterEmployer" class="w-[200px]">
           <SelectTrigger>
-            <SelectValue placeholder="Employment" />
+            <SelectValue :placeholder="$t('tenants.employmentInfo')" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">All Employment</SelectItem>
-              <SelectItem value="with">With Employer</SelectItem>
-              <SelectItem value="without">Without Employer</SelectItem>
+              <SelectItem value="all">{{ $t('tenants.allEmployment') }}</SelectItem>
+              <SelectItem value="with">{{ $t('tenants.withEmployer') }}</SelectItem>
+              <SelectItem value="without">{{ $t('tenants.withoutEmployer') }}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -56,22 +56,22 @@
           @click="clearFilters"
         >
           <X class="w-4 h-4 mr-1" />
-          Clear filters
+          {{ $t('common.clearFilters') }}
         </Button>
       </div>
 
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Loading tenants...</p>
+        <p class="mt-2">{{ $t('tenants.loadingTenants') }}</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error loading tenants</p>
+        <p class="text-destructive font-medium mb-2">{{ $t('tenants.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="fetchTenants()">
-          Retry
+          {{ $t('common.retry') }}
         </Button>
       </div>
 
@@ -81,20 +81,20 @@
         <div v-if="filteredTenants.length === 0" class="py-12 text-center">
           <Users class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
-            {{ hasActiveFilters ? 'No tenants match your filters' : 'No tenants found' }}
+            {{ hasActiveFilters ? $t('tenants.noTenantsFiltered') : $t('tenants.noTenants') }}
           </p>
           <p class="text-sm text-muted-foreground mb-4">
             {{ hasActiveFilters
-              ? 'Try adjusting your search or filter criteria'
-              : 'Get started by adding your first tenant'
+              ? $t('properties.adjustFilters')
+              : $t('tenants.startAddingTenant')
             }}
           </p>
           <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-            Clear filters
+            {{ $t('common.clearFilters') }}
           </Button>
           <Button v-else @click="openCreateDialog">
             <Plus class="w-4 h-4 mr-2" />
-            Add Tenant
+            {{ $t('tenants.newTenant') }}
           </Button>
         </div>
 
@@ -103,13 +103,13 @@
           <table class="w-full">
             <thead class="bg-muted/50">
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Email</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Phone</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Employer</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Monthly Income</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Actions</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.name') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.email') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.phone') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('tenants.employer') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('tenants.monthlyIncome') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.status') }}</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">{{ $t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -137,8 +137,8 @@
                   {{ formatCurrency(tenant.monthly_income) }}
                 </td>
                 <td class="px-4 py-3">
-                  <Badge :variant="getStatusVariant(tenant.status)" class="capitalize">
-                    {{ tenant.status }}
+                  <Badge :variant="getStatusVariant(tenant.status)">
+                    {{ $t(`tenants.${tenant.status}`) }}
                   </Badge>
                 </td>
                 <td class="px-4 py-3 text-right" @click.stop>
@@ -147,7 +147,7 @@
                       variant="ghost"
                       size="icon"
                       @click="viewTenant(tenant.id)"
-                      title="View details"
+                      :title="$t('common.view')"
                     >
                       <Eye class="w-4 h-4" />
                     </Button>
@@ -155,7 +155,7 @@
                       variant="ghost"
                       size="icon"
                       @click="openEditDialog(tenant.id)"
-                      title="Edit tenant"
+                      :title="$t('common.edit')"
                     >
                       <Pencil class="w-4 h-4" />
                     </Button>
@@ -163,7 +163,7 @@
                       variant="ghost"
                       size="icon"
                       @click="openDeleteDialog(tenant)"
-                      title="Delete tenant"
+                      :title="$t('common.delete')"
                     >
                       <Trash2 class="w-4 h-4 text-destructive" />
                     </Button>
@@ -185,17 +185,17 @@
             <div class="flex items-start justify-between mb-3">
               <div>
                 <h3 class="font-medium">{{ tenant.last_name }}, {{ tenant.first_name }}</h3>
-                <p class="text-sm text-muted-foreground">{{ tenant.email ?? 'No email' }}</p>
+                <p class="text-sm text-muted-foreground">{{ tenant.email ?? $t('tenants.noEmail') }}</p>
               </div>
-              <Badge :variant="getStatusVariant(tenant.status)" class="capitalize">
-                {{ tenant.status }}
+              <Badge :variant="getStatusVariant(tenant.status)">
+                {{ $t(`tenants.${tenant.status}`) }}
               </Badge>
             </div>
 
             <div class="space-y-1 text-sm mb-3">
-              <p><span class="text-muted-foreground">Phone:</span> {{ tenant.phone }}</p>
-              <p><span class="text-muted-foreground">Employer:</span> {{ tenant.employer ?? '-' }}</p>
-              <p><span class="text-muted-foreground">Income:</span> {{ formatCurrency(tenant.monthly_income) }}</p>
+              <p><span class="text-muted-foreground">{{ $t('common.phone') }}:</span> {{ tenant.phone }}</p>
+              <p><span class="text-muted-foreground">{{ $t('tenants.employer') }}:</span> {{ tenant.employer ?? '-' }}</p>
+              <p><span class="text-muted-foreground">{{ $t('tenants.monthlyIncome') }}:</span> {{ formatCurrency(tenant.monthly_income) }}</p>
             </div>
 
             <div class="flex items-center justify-end gap-1 pt-3 border-t" @click.stop>
@@ -205,7 +205,7 @@
                 @click="viewTenant(tenant.id)"
               >
                 <Eye class="w-4 h-4 mr-1" />
-                View
+                {{ $t('common.view') }}
               </Button>
               <Button
                 variant="ghost"
@@ -213,7 +213,7 @@
                 @click="openEditDialog(tenant.id)"
               >
                 <Pencil class="w-4 h-4 mr-1" />
-                Edit
+                {{ $t('common.edit') }}
               </Button>
               <Button
                 variant="ghost"
@@ -221,15 +221,15 @@
                 @click="openDeleteDialog(tenant)"
               >
                 <Trash2 class="w-4 h-4 mr-1 text-destructive" />
-                Delete
+                {{ $t('common.delete') }}
               </Button>
             </div>
           </div>
         </div>
 
         <p class="mt-4 text-sm text-muted-foreground">
-          Showing {{ filteredTenants.length }} of {{ tenants.length }}
-          {{ tenants.length === 1 ? 'tenant' : 'tenants' }}
+          {{ $t('common.showing') }} {{ filteredTenants.length }} {{ $t('common.of') }} {{ tenants.length }}
+          {{ tenants.length === 1 ? $t('contracts.tenant').toLowerCase() : $t('tenants.title').toLowerCase() }}
         </p>
       </template>
 
@@ -253,6 +253,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -279,6 +280,7 @@ import {
 import { useTenants } from '@/composables/useTenants'
 import type { Tenant } from '@/types'
 
+const { t } = useI18n()
 const router = useRouter()
 const { tenants, loading, error, fetchTenants } = useTenants()
 

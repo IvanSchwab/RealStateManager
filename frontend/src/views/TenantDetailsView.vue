@@ -3,25 +3,25 @@
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Loading tenant...</p>
+        <p class="mt-2">{{ $t('tenants.loadingTenants') }}</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error loading tenant</p>
+        <p class="text-destructive font-medium mb-2">{{ $t('tenants.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="loadTenant">
-          Retry
+          {{ $t('common.retry') }}
         </Button>
       </div>
 
       <!-- Not found state -->
       <div v-else-if="!tenant" class="py-12 text-center">
         <Users class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <p class="text-lg font-medium text-muted-foreground mb-2">Tenant not found</p>
+        <p class="text-lg font-medium text-muted-foreground mb-2">{{ $t('tenants.tenantNotFound') }}</p>
         <Button variant="outline" @click="goBack">
           <ArrowLeft class="w-4 h-4 mr-2" />
-          Back to Tenants
+          {{ $t('tenants.backToTenants') }}
         </Button>
       </div>
 
@@ -32,23 +32,23 @@
           <div>
             <Button variant="ghost" size="sm" class="mb-2" @click="goBack">
               <ArrowLeft class="w-4 h-4 mr-2" />
-              Back to Tenants
+              {{ $t('tenants.backToTenants') }}
             </Button>
             <h1 class="text-2xl font-bold">{{ tenant.last_name }}, {{ tenant.first_name }}</h1>
             <p class="text-muted-foreground mt-1">
-              <Badge :variant="getStatusVariant(tenant.status)" class="capitalize">
-                {{ tenant.status }}
+              <Badge :variant="getStatusVariant(tenant.status)">
+                {{ $t(`tenants.${tenant.status}`) }}
               </Badge>
             </p>
           </div>
           <div class="flex items-center gap-2">
             <Button variant="outline" @click="openEditDialog">
               <Pencil class="w-4 h-4 mr-2" />
-              Edit
+              {{ $t('common.edit') }}
             </Button>
             <Button variant="destructive" @click="openDeleteDialog">
               <Trash2 class="w-4 h-4 mr-2" />
-              Delete
+              {{ $t('common.delete') }}
             </Button>
           </div>
         </div>
@@ -60,24 +60,24 @@
             <!-- Personal Information Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Personal Information</CardTitle>
+                <CardTitle class="text-lg">{{ $t('tenants.personalInfo') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl class="grid grid-cols-2 gap-4">
                   <div>
-                    <dt class="text-sm text-muted-foreground">Full Name</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.name') }}</dt>
                     <dd class="font-medium">{{ tenant.first_name }} {{ tenant.last_name }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">DNI</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('tenants.dni') }}</dt>
                     <dd class="font-medium">{{ tenant.dni ?? '-' }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">CUIT/CUIL</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('tenants.cuitCuil') }}</dt>
                     <dd class="font-medium">{{ tenant.cuit_cuil ?? '-' }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Email</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.email') }}</dt>
                     <dd class="font-medium">
                       <a
                         v-if="tenant.email"
@@ -90,7 +90,7 @@
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Phone</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.phone') }}</dt>
                     <dd class="font-medium">
                       <a
                         :href="`tel:${tenant.phone}`"
@@ -101,7 +101,7 @@
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Address</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.address') }}</dt>
                     <dd class="font-medium">{{ tenant.address ?? '-' }}</dd>
                   </div>
                 </dl>
@@ -111,38 +111,38 @@
             <!-- Employment Information Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Employment Information</CardTitle>
+                <CardTitle class="text-lg">{{ $t('tenants.employmentInfo') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div v-if="tenant.employer || tenant.monthly_income" class="space-y-4">
                   <dl class="grid grid-cols-2 gap-4">
                     <div>
-                      <dt class="text-sm text-muted-foreground">Employer</dt>
+                      <dt class="text-sm text-muted-foreground">{{ $t('tenants.employer') }}</dt>
                       <dd class="font-medium">{{ tenant.employer ?? '-' }}</dd>
                     </div>
                     <div>
-                      <dt class="text-sm text-muted-foreground">Employer Phone</dt>
+                      <dt class="text-sm text-muted-foreground">{{ $t('tenants.employerPhone') }}</dt>
                       <dd class="font-medium">{{ tenant.employer_phone ?? '-' }}</dd>
                     </div>
                   </dl>
                   <div class="pt-4 border-t">
-                    <dt class="text-sm text-muted-foreground">Monthly Income</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('tenants.monthlyIncome') }}</dt>
                     <dd class="text-2xl font-bold text-primary">
                       {{ formatCurrency(tenant.monthly_income) }}
                     </dd>
                   </div>
                 </div>
-                <p v-else class="text-muted-foreground text-sm">No employment information</p>
+                <p v-else class="text-muted-foreground text-sm">{{ $t('tenants.noEmploymentInfo') }}</p>
               </CardContent>
             </Card>
 
             <!-- Documents Card -->
             <Card>
               <CardHeader class="flex flex-row items-center justify-between">
-                <CardTitle class="text-lg">Documents</CardTitle>
+                <CardTitle class="text-lg">{{ $t('tenants.documents') }}</CardTitle>
                 <Button size="sm" @click="triggerFileUpload">
                   <Upload class="w-4 h-4 mr-2" />
-                  Upload
+                  {{ $t('common.upload') }}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -174,18 +174,18 @@
 
                   <div class="flex items-end gap-3">
                     <div class="flex-1">
-                      <Label for="docType" class="text-sm">Document Type</Label>
+                      <Label for="docType" class="text-sm">{{ $t('tenants.documentType') }}</Label>
                       <Select v-model="selectedDocumentType">
                         <SelectTrigger class="mt-1">
-                          <SelectValue placeholder="Select type" />
+                          <SelectValue :placeholder="$t('tenants.selectDocumentType')" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="dni_frente">DNI (Frente)</SelectItem>
-                            <SelectItem value="dni_dorso">DNI (Dorso)</SelectItem>
-                            <SelectItem value="recibo_sueldo">Recibo de Sueldo</SelectItem>
-                            <SelectItem value="garantia">Garantía</SelectItem>
-                            <SelectItem value="otro">Otro</SelectItem>
+                            <SelectItem value="dni_frente">{{ $t('tenants.dniFront') }}</SelectItem>
+                            <SelectItem value="dni_dorso">{{ $t('tenants.dniBack') }}</SelectItem>
+                            <SelectItem value="recibo_sueldo">{{ $t('tenants.payStub') }}</SelectItem>
+                            <SelectItem value="garantia">{{ $t('tenants.guarantee') }}</SelectItem>
+                            <SelectItem value="otro">{{ $t('tenants.other') }}</SelectItem>
                           </SelectGroup>
                         </SelectContent>
                       </Select>
@@ -195,7 +195,7 @@
                       @click="uploadSelectedFile"
                     >
                       <Loader2 v-if="documentsLoading" class="w-4 h-4 mr-2 animate-spin" />
-                      Upload
+                      {{ $t('common.upload') }}
                     </Button>
                   </div>
                 </div>
@@ -223,7 +223,7 @@
                             {{ getDocumentTypeLabel(doc.document_type) }}
                           </Badge>
                           <span>{{ formatFileSize(doc.file_size) }}</span>
-                          <span>{{ formatDate(doc.created_at) }}</span>
+                          <span>{{ formatDocDate(doc.created_at) }}</span>
                         </div>
                       </div>
                     </div>
@@ -231,7 +231,7 @@
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Download"
+                        :title="$t('common.download')"
                         @click="handleDownload(doc)"
                       >
                         <Download class="w-4 h-4" />
@@ -239,7 +239,7 @@
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Delete"
+                        :title="$t('common.delete')"
                         @click="confirmDeleteDocument(doc)"
                       >
                         <Trash2 class="w-4 h-4 text-destructive" />
@@ -251,10 +251,10 @@
                 <!-- Empty state -->
                 <div v-else class="py-8 text-center">
                   <FileText class="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                  <p class="text-sm text-muted-foreground mb-3">No documents uploaded yet</p>
+                  <p class="text-sm text-muted-foreground mb-3">{{ $t('tenants.noDocuments') }}</p>
                   <Button variant="outline" size="sm" @click="triggerFileUpload">
                     <Upload class="w-4 h-4 mr-2" />
-                    Upload Document
+                    {{ $t('tenants.uploadDocument') }}
                   </Button>
                 </div>
               </CardContent>
@@ -263,7 +263,7 @@
             <!-- Notes Card -->
             <Card v-if="tenant.notes">
               <CardHeader>
-                <CardTitle class="text-lg">Notes</CardTitle>
+                <CardTitle class="text-lg">{{ $t('common.notes') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p class="text-muted-foreground whitespace-pre-wrap">{{ tenant.notes }}</p>
@@ -276,7 +276,7 @@
             <!-- Emergency Contact Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Emergency Contact</CardTitle>
+                <CardTitle class="text-lg">{{ $t('tenants.emergencyContact') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div v-if="tenant.emergency_contact_name || tenant.emergency_contact_phone" class="space-y-3">
@@ -297,22 +297,22 @@
                     </div>
                   </div>
                 </div>
-                <p v-else class="text-muted-foreground text-sm">No emergency contact</p>
+                <p v-else class="text-muted-foreground text-sm">{{ $t('tenants.noEmergencyContact') }}</p>
               </CardContent>
             </Card>
 
             <!-- Metadata Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Details</CardTitle>
+                <CardTitle class="text-lg">{{ $t('common.details') }}</CardTitle>
               </CardHeader>
               <CardContent class="space-y-3">
                 <div>
-                  <p class="text-sm text-muted-foreground">Created</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('common.created') }}</p>
                   <p class="font-medium">{{ formatDateTime(tenant.created_at) }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Last Updated</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('common.lastUpdated') }}</p>
                   <p class="font-medium">{{ formatDateTime(tenant.updated_at) }}</p>
                 </div>
               </CardContent>
@@ -321,11 +321,11 @@
             <!-- Contracts Placeholder -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Contracts</CardTitle>
+                <CardTitle class="text-lg">{{ $t('nav.contracts') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p class="text-sm text-muted-foreground">
-                  Contract history will be displayed here in a future update.
+                  {{ $t('tenants.contractsPlaceholder') }}
                 </p>
               </CardContent>
             </Card>
@@ -353,20 +353,19 @@
       <AlertDialog :open="deleteDocDialogOpen" @update:open="deleteDocDialogOpen = $event">
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogTitle>{{ $t('tenants.deleteDocument') }}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>"{{ documentToDelete?.file_name }}"</strong>?
-              This action cannot be undone.
+              {{ $t('tenants.deleteDocumentConfirm', { name: documentToDelete?.file_name }) }}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{{ $t('common.cancel') }}</AlertDialogCancel>
             <AlertDialogAction
               class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               @click="handleDeleteDocument"
             >
               <Loader2 v-if="documentsLoading" class="w-4 h-4 mr-2 animate-spin" />
-              Delete
+              {{ $t('common.delete') }}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -376,6 +375,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -417,11 +417,14 @@ import {
 } from 'lucide-vue-next'
 import { useTenants } from '@/composables/useTenants'
 import { useDocuments } from '@/composables/useDocuments'
+import { useDate } from '@/composables/useDate'
 import type { Tenant, Document, DocumentType } from '@/types'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { fetchTenantById, loading, error } = useTenants()
+const { formatDate, formatDateTime } = useDate()
 const {
   documents,
   loading: documentsLoading,
@@ -461,22 +464,8 @@ function formatFileSize(bytes: number | null): string {
   return formatFileSizeUtil(bytes)
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-AR', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-AR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+function formatDocDate(dateString: string): string {
+  return formatDate(dateString)
 }
 
 function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {

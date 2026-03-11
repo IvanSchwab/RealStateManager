@@ -2,9 +2,9 @@
   <div class="p-6 space-y-6">
       <!-- Header -->
       <div>
-        <h1 class="text-2xl font-bold">Configuracion</h1>
+        <h1 class="text-2xl font-bold">{{ $t('settings.title') }}</h1>
         <p class="text-muted-foreground text-sm">
-          Administra las preferencias de tu cuenta
+          {{ $t('settings.subtitle') }}
         </p>
       </div>
 
@@ -13,27 +13,27 @@
         <CardHeader>
           <div class="flex items-center gap-2">
             <Building2 class="w-5 h-5 text-muted-foreground" />
-            <CardTitle>Mi Organizacion</CardTitle>
+            <CardTitle>{{ $t('settings.organization') }}</CardTitle>
           </div>
           <CardDescription>
-            Configura el nombre y logo de tu organizacion
+            {{ $t('settings.organizationDescription') }}
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <!-- Organization Name -->
           <div class="space-y-2">
-            <Label for="org-name">Nombre de la organizacion</Label>
+            <Label for="org-name">{{ $t('settings.orgName') }}</Label>
             <Input
               id="org-name"
               v-model="orgName"
-              placeholder="Nombre de tu organizacion"
+              :placeholder="$t('settings.orgNamePlaceholder')"
               :disabled="savingOrg"
             />
           </div>
 
           <!-- Logo Upload -->
           <div class="space-y-4">
-            <Label>Logo de la organizacion</Label>
+            <Label>{{ $t('settings.orgLogo') }}</Label>
 
             <!-- Current Logo Preview -->
             <div class="flex items-center gap-4">
@@ -61,7 +61,7 @@
                     :disabled="savingOrg"
                   >
                     <Upload class="w-4 h-4 mr-2" />
-                    {{ organization?.logo_url ? 'Cambiar logo' : 'Subir logo' }}
+                    {{ organization?.logo_url ? $t('settings.changeLogo') : $t('settings.uploadLogo') }}
                   </Button>
                   <Button
                     v-if="organization?.logo_url || logoPreview"
@@ -71,11 +71,11 @@
                     :disabled="savingOrg"
                   >
                     <Trash2 class="w-4 h-4 mr-2" />
-                    Eliminar
+                    {{ $t('settings.removeLogo') }}
                   </Button>
                 </div>
                 <p class="text-xs text-muted-foreground">
-                  JPG, PNG, WebP o SVG. Maximo 2MB.
+                  {{ $t('settings.logoHelp') }}
                 </p>
               </div>
             </div>
@@ -98,7 +98,7 @@
             >
               <Loader2 v-if="savingOrg" class="w-4 h-4 mr-2 animate-spin" />
               <Save v-else class="w-4 h-4 mr-2" />
-              Guardar cambios
+              {{ $t('settings.saveChanges') }}
             </Button>
           </div>
 
@@ -122,18 +122,18 @@
         <CardHeader>
           <div class="flex items-center gap-2">
             <Bell class="w-5 h-5 text-muted-foreground" />
-            <CardTitle>Notificaciones</CardTitle>
+            <CardTitle>{{ $t('settings.notifications') }}</CardTitle>
           </div>
           <CardDescription>
-            Configura y prueba el sistema de notificaciones
+            {{ $t('settings.notificationsDescription') }}
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
             <div class="space-y-1">
-              <p class="text-sm font-medium">Probar notificaciones</p>
+              <p class="text-sm font-medium">{{ $t('settings.testNotifications') }}</p>
               <p class="text-xs text-muted-foreground">
-                Envia una notificacion de prueba para verificar que el sistema funciona correctamente
+                {{ $t('settings.testNotificationsHelp') }}
               </p>
             </div>
             <Button
@@ -143,7 +143,7 @@
             >
               <Loader2 v-if="testingNotification" class="w-4 h-4 mr-2 animate-spin" />
               <Send v-else class="w-4 h-4 mr-2" />
-              Enviar prueba
+              {{ $t('settings.sendTest') }}
             </Button>
           </div>
 
@@ -167,15 +167,16 @@
         <CardHeader>
           <div class="flex items-center gap-2">
             <Sun class="w-5 h-5 text-muted-foreground" />
-            <CardTitle>Apariencia</CardTitle>
+            <CardTitle>{{ $t('settings.appearance') }}</CardTitle>
           </div>
           <CardDescription>
-            Personaliza el aspecto visual de la aplicacion
+            {{ $t('settings.appearanceDescription') }}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent class="space-y-6">
+          <!-- Theme -->
           <div class="space-y-2">
-            <Label>Tema</Label>
+            <Label>{{ $t('settings.theme') }}</Label>
             <div class="flex gap-2">
               <Button
                 v-for="option in themeOptions"
@@ -190,7 +191,33 @@
               </Button>
             </div>
             <p class="text-xs text-muted-foreground mt-2">
-              El modo "Sistema" sigue la preferencia de tu sistema operativo
+              {{ $t('settings.themeHelp') }}
+            </p>
+          </div>
+
+          <!-- Language -->
+          <div class="space-y-2">
+            <Label>{{ $t('settings.language') }}</Label>
+            <div class="flex gap-2">
+              <Button
+                :variant="currentLocale === 'es' ? 'default' : 'outline'"
+                size="sm"
+                @click="handleSetLocale('es')"
+                class="flex-1"
+              >
+                🇦🇷 Español
+              </Button>
+              <Button
+                :variant="currentLocale === 'en' ? 'default' : 'outline'"
+                size="sm"
+                @click="handleSetLocale('en')"
+                class="flex-1"
+              >
+                🇺🇸 English
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground mt-2">
+              {{ $t('settings.languageHelp') }}
             </p>
           </div>
         </CardContent>
@@ -201,6 +228,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   Bell,
   Send,
@@ -224,7 +252,9 @@ import { useNotifications } from '@/composables/useNotifications'
 import { useOrganization } from '@/composables/useOrganization'
 import { useAuth } from '@/composables/useAuth'
 import { useTheme, type Theme } from '@/composables/useTheme'
+import { useLocale, type Locale } from '@/composables/useLocale'
 
+const { t } = useI18n()
 const route = useRoute()
 const { sendTestNotification } = useNotifications()
 const {
@@ -238,12 +268,13 @@ const {
 } = useOrganization()
 const { isAdmin } = useAuth()
 const { theme, setTheme } = useTheme()
+const { currentLocale, setLocale } = useLocale()
 
-const themeOptions: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Claro', icon: Sun },
-  { value: 'dark', label: 'Oscuro', icon: Moon },
-  { value: 'system', label: 'Sistema', icon: Monitor }
-]
+const themeOptions = computed(() => [
+  { value: 'light' as Theme, label: t('settings.themeLight'), icon: Sun },
+  { value: 'dark' as Theme, label: t('settings.themeDark'), icon: Moon },
+  { value: 'system' as Theme, label: t('settings.themeSystem'), icon: Monitor }
+])
 
 // Notification test state
 const testingNotification = ref(false)
@@ -289,6 +320,10 @@ watch(() => route.hash, (hash) => {
   }
 }, { immediate: true })
 
+function handleSetLocale(locale: Locale) {
+  setLocale(locale)
+}
+
 async function handleTestNotification() {
   testingNotification.value = true
   testMessage.value = ''
@@ -299,9 +334,9 @@ async function handleTestNotification() {
   testSuccess.value = result.success
 
   if (result.success) {
-    testMessage.value = 'Notificacion enviada. Revisa el icono de la campana en la barra superior.'
+    testMessage.value = t('settings.testSent')
   } else {
-    testMessage.value = result.error || 'Error al enviar la notificacion de prueba'
+    testMessage.value = result.error || t('errors.unknownError')
   }
 
   if (testMessageTimeout) {
@@ -325,7 +360,7 @@ function handleFileSelect(event: Event) {
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
   if (!allowedTypes.includes(file.type)) {
-    orgMessage.value = 'Tipo de archivo no permitido. Use JPG, PNG, WebP o SVG.'
+    orgMessage.value = t('errors.fileTypeNotAllowed')
     orgSuccess.value = false
     clearOrgMessageAfterDelay()
     return
@@ -334,7 +369,7 @@ function handleFileSelect(event: Event) {
   // Validate file size (max 2MB)
   const maxSize = 2 * 1024 * 1024
   if (file.size > maxSize) {
-    orgMessage.value = 'El archivo es demasiado grande. Maximo 2MB.'
+    orgMessage.value = t('errors.fileTooLarge')
     orgSuccess.value = false
     clearOrgMessageAfterDelay()
     return
@@ -361,10 +396,10 @@ async function handleRemoveLogo() {
     savingOrg.value = true
     try {
       await removeLogo()
-      orgMessage.value = 'Logo eliminado correctamente'
+      orgMessage.value = t('settings.logoRemoved')
       orgSuccess.value = true
     } catch (e) {
-      orgMessage.value = e instanceof Error ? e.message : 'Error al eliminar el logo'
+      orgMessage.value = e instanceof Error ? e.message : t('errors.deleteError')
       orgSuccess.value = false
     } finally {
       savingOrg.value = false
@@ -406,10 +441,10 @@ async function handleSaveOrganization() {
     logoFile.value = null
     logoPreview.value = null
 
-    orgMessage.value = 'Cambios guardados correctamente'
+    orgMessage.value = t('settings.changesSaved')
     orgSuccess.value = true
   } catch (e) {
-    orgMessage.value = e instanceof Error ? e.message : 'Error al guardar los cambios'
+    orgMessage.value = e instanceof Error ? e.message : t('errors.unknownError')
     orgSuccess.value = false
   } finally {
     savingOrg.value = false

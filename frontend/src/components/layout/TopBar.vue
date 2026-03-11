@@ -35,7 +35,7 @@
           <DropdownMenuSeparator />
           <DropdownMenuItem @click="handleLogout">
             <LogOut class="w-4 h-4 mr-2" />
-            Sign out
+            {{ $t('auth.signOut') }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

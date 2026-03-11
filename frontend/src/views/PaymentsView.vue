@@ -3,9 +3,9 @@
       <!-- Header -->
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h1 class="text-2xl font-bold">Cobranzas</h1>
+          <h1 class="text-2xl font-bold">{{ $t('payments.title') }}</h1>
           <p class="text-muted-foreground">
-            {{ getMonthName(filters.month) }} {{ filters.year }} - Gestion de pagos mensuales
+            {{ getMonthName(filters.month) }} {{ filters.year }} - {{ $t('payments.subtitle') }}
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -14,23 +14,23 @@
             @click="handlePrintSelected"
           >
             <Printer class="w-4 h-4 mr-2" />
-            Imprimir ({{ selectedPayments.length }})
+            {{ $t('payments.printSelected', { count: selectedPayments.length }) }}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
                 <MoreHorizontal class="w-4 h-4 mr-2" />
-                Acciones
+                {{ $t('common.actions') }}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem @click="handlePrintAllPaid">
                 <Printer class="w-4 h-4 mr-2" />
-                Imprimir Todos los Pagados
+                {{ $t('payments.printAllPaid') }}
               </DropdownMenuItem>
               <DropdownMenuItem @click="handleExportToExcel">
                 <FileSpreadsheet class="w-4 h-4 mr-2" />
-                Exportar a Excel
+                {{ $t('payments.exportToExcel') }}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -43,7 +43,7 @@
           <CardContent class="p-4">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-muted-foreground">Total a Cobrar</p>
+                <p class="text-sm text-muted-foreground">{{ $t('payments.totalToCollect') }}</p>
                 <p class="text-2xl font-bold">{{ formatCurrency(summary.totalToCollect) }}</p>
               </div>
               <div class="p-2 bg-muted rounded-full">
@@ -51,7 +51,7 @@
               </div>
             </div>
             <p class="text-xs text-muted-foreground mt-2">
-              {{ summary.totalCount }} pagos
+              {{ $t('payments.paymentsCount', { count: summary.totalCount }) }}
             </p>
           </CardContent>
         </Card>
@@ -60,7 +60,7 @@
           <CardContent class="p-4">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-muted-foreground">Cobrado</p>
+                <p class="text-sm text-muted-foreground">{{ $t('payments.collected') }}</p>
                 <p class="text-2xl font-bold text-green-600">{{ formatCurrency(summary.collected) }}</p>
               </div>
               <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
@@ -68,7 +68,7 @@
               </div>
             </div>
             <p class="text-xs text-muted-foreground mt-2">
-              {{ summary.paidCount }} pagados
+              {{ $t('payments.paidCount', { count: summary.paidCount }) }}
             </p>
           </CardContent>
         </Card>
@@ -77,7 +77,7 @@
           <CardContent class="p-4">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-muted-foreground">Pendiente</p>
+                <p class="text-sm text-muted-foreground">{{ $t('payments.pending') }}</p>
                 <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(summary.pending) }}</p>
               </div>
               <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
@@ -85,7 +85,7 @@
               </div>
             </div>
             <p class="text-xs text-muted-foreground mt-2">
-              {{ summary.pendingCount }} pendientes
+              {{ $t('payments.pendingCount', { count: summary.pendingCount }) }}
             </p>
           </CardContent>
         </Card>
@@ -94,7 +94,7 @@
           <CardContent class="p-4">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-muted-foreground">Vencido</p>
+                <p class="text-sm text-muted-foreground">{{ $t('payments.overdue') }}</p>
                 <p class="text-2xl font-bold text-red-600">{{ formatCurrency(summary.overdue) }}</p>
               </div>
               <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
@@ -102,7 +102,7 @@
               </div>
             </div>
             <p class="text-xs text-muted-foreground mt-2">
-              {{ summary.overdueCount }} vencidos
+              {{ $t('payments.overdueCount', { count: summary.overdueCount }) }}
             </p>
           </CardContent>
         </Card>
@@ -118,7 +118,7 @@
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   v-model="filters.search"
-                  placeholder="Buscar por inquilino, propiedad o recibo..."
+                  :placeholder="$t('payments.searchPlaceholder')"
                   class="pl-9"
                 />
               </div>
@@ -127,13 +127,13 @@
             <!-- Status Filter -->
             <Select v-model="filters.status">
               <SelectTrigger class="w-[150px]">
-                <SelectValue placeholder="Estado" />
+                <SelectValue :placeholder="$t('common.status')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="pagado">Pagado</SelectItem>
-                <SelectItem value="vencido">Vencido</SelectItem>
+                <SelectItem value="all">{{ $t('payments.allStatus') }}</SelectItem>
+                <SelectItem value="pendiente">{{ $t('payments.pendiente') }}</SelectItem>
+                <SelectItem value="pagado">{{ $t('payments.pagado') }}</SelectItem>
+                <SelectItem value="vencido">{{ $t('payments.vencido') }}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -141,7 +141,7 @@
             <div class="flex gap-2">
               <Select v-model="filters.month">
                 <SelectTrigger class="w-[130px]">
-                  <SelectValue placeholder="Mes" />
+                  <SelectValue :placeholder="$t('payments.month')" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem
@@ -155,7 +155,7 @@
               </Select>
               <Select v-model="filters.year">
                 <SelectTrigger class="w-[90px]">
-                  <SelectValue placeholder="Ano" />
+                  <SelectValue :placeholder="$t('payments.year')" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem
@@ -175,7 +175,7 @@
               variant="ghost"
               size="icon"
               @click="clearFilters"
-              title="Limpiar filtros"
+              :title="$t('common.clearFilters')"
             >
               <X class="w-4 h-4" />
             </Button>
@@ -186,15 +186,15 @@
       <!-- Loading State -->
       <div v-if="loading" class="py-12 text-center">
         <Loader2 class="w-8 h-8 mx-auto animate-spin text-muted-foreground" />
-        <p class="mt-2 text-muted-foreground">Cargando pagos...</p>
+        <p class="mt-2 text-muted-foreground">{{ $t('payments.loadingPayments') }}</p>
       </div>
 
       <!-- Error State -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error al cargar pagos</p>
+        <p class="text-destructive font-medium mb-2">{{ $t('payments.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="loadPayments">
-          Reintentar
+          {{ $t('common.retry') }}
         </Button>
       </div>
 
@@ -202,13 +202,13 @@
       <div v-else-if="filteredPayments.length === 0" class="py-12 text-center">
         <CreditCard class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <p class="text-lg font-medium text-muted-foreground mb-2">
-          {{ hasActiveFilters ? 'No se encontraron pagos' : 'No hay pagos para este mes' }}
+          {{ hasActiveFilters ? $t('payments.noPaymentsFiltered') : $t('payments.noPayments') }}
         </p>
         <p class="text-sm text-muted-foreground mb-4">
-          {{ hasActiveFilters ? 'Intenta ajustar los filtros de busqueda' : 'Los pagos se generan automaticamente al crear un contrato' }}
+          {{ hasActiveFilters ? $t('properties.adjustFilters') : $t('payments.paymentsAutoGenerated') }}
         </p>
         <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-          Limpiar Filtros
+          {{ $t('common.clearFilters') }}
         </Button>
       </div>
 
@@ -224,13 +224,13 @@
                   @update:checked="toggleSelectAll"
                 />
               </TableHead>
-              <TableHead>Inquilino</TableHead>
-              <TableHead>Propiedad</TableHead>
-              <TableHead>Periodo</TableHead>
-              <TableHead>Vencimiento</TableHead>
-              <TableHead class="text-right">Total</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead class="w-32">Acciones</TableHead>
+              <TableHead>{{ $t('payments.tenant') }}</TableHead>
+              <TableHead>{{ $t('payments.property') }}</TableHead>
+              <TableHead>{{ $t('payments.period') }}</TableHead>
+              <TableHead>{{ $t('payments.dueDate') }}</TableHead>
+              <TableHead class="text-right">{{ $t('payments.totalAmount') }}</TableHead>
+              <TableHead>{{ $t('common.status') }}</TableHead>
+              <TableHead class="w-32">{{ $t('common.actions') }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -258,7 +258,7 @@
               <TableCell>
                 <div class="font-medium">{{ getPeriodLabel(payment) }}</div>
                 <div v-if="payment.concepts?.length" class="text-xs text-muted-foreground">
-                  +{{ payment.concepts.length }} concepto{{ payment.concepts.length > 1 ? 's' : '' }}
+                  {{ $t('payments.concepts', { count: payment.concepts.length }, payment.concepts.length) }}
                 </div>
               </TableCell>
               <TableCell>
@@ -267,7 +267,7 @@
                   v-if="payment.status === 'vencido'"
                   class="text-xs text-red-600"
                 >
-                  {{ getDaysOverdue(payment) }} dias
+                  {{ $t('payments.daysOverdue', { days: getDaysOverdue(payment) }) }}
                 </div>
               </TableCell>
               <TableCell class="text-right font-semibold">
@@ -286,7 +286,7 @@
                     size="icon"
                     class="h-8 w-8"
                     @click="openPaymentDialog(payment)"
-                    title="Registrar pago"
+                    :title="$t('payments.registerPayment')"
                   >
                     <DollarSign class="w-4 h-4" />
                   </Button>
@@ -296,7 +296,7 @@
                     size="icon"
                     class="h-8 w-8"
                     @click="handlePrintSingle(payment)"
-                    title="Imprimir recibo"
+                    :title="$t('payments.printReceipt')"
                   >
                     <Printer class="w-4 h-4" />
                   </Button>
@@ -305,7 +305,7 @@
                     size="icon"
                     class="h-8 w-8"
                     @click="openHistoryDialog(payment.contract_id)"
-                    title="Ver historial"
+                    :title="$t('payments.viewHistory')"
                   >
                     <History class="w-4 h-4" />
                   </Button>
@@ -321,11 +321,11 @@
                         @click="openConceptsDialog(payment)"
                       >
                         <ReceiptText class="w-4 h-4 mr-2" />
-                        Editar Conceptos
+                        {{ $t('payments.editConcepts') }}
                       </DropdownMenuItem>
                       <DropdownMenuItem @click="openHistoryDialog(payment.contract_id)">
                         <History class="w-4 h-4 mr-2" />
-                        Ver Historial
+                        {{ $t('payments.viewHistory') }}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -338,7 +338,7 @@
         <!-- Pagination -->
         <div class="flex items-center justify-between p-4 border-t">
           <p class="text-sm text-muted-foreground">
-            Mostrando {{ paginationStart }}-{{ paginationEnd }} de {{ filteredPayments.length }} pagos
+            {{ $t('payments.showingPayments', { start: paginationStart, end: paginationEnd, total: filteredPayments.length }) }}
           </p>
           <div class="flex gap-2">
             <Button
@@ -347,7 +347,7 @@
               :disabled="currentPage === 1"
               @click="currentPage--"
             >
-              Anterior
+              {{ $t('common.previous') }}
             </Button>
             <Button
               variant="outline"
@@ -355,7 +355,7 @@
               :disabled="currentPage >= totalPages"
               @click="currentPage++"
             >
-              Siguiente
+              {{ $t('common.next') }}
             </Button>
           </div>
         </div>
@@ -372,7 +372,7 @@
               @update:checked="toggleSelectAll"
             />
             <span class="text-sm text-muted-foreground">
-              {{ selectedPayments.length > 0 ? `${selectedPayments.length} seleccionados` : 'Seleccionar todos' }}
+              {{ selectedPayments.length > 0 ? `${selectedPayments.length} ${$t('common.selected')}` : $t('common.selectAll') }}
             </span>
           </div>
           <Button
@@ -381,7 +381,7 @@
             @click="handlePrintSelected"
           >
             <Printer class="w-4 h-4 mr-1" />
-            Imprimir
+            {{ $t('common.print') }}
           </Button>
         </div>
 
@@ -407,7 +407,7 @@
             :disabled="currentPage === 1"
             @click="currentPage--"
           >
-            Anterior
+            {{ $t('common.previous') }}
           </Button>
           <span class="flex items-center text-sm text-muted-foreground px-2">
             {{ currentPage }} / {{ totalPages }}
@@ -418,7 +418,7 @@
             :disabled="currentPage >= totalPages"
             @click="currentPage++"
           >
-            Siguiente
+            {{ $t('common.next') }}
           </Button>
         </div>
       </div>
@@ -441,7 +441,7 @@
       <Dialog v-model:open="conceptsDialogOpen">
         <DialogContent class="max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Conceptos</DialogTitle>
+            <DialogTitle>{{ $t('payments.editConcepts') }}</DialogTitle>
             <DialogDescription v-if="selectedPayment">
               {{ getPeriodLabel(selectedPayment) }} - {{ formatPropertyAddress(selectedPayment) }}
             </DialogDescription>
@@ -454,7 +454,7 @@
           />
           <div class="flex justify-end pt-4">
             <Button @click="conceptsDialogOpen = false">
-              Cerrar
+              {{ $t('common.close') }}
             </Button>
           </div>
         </DialogContent>
@@ -464,6 +464,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -519,7 +520,10 @@ import {
 } from 'lucide-vue-next'
 import { usePayments } from '@/composables/usePayments'
 import { useReceiptPDF } from '@/composables/useReceiptPDF'
+import { useDate } from '@/composables/useDate'
 import type { PaymentWithDetails, PaymentStatus } from '@/types'
+
+const { t } = useI18n()
 
 const {
   payments,
@@ -530,13 +534,13 @@ const {
   updateOverduePayments,
   getMonthSummary,
   formatCurrency,
-  formatDate,
-  getMonthName,
   getPeriodLabel,
   formatPropertyAddress,
   getStatusLabel,
   getDaysOverdue,
 } = usePayments()
+
+const { formatDate, getMonthName } = useDate()
 
 const { printReceiptPDF } = useReceiptPDF()
 
@@ -741,14 +745,14 @@ function handlePrintAllPaid() {
 function handleExportToExcel() {
   // Export current filtered payments to Excel/CSV
   const dataToExport = filteredPayments.value.map(p => ({
-    Periodo: getPeriodLabel(p),
-    Inquilino: getTenantName(p),
-    Propiedad: formatPropertyAddress(p),
-    Vencimiento: formatDate(p.due_date),
-    Total: p.total_amount || p.expected_amount,
-    Estado: getStatusLabel(p.status),
-    FechaPago: p.payment_date ? formatDate(p.payment_date) : '',
-    Recibo: p.reference_number || '',
+    [t('payments.period')]: getPeriodLabel(p),
+    [t('payments.tenant')]: getTenantName(p),
+    [t('payments.property')]: formatPropertyAddress(p),
+    [t('payments.dueDate')]: formatDate(p.due_date),
+    [t('payments.totalAmount')]: p.total_amount || p.expected_amount,
+    [t('common.status')]: getStatusLabel(p.status),
+    [t('payments.paymentDate', 'Fecha Pago')]: p.payment_date ? formatDate(p.payment_date) : '',
+    [t('payments.receipt', 'Recibo')]: p.reference_number || '',
   }))
 
   // Create CSV

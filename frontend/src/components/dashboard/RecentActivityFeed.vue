@@ -5,7 +5,7 @@
       <CardHeader class="pb-3">
         <CardTitle class="text-lg flex items-center gap-2">
           <Banknote class="w-5 h-5 text-green-500" />
-          Pagos Recientes
+          {{ $t('activity.recentPayments') }}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -22,7 +22,7 @@
 
         <!-- Empty state -->
         <div v-else-if="payments.length === 0" class="py-6 text-center">
-          <p class="text-muted-foreground text-sm">No hay pagos recientes</p>
+          <p class="text-muted-foreground text-sm">{{ $t('activity.noRecentPayments') }}</p>
         </div>
 
         <!-- Payments list -->
@@ -54,7 +54,7 @@
       <CardHeader class="pb-3">
         <CardTitle class="text-lg flex items-center gap-2">
           <Calendar class="w-5 h-5 text-orange-500" />
-          Contratos por Vencer
+          {{ $t('activity.expiringContracts') }}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -71,7 +71,7 @@
 
         <!-- Empty state -->
         <div v-else-if="contracts.length === 0" class="py-6 text-center">
-          <p class="text-muted-foreground text-sm">No hay contratos por vencer</p>
+          <p class="text-muted-foreground text-sm">{{ $t('activity.noExpiringContracts') }}</p>
         </div>
 
         <!-- Contracts list -->
@@ -98,7 +98,7 @@
                 class="text-sm font-medium"
                 :class="contract.daysRemaining <= 15 ? 'text-red-600' : 'text-orange-600'"
               >
-                {{ contract.daysRemaining }} días
+                {{ $t('activity.daysRemaining', { days: contract.daysRemaining }) }}
               </p>
               <p class="text-xs text-muted-foreground">{{ formatDate(contract.endDate) }}</p>
             </div>
@@ -113,7 +113,10 @@
 import { RouterLink } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Banknote, Calendar, Check, Clock, AlertTriangle } from 'lucide-vue-next'
+import { useDate } from '@/composables/useDate'
 import type { RecentPayment, ExpiringContract } from '@/composables/useDashboard'
+
+const { formatDate } = useDate()
 
 withDefaults(defineProps<{
   payments: RecentPayment[]
@@ -131,17 +134,6 @@ function formatCurrency(amount: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
-}
-
-// Format date in DD/MM/YYYY format
-function formatDate(dateStr: string): string {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr + 'T00:00:00')
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
 }
 
 // Get urgency styling based on days remaining

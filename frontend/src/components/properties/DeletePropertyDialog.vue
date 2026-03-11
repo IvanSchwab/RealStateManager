@@ -2,22 +2,21 @@
   <AlertDialog :open="open" @update:open="$emit('update:open', $event)">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete Property</AlertDialogTitle>
+        <AlertDialogTitle>{{ $t('properties.deleteConfirmTitle') }}</AlertDialogTitle>
         <AlertDialogDescription>
-          Are you sure you want to delete <strong>"{{ propertyName }}"</strong>?
-          This action cannot be undone.
+          {{ $t('properties.deleteConfirmDescription', { name: propertyName }) }}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel @click="$emit('cancel')">
-          Cancel
+          {{ $t('common.cancel') }}
         </AlertDialogCancel>
         <AlertDialogAction
           class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           @click="handleConfirm"
         >
           <Loader2 v-if="isDeleting" class="w-4 h-4 mr-2 animate-spin" />
-          Delete
+          {{ $t('common.delete') }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
@@ -26,6 +25,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +51,7 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
+const { t } = useI18n()
 const { deleteProperty } = useProperties()
 const isDeleting = ref(false)
 
@@ -59,12 +60,11 @@ async function handleConfirm() {
 
   try {
     await deleteProperty(props.propertyId)
-    alert('Property deleted successfully!')
     emit('confirm')
     emit('update:open', false)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to delete property'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('properties.deleteError')
+    alert(`${t('common.error')}: ${message}`)
   } finally {
     isDeleting.value = false
   }

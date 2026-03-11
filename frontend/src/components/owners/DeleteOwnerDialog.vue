@@ -2,31 +2,27 @@
   <AlertDialog :open="open" @update:open="$emit('update:open', $event)">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Eliminar Propietario</AlertDialogTitle>
+        <AlertDialogTitle>{{ $t('owners.deleteConfirmTitle') }}</AlertDialogTitle>
         <AlertDialogDescription>
-          ¿Está seguro que desea eliminar a <strong>"{{ ownerName }}"</strong>?
-          <span class="block mt-2 text-muted-foreground">
-            Esta acción no se puede deshacer.
-          </span>
+          {{ $t('owners.deleteConfirmDescription', { name: ownerName }) }}
           <span
             v-if="propertyCount > 0"
             class="block mt-2 text-amber-600 dark:text-amber-500 font-medium"
           >
-            ⚠️ Este propietario tiene {{ propertyCount }}
-            {{ propertyCount === 1 ? 'propiedad asociada' : 'propiedades asociadas' }}.
+            {{ $t('owners.deleteHasProperties', { count: propertyCount }) }}
           </span>
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel @click="$emit('cancel')">
-          Cancelar
+          {{ $t('common.cancel') }}
         </AlertDialogCancel>
         <AlertDialogAction
           class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           @click="handleConfirm"
         >
           <Loader2 v-if="isDeleting" class="w-4 h-4 mr-2 animate-spin" />
-          Eliminar
+          {{ $t('common.delete') }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
@@ -35,6 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,6 +58,7 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
+const { t } = useI18n()
 const { deleteOwner } = useOwners()
 const isDeleting = ref(false)
 
@@ -69,12 +67,11 @@ async function handleConfirm() {
 
   try {
     await deleteOwner(props.ownerId)
-    alert('Propietario eliminado correctamente')
     emit('confirm')
     emit('update:open', false)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Error al eliminar propietario'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('owners.deleteError')
+    alert(`${t('common.error')}: ${message}`)
   } finally {
     isDeleting.value = false
   }

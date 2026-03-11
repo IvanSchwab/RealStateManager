@@ -2,7 +2,7 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Registrar Pago</DialogTitle>
+        <DialogTitle>{{ $t('payments.registerPayment') }}</DialogTitle>
         <DialogDescription v-if="payment">
           {{ getPeriodLabel(payment) }} - {{ formatPropertyAddress(payment) }}
         </DialogDescription>
@@ -11,7 +11,7 @@
       <!-- Loading State -->
       <div v-if="loading && !payment" class="py-8 text-center">
         <Loader2 class="w-8 h-8 mx-auto animate-spin text-muted-foreground" />
-        <p class="mt-2 text-sm text-muted-foreground">Cargando pago...</p>
+        <p class="mt-2 text-sm text-muted-foreground">{{ $t('payments.loadingPayment') }}</p>
       </div>
 
       <!-- Payment Form -->
@@ -20,7 +20,7 @@
         <div class="p-4 bg-muted/50 rounded-lg space-y-3">
           <!-- Base Rent -->
           <div class="flex justify-between">
-            <span class="text-sm text-muted-foreground">Alquiler</span>
+            <span class="text-sm text-muted-foreground">{{ $t('payments.rent') }}</span>
             <span class="font-medium">{{ formatCurrency(payment.rent_amount || payment.expected_amount) }}</span>
           </div>
 
@@ -37,7 +37,7 @@
           <!-- Total -->
           <Separator />
           <div class="flex justify-between text-lg">
-            <span class="font-semibold">Total a Pagar</span>
+            <span class="font-semibold">{{ $t('payments.totalToPay') }}</span>
             <span class="font-bold text-primary">
               {{ formatCurrency(calculatedTotal) }}
             </span>
@@ -52,7 +52,7 @@
           >
             <span class="flex items-center gap-2">
               <ReceiptText class="w-4 h-4" />
-              Editar Conceptos
+              {{ $t('payments.editConcepts') }}
             </span>
             <ChevronDown
               class="w-4 h-4 transition-transform"
@@ -74,7 +74,7 @@
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <!-- Paid Date -->
           <div class="space-y-2">
-            <Label for="paid_date">Fecha de Pago</Label>
+            <Label for="paid_date">{{ $t('payments.paymentDate') }}</Label>
             <Input
               id="paid_date"
               v-model="form.paid_date"
@@ -85,7 +85,7 @@
 
           <!-- Paid Amount -->
           <div class="space-y-2">
-            <Label for="paid_amount">Monto Pagado</Label>
+            <Label for="paid_amount">{{ $t('payments.paidAmount') }}</Label>
             <Input
               id="paid_amount"
               v-model.number="form.paid_amount"
@@ -96,37 +96,37 @@
               :class="{ 'border-destructive': !isAmountValid && form.paid_amount > 0 }"
             />
             <p v-if="!isAmountValid && form.paid_amount > 0" class="text-xs text-destructive">
-              El monto debe ser igual al total ({{ formatCurrency(calculatedTotal) }})
+              {{ $t('payments.amountMustEqualTotal', { total: formatCurrency(calculatedTotal) }) }}
             </p>
             <p v-else class="text-xs text-muted-foreground">
-              Total esperado: {{ formatCurrency(calculatedTotal) }}
+              {{ $t('payments.expectedTotal', { total: formatCurrency(calculatedTotal) }) }}
             </p>
           </div>
 
           <!-- Payment Method -->
           <div class="space-y-2">
-            <Label for="payment_method">Metodo de Pago</Label>
+            <Label for="payment_method">{{ $t('payments.paymentMethod') }}</Label>
             <Select v-model="form.payment_method">
               <SelectTrigger>
-                <SelectValue placeholder="Seleccionar metodo" />
+                <SelectValue :placeholder="$t('payments.selectMethod')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="efectivo">Efectivo</SelectItem>
-                <SelectItem value="transferencia">Transferencia</SelectItem>
-                <SelectItem value="cheque">Cheque</SelectItem>
-                <SelectItem value="deposito">Deposito</SelectItem>
-                <SelectItem value="tarjeta">Tarjeta</SelectItem>
+                <SelectItem value="efectivo">{{ $t('payments.efectivo') }}</SelectItem>
+                <SelectItem value="transferencia">{{ $t('payments.transferencia') }}</SelectItem>
+                <SelectItem value="cheque">{{ $t('payments.cheque') }}</SelectItem>
+                <SelectItem value="deposito">{{ $t('payments.deposito') }}</SelectItem>
+                <SelectItem value="tarjeta">{{ $t('payments.tarjeta') }}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <!-- Notes -->
           <div class="space-y-2">
-            <Label for="notes">Notas (opcional)</Label>
+            <Label for="notes">{{ $t('payments.notesOptional') }}</Label>
             <Textarea
               id="notes"
               v-model="form.notes"
-              placeholder="Observaciones sobre el pago..."
+              :placeholder="$t('payments.paymentNotesPlaceholder')"
               rows="2"
             />
           </div>
@@ -137,11 +137,11 @@
           <!-- Actions -->
           <div class="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" @click="$emit('update:open', false)">
-              Cancelar
+              {{ $t('common.cancel') }}
             </Button>
             <Button type="submit" :disabled="!canSubmit || submitting">
               <Loader2 v-if="submitting" class="w-4 h-4 mr-2 animate-spin" />
-              Registrar Pago
+              {{ $t('payments.registerPayment') }}
             </Button>
           </div>
         </form>
@@ -151,7 +151,7 @@
       <div v-else-if="error" class="py-8 text-center">
         <p class="text-destructive">{{ error }}</p>
         <Button variant="outline" class="mt-4" @click="loadPayment">
-          Reintentar
+          {{ $t('common.retry') }}
         </Button>
       </div>
     </DialogContent>
@@ -163,20 +163,20 @@
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-green-600">
           <CheckCircle2 class="w-5 h-5" />
-          Pago Registrado
+          {{ $t('payments.paymentRegistered') }}
         </DialogTitle>
       </DialogHeader>
       <div class="py-4 text-center">
         <p class="text-muted-foreground mb-4">
-          Recibo N° <span class="font-mono font-semibold">{{ registeredPayment?.reference_number }}</span>
+          {{ $t('payments.receiptNumber') }} <span class="font-mono font-semibold">{{ registeredPayment?.reference_number }}</span>
         </p>
         <div class="flex justify-center gap-3">
           <Button variant="outline" @click="closeSuccessDialog">
-            Cerrar
+            {{ $t('common.close') }}
           </Button>
           <Button @click="handlePrintReceipt">
             <Printer class="w-4 h-4 mr-2" />
-            Imprimir Recibo
+            {{ $t('payments.printReceipt') }}
           </Button>
         </div>
       </div>
@@ -186,6 +186,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
@@ -210,6 +211,8 @@ import { Loader2, CheckCircle2, Printer, ChevronDown, ReceiptText } from 'lucide
 import { usePayments } from '@/composables/usePayments'
 import { useReceiptPDF } from '@/composables/useReceiptPDF'
 import type { PaymentWithDetails, PaymentMethod, Payment, PaymentConcept } from '@/types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean

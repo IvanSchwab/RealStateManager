@@ -3,25 +3,25 @@
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Cargando propietario...</p>
+        <p class="mt-2">{{ $t('owners.loadingOwners') }}</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error al cargar propietario</p>
+        <p class="text-destructive font-medium mb-2">{{ $t('owners.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="loadOwner">
-          Reintentar
+          {{ $t('common.retry') }}
         </Button>
       </div>
 
       <!-- Not found state -->
       <div v-else-if="!owner" class="py-12 text-center">
         <UserCircle class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <p class="text-lg font-medium text-muted-foreground mb-2">Propietario no encontrado</p>
+        <p class="text-lg font-medium text-muted-foreground mb-2">{{ $t('owners.ownerNotFound') }}</p>
         <Button variant="outline" @click="goBack">
           <ArrowLeft class="w-4 h-4 mr-2" />
-          Volver a Propietarios
+          {{ $t('owners.backToOwners') }}
         </Button>
       </div>
 
@@ -32,24 +32,23 @@
           <div>
             <Button variant="ghost" size="sm" class="mb-2" @click="goBack">
               <ArrowLeft class="w-4 h-4 mr-2" />
-              Volver a Propietarios
+              {{ $t('owners.backToOwners') }}
             </Button>
             <h1 class="text-2xl font-bold">{{ owner.full_name }}</h1>
             <p class="text-muted-foreground mt-1">
               <Badge variant="secondary">
-                {{ owner.property_count || 0 }}
-                {{ owner.property_count === 1 ? 'propiedad' : 'propiedades' }}
+                {{ $t('owners.propertiesCount', { count: owner.property_count || 0 }, owner.property_count || 0) }}
               </Badge>
             </p>
           </div>
           <div class="flex items-center gap-2">
             <Button variant="outline" @click="openEditDialog">
               <Pencil class="w-4 h-4 mr-2" />
-              Editar
+              {{ $t('common.edit') }}
             </Button>
             <Button variant="destructive" @click="openDeleteDialog">
               <Trash2 class="w-4 h-4 mr-2" />
-              Eliminar
+              {{ $t('common.delete') }}
             </Button>
           </div>
         </div>
@@ -61,20 +60,20 @@
             <!-- Personal Information Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Información Personal</CardTitle>
+                <CardTitle class="text-lg">{{ $t('owners.personalInfo') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl class="grid grid-cols-2 gap-4">
                   <div>
-                    <dt class="text-sm text-muted-foreground">Nombre Completo</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('owners.fullName') }}</dt>
                     <dd class="font-medium">{{ owner.full_name }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">CUIT/CUIL</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('owners.cuitCuil') }}</dt>
                     <dd class="font-medium">{{ owner.cuit_cuil ?? '-' }}</dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Email</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.email') }}</dt>
                     <dd class="font-medium">
                       <a
                         v-if="owner.email"
@@ -87,7 +86,7 @@
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-sm text-muted-foreground">Teléfono</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.phone') }}</dt>
                     <dd class="font-medium">
                       <a
                         v-if="owner.phone"
@@ -100,7 +99,7 @@
                     </dd>
                   </div>
                   <div class="col-span-2">
-                    <dt class="text-sm text-muted-foreground">Dirección</dt>
+                    <dt class="text-sm text-muted-foreground">{{ $t('common.address') }}</dt>
                     <dd class="font-medium">{{ owner.address ?? '-' }}</dd>
                   </div>
                 </dl>
@@ -110,7 +109,7 @@
             <!-- Notes Card -->
             <Card v-if="owner.notes">
               <CardHeader>
-                <CardTitle class="text-lg">Notas</CardTitle>
+                <CardTitle class="text-lg">{{ $t('common.notes') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p class="text-muted-foreground whitespace-pre-wrap">{{ owner.notes }}</p>
@@ -120,10 +119,10 @@
             <!-- Properties Card -->
             <Card>
               <CardHeader class="flex flex-row items-center justify-between">
-                <CardTitle class="text-lg">Propiedades</CardTitle>
+                <CardTitle class="text-lg">{{ $t('nav.properties') }}</CardTitle>
                 <Button size="sm" @click="navigateToNewProperty">
                   <Plus class="w-4 h-4 mr-2" />
-                  Agregar Propiedad
+                  {{ $t('owners.addProperty') }}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -146,20 +145,20 @@
                       </p>
                     </div>
                     <div class="flex items-center gap-2">
-                      <Badge variant="outline" class="capitalize text-xs">
-                        {{ property.property_type }}
+                      <Badge variant="outline" class="text-xs">
+                        {{ $t(`properties.${property.property_type}`) }}
                       </Badge>
                       <Badge
                         :variant="property.purpose === 'alquiler' ? 'default' : 'secondary'"
                         class="text-xs"
                       >
-                        {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+                        {{ $t(`properties.${property.purpose}`) }}
                       </Badge>
                       <Badge
                         :variant="getStatusVariant(property.status)"
-                        class="capitalize text-xs"
+                        class="text-xs"
                       >
-                        {{ property.status }}
+                        {{ $t(`properties.${property.status}`) }}
                       </Badge>
                     </div>
                   </div>
@@ -169,11 +168,11 @@
                 <div v-else class="py-8 text-center">
                   <Building2 class="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                   <p class="text-sm text-muted-foreground mb-3">
-                    Este propietario no tiene propiedades registradas
+                    {{ $t('owners.noPropertiesRegistered') }}
                   </p>
                   <Button variant="outline" size="sm" @click="navigateToNewProperty">
                     <Plus class="w-4 h-4 mr-2" />
-                    Agregar Propiedad
+                    {{ $t('owners.addProperty') }}
                   </Button>
                 </div>
               </CardContent>
@@ -185,15 +184,15 @@
             <!-- Metadata Card -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Detalles</CardTitle>
+                <CardTitle class="text-lg">{{ $t('common.details') }}</CardTitle>
               </CardHeader>
               <CardContent class="space-y-3">
                 <div>
-                  <p class="text-sm text-muted-foreground">Creado</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('common.created') }}</p>
                   <p class="font-medium">{{ formatDateTime(owner.created_at) }}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-muted-foreground">Última Actualización</p>
+                  <p class="text-sm text-muted-foreground">{{ $t('common.lastUpdated') }}</p>
                   <p class="font-medium">{{ formatDateTime(owner.updated_at) }}</p>
                 </div>
               </CardContent>
@@ -202,11 +201,11 @@
             <!-- Contracts Placeholder -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Contratos</CardTitle>
+                <CardTitle class="text-lg">{{ $t('nav.contracts') }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p class="text-sm text-muted-foreground">
-                  El historial de contratos se mostrará aquí en una actualización futura.
+                  {{ $t('properties.contractsPlaceholder') }}
                 </p>
               </CardContent>
             </Card>
@@ -236,6 +235,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -251,11 +251,14 @@ import {
   Plus
 } from 'lucide-vue-next'
 import { useOwners } from '@/composables/useOwners'
+import { useDate } from '@/composables/useDate'
 import type { OwnerWithProperties } from '@/types'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { fetchOwnerById, loading, error } = useOwners()
+const { formatDateTime } = useDate()
 
 const owner = ref<OwnerWithProperties | null>(null)
 const dialogOpen = ref(false)
@@ -264,16 +267,6 @@ const deleteDialogOpen = ref(false)
 const ownerId = computed(() => route.params.id as string)
 
 // Methods
-function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-AR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
 function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
     case 'disponible':

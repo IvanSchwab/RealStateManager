@@ -6,7 +6,7 @@
           <Building2 class="w-6 h-6 text-primary-foreground" />
         </div>
         <CardTitle class="text-2xl">Real Estate Management</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
+        <CardDescription>{{ $t('auth.signInToAccount') }}</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -16,7 +16,7 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="email">Email</Label>
+            <Label for="email">{{ $t('auth.email') }}</Label>
             <Input
               id="email"
               v-model="email"
@@ -30,19 +30,19 @@
 
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <Label for="password">Password</Label>
+              <Label for="password">{{ $t('auth.password') }}</Label>
               <router-link
                 :to="{ name: 'forgot-password' }"
                 class="text-sm text-primary hover:underline"
               >
-                ¿Olvidaste tu contraseña?
+                {{ $t('auth.forgotPassword') }}
               </router-link>
             </div>
             <Input
               id="password"
               v-model="password"
               type="password"
-              placeholder="Enter your password"
+              :placeholder="$t('auth.password')"
               :disabled="isSubmitting"
               @input="errorMessage = ''"
             />
@@ -51,15 +51,15 @@
 
           <Button type="submit" class="w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="w-4 h-4 mr-2 animate-spin" />
-            {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
+            {{ isSubmitting ? $t('auth.signingIn') : $t('auth.signIn') }}
           </Button>
         </form>
       </CardContent>
 
       <CardFooter class="justify-center">
         <p class="text-sm text-muted-foreground">
-          Don't have an account?
-          <span class="text-primary">Contact administrator</span>
+          {{ $t('auth.dontHaveAccount') }}
+          <span class="text-primary">{{ $t('auth.contactAdmin') }}</span>
         </p>
       </CardFooter>
     </Card>
@@ -69,6 +69,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Building2, Loader2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -76,6 +77,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
@@ -94,18 +96,18 @@ function validate(): boolean {
   let valid = true
 
   if (!email.value) {
-    emailError.value = 'Email is required'
+    emailError.value = t('errors.emailRequired')
     valid = false
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    emailError.value = 'Enter a valid email address'
+    emailError.value = t('errors.invalidEmail')
     valid = false
   }
 
   if (!password.value) {
-    passwordError.value = 'Password is required'
+    passwordError.value = t('errors.passwordRequired')
     valid = false
   } else if (password.value.length < 6) {
-    passwordError.value = 'Password must be at least 6 characters'
+    passwordError.value = t('errors.passwordMinLength', { min: 6 })
     valid = false
   }
 
@@ -123,12 +125,12 @@ async function handleLogin() {
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+    const message = error instanceof Error ? error.message : t('errors.unknownError')
 
     if (message.includes('Invalid login credentials')) {
-      errorMessage.value = 'Invalid email or password'
+      errorMessage.value = t('errors.invalidCredentials')
     } else if (message.includes('Email not confirmed')) {
-      errorMessage.value = 'Please confirm your email before signing in'
+      errorMessage.value = t('errors.emailNotConfirmed')
     } else {
       errorMessage.value = message
     }

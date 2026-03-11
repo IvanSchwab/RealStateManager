@@ -5,9 +5,9 @@
         <div class="mx-auto mb-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center">
           <Building2 class="w-6 h-6 text-primary-foreground" />
         </div>
-        <CardTitle class="text-2xl">Crear tu inmobiliaria</CardTitle>
+        <CardTitle class="text-2xl">{{ $t('onboarding.title') }}</CardTitle>
         <CardDescription>
-          Configurá tu inmobiliaria para comenzar a usar el sistema
+          {{ $t('onboarding.description') }}
         </CardDescription>
       </CardHeader>
 
@@ -18,12 +18,12 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="nombre">Nombre de la inmobiliaria</Label>
+            <Label for="nombre">{{ $t('onboarding.orgName') }}</Label>
             <Input
               id="nombre"
               v-model="nombre"
               type="text"
-              placeholder="Ej: Inmobiliaria Rodríguez"
+              :placeholder="$t('onboarding.orgNamePlaceholder')"
               :disabled="isSubmitting"
               @input="handleNombreInput"
             />
@@ -31,13 +31,13 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="slug">Identificador único</Label>
+            <Label for="slug">{{ $t('onboarding.slug') }}</Label>
             <div class="flex items-center gap-2">
               <Input
                 id="slug"
                 v-model="slug"
                 type="text"
-                placeholder="inmobiliaria-rodriguez"
+                :placeholder="$t('onboarding.slugPlaceholder')"
                 :disabled="isSubmitting"
                 class="flex-1"
                 @input="handleSlugInput"
@@ -49,21 +49,21 @@
               <XCircle v-else-if="slugAvailable === false" class="w-5 h-5 text-destructive" />
             </div>
             <p class="text-xs text-muted-foreground">
-              Este identificador se usará internamente. Solo letras minúsculas, números y guiones.
+              {{ $t('onboarding.slugHelp') }}
             </p>
             <p v-if="slugError" class="text-sm text-destructive">{{ slugError }}</p>
           </div>
 
           <Button type="submit" class="w-full" :disabled="isSubmitting || !canSubmit">
             <Loader2 v-if="isSubmitting" class="w-4 h-4 mr-2 animate-spin" />
-            {{ isSubmitting ? 'Creando...' : 'Crear mi inmobiliaria' }}
+            {{ isSubmitting ? $t('onboarding.creating') : $t('onboarding.createOrg') }}
           </Button>
         </form>
       </CardContent>
 
       <CardFooter class="flex-col gap-3">
         <p class="text-sm text-muted-foreground text-center">
-          Serás administrador de esta organización
+          {{ $t('onboarding.adminNotice') }}
         </p>
         <button
           type="button"
@@ -71,7 +71,7 @@
           :disabled="isSubmitting"
           @click="handleSignOut"
         >
-          Cerrar sesión
+          {{ $t('auth.logout') }}
         </button>
       </CardFooter>
     </Card>
@@ -81,6 +81,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Building2, Loader2, CheckCircle2, XCircle } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
@@ -89,6 +90,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -108,19 +110,18 @@ function generateSlug(name: string): string {
   return name
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/-+/g, '-') // collapse multiple hyphens
-    .replace(/^-|-$/g, '') // remove leading/trailing hyphens
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 function handleNombreInput() {
   nombreError.value = ''
   errorMessage.value = ''
 
-  // Auto-generate slug only if user hasn't manually edited it
   if (!slugManuallyEdited.value) {
     slug.value = generateSlug(nombre.value)
     checkSlugAvailability()
@@ -132,7 +133,6 @@ function handleSlugInput() {
   errorMessage.value = ''
   slugManuallyEdited.value = true
 
-  // Sanitize slug as user types
   slug.value = slug.value
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '')
@@ -141,20 +141,16 @@ function handleSlugInput() {
 }
 
 function checkSlugAvailability() {
-  // Clear previous timeout
   if (slugCheckTimeout) {
     clearTimeout(slugCheckTimeout)
   }
 
-  // Reset state
   slugAvailable.value = null
 
-  // Don't check if slug is too short
   if (slug.value.length < 3) {
     return
   }
 
-  // Debounce the check
   slugCheckTimeout = setTimeout(async () => {
     isCheckingSlug.value = true
     try {
@@ -168,7 +164,7 @@ function checkSlugAvailability() {
       } else {
         slugAvailable.value = data as boolean
         if (!data) {
-          slugError.value = 'Este identificador ya está en uso'
+          slugError.value = t('onboarding.slugInUse')
         } else {
           slugError.value = ''
         }
@@ -182,7 +178,6 @@ function checkSlugAvailability() {
   }, 300)
 }
 
-// Watch for slug changes from auto-generation
 watch(slug, () => {
   if (slug.value.length >= 3 && !isCheckingSlug.value) {
     checkSlugAvailability()
@@ -196,26 +191,26 @@ function validate(): boolean {
   let valid = true
 
   if (!nombre.value.trim()) {
-    nombreError.value = 'El nombre es requerido'
+    nombreError.value = t('errors.nameRequired')
     valid = false
   } else if (nombre.value.trim().length < 3) {
-    nombreError.value = 'El nombre debe tener al menos 3 caracteres'
+    nombreError.value = t('errors.nameMinLength', { min: 3 })
     valid = false
   }
 
   if (!slug.value.trim()) {
-    slugError.value = 'El identificador es requerido'
+    slugError.value = t('errors.slugRequired')
     valid = false
   } else if (slug.value.trim().length < 3) {
-    slugError.value = 'El identificador debe tener al menos 3 caracteres'
+    slugError.value = t('errors.slugMinLength', { min: 3 })
     valid = false
   } else if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug.value)) {
-    slugError.value = 'El identificador solo puede contener letras minúsculas, números y guiones'
+    slugError.value = t('errors.slugFormat')
     valid = false
   }
 
   if (slugAvailable.value === false) {
-    slugError.value = 'Este identificador ya está en uso'
+    slugError.value = t('onboarding.slugInUse')
     valid = false
   }
 
@@ -244,34 +239,30 @@ async function handleSubmit() {
     })
 
     if (error) {
-      // Extract the actual error message from Postgres error
       if (error.message.includes('Ya pertenecés')) {
-        errorMessage.value = 'Ya pertenecés a una organización'
+        errorMessage.value = t('errors.alreadyInOrg')
       } else if (error.message.includes('ya está en uso')) {
-        errorMessage.value = 'Este identificador ya está en uso. Por favor elegí otro.'
+        errorMessage.value = t('errors.slugInUse')
         slugAvailable.value = false
       } else if (error.message.includes('al menos 3 caracteres')) {
         errorMessage.value = error.message
       } else {
-        errorMessage.value = 'Ocurrió un error al crear la organización. Por favor intentá de nuevo.'
+        errorMessage.value = t('errors.errorCreatingOrg')
         console.error('Create organization error:', error)
       }
       return
     }
 
-    // CRITICAL: Reload the profile and wait for it to complete
     await authStore.loadProfile()
 
-    // Verify that organization_id is now set
     if (!authStore.profile?.organization_id) {
-      throw new Error('La organización fue creada pero no se pudo actualizar el perfil. Por favor recargá la página.')
+      throw new Error(t('errors.profileUpdateError'))
     }
 
-    // Now safe to redirect to dashboard
     await router.push({ name: 'dashboard' })
   } catch (err: unknown) {
     console.error('Unexpected error:', err)
-    const message = err instanceof Error ? err.message : 'Ocurrió un error inesperado. Por favor intentá de nuevo.'
+    const message = err instanceof Error ? err.message : t('errors.unknownError')
     errorMessage.value = message
   } finally {
     isSubmitting.value = false

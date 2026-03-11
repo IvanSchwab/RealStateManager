@@ -2,10 +2,10 @@
   <div class="p-6">
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Contratos</h1>
+        <h1 class="text-2xl font-bold">{{ $t('contracts.title') }}</h1>
         <Button @click="openCreateDialog">
           <Plus class="w-4 h-4 mr-2" />
-          Nuevo Contrato
+          {{ $t('contracts.newContract') }}
         </Button>
       </div>
 
@@ -14,7 +14,7 @@
         <div class="flex-1 min-w-[200px]">
           <Input
             v-model="searchQuery"
-            placeholder="Buscar por dirección o inquilino..."
+            :placeholder="$t('contracts.searchPlaceholder')"
             class="w-full"
           >
             <template #prefix>
@@ -25,30 +25,30 @@
 
         <Select v-model="filterStatus" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Estado" />
+            <SelectValue :placeholder="$t('common.status')" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">Todos los Estados</SelectItem>
-              <SelectItem value="active">Activos</SelectItem>
-              <SelectItem value="expiring_soon">Por Vencer</SelectItem>
-              <SelectItem value="expired">Vencidos</SelectItem>
-              <SelectItem value="cancelled">Cancelados</SelectItem>
+              <SelectItem value="all">{{ $t('contracts.allStatus') }}</SelectItem>
+              <SelectItem value="active">{{ $t('contracts.active') }}</SelectItem>
+              <SelectItem value="expiring_soon">{{ $t('contracts.expiring_soon') }}</SelectItem>
+              <SelectItem value="expired">{{ $t('contracts.expired') }}</SelectItem>
+              <SelectItem value="cancelled">{{ $t('contracts.cancelled') }}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
 
         <Select v-model="filterContractType" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Tipo" />
+            <SelectValue :placeholder="$t('common.type')" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">Todos los Tipos</SelectItem>
-              <SelectItem value="vivienda">Vivienda</SelectItem>
-              <SelectItem value="comercial">Comercial</SelectItem>
-              <SelectItem value="cochera">Cochera</SelectItem>
-              <SelectItem value="oficina">Oficina</SelectItem>
+              <SelectItem value="all">{{ $t('contracts.allTypes') }}</SelectItem>
+              <SelectItem value="vivienda">{{ $t('contracts.vivienda') }}</SelectItem>
+              <SelectItem value="comercial">{{ $t('contracts.comercial') }}</SelectItem>
+              <SelectItem value="cochera">{{ $t('contracts.cochera') }}</SelectItem>
+              <SelectItem value="oficina">{{ $t('contracts.oficina') }}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -60,22 +60,22 @@
           @click="clearFilters"
         >
           <X class="w-4 h-4 mr-1" />
-          Limpiar filtros
+          {{ $t('common.clearFilters') }}
         </Button>
       </div>
 
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Cargando contratos...</p>
+        <p class="mt-2">{{ $t('contracts.loadingContracts') }}</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error al cargar contratos</p>
+        <p class="text-destructive font-medium mb-2">{{ $t('contracts.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="loadContracts">
-          Reintentar
+          {{ $t('common.retry') }}
         </Button>
       </div>
 
@@ -85,20 +85,20 @@
         <div v-if="filteredContracts.length === 0" class="py-12 text-center">
           <FileText class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
-            {{ hasActiveFilters ? 'No hay contratos que coincidan' : 'No hay contratos' }}
+            {{ hasActiveFilters ? $t('contracts.noContractsFiltered') : $t('contracts.noContracts') }}
           </p>
           <p class="text-sm text-muted-foreground mb-4">
             {{ hasActiveFilters
-              ? 'Intenta ajustar los filtros de búsqueda'
-              : 'Comienza creando tu primer contrato'
+              ? $t('properties.adjustFilters')
+              : $t('contracts.startAddingContract')
             }}
           </p>
           <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-            Limpiar filtros
+            {{ $t('common.clearFilters') }}
           </Button>
           <Button v-else @click="openCreateDialog">
             <Plus class="w-4 h-4 mr-2" />
-            Nuevo Contrato
+            {{ $t('contracts.newContract') }}
           </Button>
         </div>
 
@@ -107,14 +107,14 @@
           <table class="w-full">
             <thead class="bg-muted/50">
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Propiedad</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Inquilino</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipo</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Inicio</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Fin</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Alquiler</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Estado</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Acciones</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.property') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.tenant') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.type') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.startDate') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.endDate') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.baseRent') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.status') }}</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">{{ $t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -133,8 +133,8 @@
                   {{ getTitularName(contract) }}
                 </td>
                 <td class="px-4 py-3">
-                  <Badge variant="outline" class="capitalize">
-                    {{ contractTypeLabels[contract.contract_type] }}
+                  <Badge variant="outline">
+                    {{ $t(`contracts.${contract.contract_type}`) }}
                   </Badge>
                 </td>
                 <td class="px-4 py-3 text-sm text-muted-foreground">
@@ -148,7 +148,7 @@
                 </td>
                 <td class="px-4 py-3">
                   <Badge :class="getStatusBadgeClass(calculateDisplayStatus(contract))">
-                    {{ statusLabels[calculateDisplayStatus(contract)] }}
+                    {{ $t(`contracts.${calculateDisplayStatus(contract)}`) }}
                   </Badge>
                 </td>
                 <td class="px-4 py-3 text-right" @click.stop>
@@ -157,7 +157,7 @@
                       variant="ghost"
                       size="icon"
                       @click="viewContract(contract.id)"
-                      title="Ver detalles"
+                      :title="$t('common.view')"
                     >
                       <Eye class="w-4 h-4" />
                     </Button>
@@ -165,7 +165,7 @@
                       variant="ghost"
                       size="icon"
                       @click="openEditDialog(contract.id)"
-                      title="Editar contrato"
+                      :title="$t('common.edit')"
                     >
                       <Pencil class="w-4 h-4" />
                     </Button>
@@ -173,7 +173,7 @@
                       variant="ghost"
                       size="icon"
                       @click="openCancelDialog(contract)"
-                      title="Cancelar contrato"
+                      :title="$t('contracts.cancelContract')"
                     >
                       <XCircle class="w-4 h-4 text-destructive" />
                     </Button>
@@ -198,13 +198,13 @@
                 <p class="text-sm text-muted-foreground">{{ getTitularName(contract) }}</p>
               </div>
               <Badge :class="getStatusBadgeClass(calculateDisplayStatus(contract))">
-                {{ statusLabels[calculateDisplayStatus(contract)] }}
+                {{ $t(`contracts.${calculateDisplayStatus(contract)}`) }}
               </Badge>
             </div>
 
             <div class="flex items-center gap-2 mb-3">
-              <Badge variant="outline" class="capitalize">
-                {{ contractTypeLabels[contract.contract_type] }}
+              <Badge variant="outline">
+                {{ $t(`contracts.${contract.contract_type}`) }}
               </Badge>
               <span class="text-lg font-bold text-primary">
                 {{ formatCurrency(contract.current_rent_amount) }}
@@ -213,11 +213,11 @@
 
             <div class="space-y-1 text-sm mb-3">
               <p>
-                <span class="text-muted-foreground">Inicio:</span>
+                <span class="text-muted-foreground">{{ $t('contracts.startDate') }}:</span>
                 {{ formatDate(contract.start_date) }}
               </p>
               <p>
-                <span class="text-muted-foreground">Fin:</span>
+                <span class="text-muted-foreground">{{ $t('contracts.endDate') }}:</span>
                 {{ formatDate(contract.end_date) }}
               </p>
             </div>
@@ -229,7 +229,7 @@
                 @click="viewContract(contract.id)"
               >
                 <Eye class="w-4 h-4 mr-1" />
-                Ver
+                {{ $t('common.view') }}
               </Button>
               <Button
                 variant="ghost"
@@ -237,7 +237,7 @@
                 @click="openEditDialog(contract.id)"
               >
                 <Pencil class="w-4 h-4 mr-1" />
-                Editar
+                {{ $t('common.edit') }}
               </Button>
               <Button
                 variant="ghost"
@@ -245,15 +245,15 @@
                 @click="openCancelDialog(contract)"
               >
                 <XCircle class="w-4 h-4 mr-1 text-destructive" />
-                Cancelar
+                {{ $t('common.cancel') }}
               </Button>
             </div>
           </div>
         </div>
 
         <p class="mt-4 text-sm text-muted-foreground">
-          Mostrando {{ filteredContracts.length }} de {{ contracts.length }}
-          {{ contracts.length === 1 ? 'contrato' : 'contratos' }}
+          {{ $t('common.showing') }} {{ filteredContracts.length }} {{ $t('common.of') }} {{ contracts.length }}
+          {{ $t('contracts.title').toLowerCase() }}
         </p>
       </template>
 
@@ -278,6 +278,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -304,7 +305,11 @@ import {
 import { useContracts } from '@/composables/useContracts'
 import type { ContractWithRelations, ContractType, ContractDisplayStatus } from '@/types'
 
+import { useDate } from '@/composables/useDate'
+
 const router = useRouter()
+const { t } = useI18n()
+const { formatDate } = useDate()
 const {
   contracts,
   loading,
@@ -325,21 +330,6 @@ const dialogOpen = ref(false)
 const editingContractId = ref<string | null>(null)
 const cancelDialogOpen = ref(false)
 const cancellingContract = ref<ContractWithRelations | null>(null)
-
-// Labels
-const contractTypeLabels: Record<ContractType, string> = {
-  vivienda: 'Vivienda',
-  comercial: 'Comercial',
-  cochera: 'Cochera',
-  oficina: 'Oficina',
-}
-
-const statusLabels: Record<ContractDisplayStatus, string> = {
-  active: 'Activo',
-  expiring_soon: 'Por Vencer',
-  expired: 'Vencido',
-  cancelled: 'Cancelado',
-}
 
 // Computed
 const hasActiveFilters = computed(() =>
@@ -389,18 +379,8 @@ const cancellingContractTenantName = computed(() => {
 // Methods
 function getTitularName(contract: ContractWithRelations): string {
   const titular = getTitular(contract)
-  if (!titular) return 'Sin inquilino'
+  if (!titular) return t('contracts.noTenantAssigned')
   return `${titular.first_name} ${titular.last_name}`
-}
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr + 'T00:00:00')
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
 }
 
 function formatCurrency(amount: number | null): string {

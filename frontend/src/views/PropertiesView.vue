@@ -2,10 +2,10 @@
   <div class="p-6">
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Propiedades</h1>
+        <h1 class="text-2xl font-bold">{{ $t('properties.title') }}</h1>
         <Button @click="openCreateDialog">
           <Plus class="w-4 h-4 mr-2" />
-          Nueva Propiedad
+          {{ $t('properties.newProperty') }}
         </Button>
       </div>
 
@@ -14,7 +14,7 @@
         <div class="flex-1 min-w-[200px]">
           <Input
             v-model="searchQuery"
-            placeholder="Buscar por nombre o dirección..."
+            :placeholder="$t('properties.searchPlaceholder')"
             class="w-full"
           >
             <template #prefix>
@@ -22,49 +22,49 @@
             </template>
           </Input>
         </div>
-        
+
         <Select v-model="filterType" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Tipo" />
+            <SelectValue :placeholder="$t('properties.type')" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">Todos los Tipos</SelectItem>
-              <SelectItem value="departamento">Departamento</SelectItem>
-              <SelectItem value="casa">Casa</SelectItem>
-              <SelectItem value="comercial">Comercial</SelectItem>
-              <SelectItem value="terreno">Terreno</SelectItem>
-              <SelectItem value="oficina">Oficina</SelectItem>
-              <SelectItem value="local">Local</SelectItem>
-              <SelectItem value="galpon">Galpón</SelectItem>
+              <SelectItem value="all">{{ $t('properties.allTypes') }}</SelectItem>
+              <SelectItem value="departamento">{{ $t('properties.departamento') }}</SelectItem>
+              <SelectItem value="casa">{{ $t('properties.casa') }}</SelectItem>
+              <SelectItem value="comercial">{{ $t('properties.comercial') }}</SelectItem>
+              <SelectItem value="terreno">{{ $t('properties.terreno') }}</SelectItem>
+              <SelectItem value="oficina">{{ $t('properties.oficina') }}</SelectItem>
+              <SelectItem value="local">{{ $t('properties.local') }}</SelectItem>
+              <SelectItem value="galpon">{{ $t('properties.galpon') }}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
 
         <Select v-model="filterStatus" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Estado" />
+            <SelectValue :placeholder="$t('common.status')" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">Todos los Estados</SelectItem>
-              <SelectItem value="disponible">Disponible</SelectItem>
-              <SelectItem value="alquilada">Alquilada</SelectItem>
-              <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
-              <SelectItem value="reservada">Reservada</SelectItem>
+              <SelectItem value="all">{{ $t('properties.allStatus') }}</SelectItem>
+              <SelectItem value="disponible">{{ $t('properties.disponible') }}</SelectItem>
+              <SelectItem value="alquilada">{{ $t('properties.alquilada') }}</SelectItem>
+              <SelectItem value="mantenimiento">{{ $t('properties.mantenimiento') }}</SelectItem>
+              <SelectItem value="reservada">{{ $t('properties.reservada') }}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
 
         <Select v-model="filterPurpose" class="w-[180px]">
           <SelectTrigger>
-            <SelectValue placeholder="Finalidad" />
+            <SelectValue :placeholder="$t('properties.purpose')" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="alquiler">Alquiler</SelectItem>
-              <SelectItem value="venta">Venta</SelectItem>
+              <SelectItem value="all">{{ $t('properties.allPurposes') }}</SelectItem>
+              <SelectItem value="alquiler">{{ $t('properties.alquiler') }}</SelectItem>
+              <SelectItem value="venta">{{ $t('properties.venta') }}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -76,22 +76,22 @@
           @click="clearFilters"
         >
           <X class="w-4 h-4 mr-1" />
-          Limpiar filtros
+          {{ $t('common.clearFilters') }}
         </Button>
       </div>
 
       <!-- Loading state -->
       <div v-if="loading" class="py-12 text-center text-muted-foreground">
         <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">Cargando propiedades...</p>
+        <p class="mt-2">{{ $t('properties.loadingProperties') }}</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">Error al cargar propiedades</p>
+        <p class="text-destructive font-medium mb-2">{{ $t('properties.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
         <Button variant="outline" @click="fetchProperties">
-          Reintentar
+          {{ $t('common.retry') }}
         </Button>
       </div>
 
@@ -101,20 +101,17 @@
         <div v-if="filteredProperties.length === 0" class="py-12 text-center">
           <Building class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
-            {{ hasActiveFilters ? 'No se encontraron propiedades' : 'No hay propiedades registradas' }}
+            {{ hasActiveFilters ? $t('properties.noPropertiesFiltered') : $t('properties.noProperties') }}
           </p>
           <p class="text-sm text-muted-foreground mb-4">
-            {{ hasActiveFilters
-              ? 'Intente ajustar los filtros de búsqueda'
-              : 'Comience agregando su primera propiedad'
-            }}
+            {{ hasActiveFilters ? $t('properties.adjustFilters') : $t('properties.startAddingProperty') }}
           </p>
           <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-            Limpiar filtros
+            {{ $t('common.clearFilters') }}
           </Button>
           <Button v-else @click="openCreateDialog">
             <Plus class="w-4 h-4 mr-2" />
-            Nueva Propiedad
+            {{ $t('properties.newProperty') }}
           </Button>
         </div>
 
@@ -123,13 +120,13 @@
           <table class="w-full">
             <thead class="bg-muted/50">
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Propiedad</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipo</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Finalidad</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Dirección</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Propietario</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Estado</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Acciones</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('properties.property') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('properties.type') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('properties.purpose') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.address') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('properties.owner') }}</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.status') }}</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">{{ $t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -146,12 +143,12 @@
                     {{ property.name }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground capitalize">
-                  {{ property.property_type }}
+                <td class="px-4 py-3 text-sm text-muted-foreground">
+                  {{ $t(`properties.${property.property_type}`) }}
                 </td>
                 <td class="px-4 py-3">
                   <Badge :variant="property.purpose === 'alquiler' ? 'default' : 'secondary'">
-                    {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+                    {{ $t(`properties.${property.purpose}`) }}
                   </Badge>
                 </td>
                 <td class="px-4 py-3 text-sm text-muted-foreground">
@@ -161,8 +158,8 @@
                   {{ property.owner?.full_name ?? '-' }}
                 </td>
                 <td class="px-4 py-3">
-                  <Badge :variant="getStatusVariant(property.status)" class="capitalize">
-                    {{ property.status }}
+                  <Badge :variant="getStatusVariant(property.status)">
+                    {{ $t(`properties.${property.status}`) }}
                   </Badge>
                 </td>
                 <td class="px-4 py-3 text-right">
@@ -171,7 +168,7 @@
                       variant="ghost"
                       size="icon"
                       @click="viewProperty(property.id)"
-                      title="View details"
+                      :title="$t('common.view')"
                     >
                       <Eye class="w-4 h-4" />
                     </Button>
@@ -179,7 +176,7 @@
                       variant="ghost"
                       size="icon"
                       @click="openEditDialog(property.id)"
-                      title="Edit property"
+                      :title="$t('common.edit')"
                     >
                       <Pencil class="w-4 h-4" />
                     </Button>
@@ -187,7 +184,7 @@
                       variant="ghost"
                       size="icon"
                       @click="openDeleteDialog(property)"
-                      title="Delete property"
+                      :title="$t('common.delete')"
                     >
                       <Trash2 class="w-4 h-4 text-destructive" />
                     </Button>
@@ -199,8 +196,8 @@
         </div>
 
         <p class="mt-4 text-sm text-muted-foreground">
-          Mostrando {{ filteredProperties.length }} de {{ properties.length }}
-          {{ properties.length === 1 ? 'propiedad' : 'propiedades' }}
+          {{ $t('common.showing') }} {{ filteredProperties.length }} {{ $t('common.of') }} {{ properties.length }}
+          {{ properties.length === 1 ? $t('properties.property').toLowerCase() : $t('properties.title').toLowerCase() }}
         </p>
       </template>
 
@@ -237,15 +234,15 @@ import {
 } from '@/components/ui/select'
 import PropertyDialog from '@/components/properties/PropertyDialog.vue'
 import DeletePropertyDialog from '@/components/properties/DeletePropertyDialog.vue'
-import { 
-  Plus, 
-  Search, 
-  X, 
-  Eye, 
-  Pencil, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  X,
+  Eye,
+  Pencil,
+  Trash2,
   Building,
-  Loader2 
+  Loader2
 } from 'lucide-vue-next'
 import { useProperties } from '@/composables/useProperties'
 import type { Property } from '@/types'
@@ -277,7 +274,7 @@ const filteredProperties = computed(() => {
   // Search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    result = result.filter(p => 
+    result = result.filter(p =>
       p.name.toLowerCase().includes(query) ||
       p.address_street.toLowerCase().includes(query) ||
       p.address_city.toLowerCase().includes(query)

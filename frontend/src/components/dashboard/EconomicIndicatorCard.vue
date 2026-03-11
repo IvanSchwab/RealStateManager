@@ -29,12 +29,12 @@
 
         <div class="flex items-center gap-4">
           <div>
-            <span class="text-xs text-muted-foreground">Compra</span>
+            <span class="text-xs text-muted-foreground">{{ $t('dashboard.buy') }}</span>
             <p class="text-lg font-bold">{{ formatPrice(buyPrice) }}</p>
           </div>
           <div class="h-8 w-px bg-border"></div>
           <div>
-            <span class="text-xs text-muted-foreground">Venta</span>
+            <span class="text-xs text-muted-foreground">{{ $t('dashboard.sell') }}</span>
             <p class="text-lg font-bold">{{ formatPrice(sellPrice) }}</p>
           </div>
         </div>
@@ -52,11 +52,11 @@
         </div>
 
         <p class="text-2xl font-bold">
-          {{ value !== undefined && value > 0 ? `${value.toFixed(1)}%` : 'No disponible' }}
+          {{ value !== undefined && value > 0 ? `${value.toFixed(1)}%` : $t('dashboard.notAvailable') }}
         </p>
 
         <p class="text-xs text-muted-foreground">
-          {{ period || 'Sin datos' }}
+          {{ period || $t('dashboard.noData') }}
         </p>
       </div>
     </CardContent>
@@ -65,8 +65,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Card, CardContent } from '@/components/ui/card'
 import { DollarSign, TrendingUp } from 'lucide-vue-next'
+
+const { t } = useI18n()
 
 type IndicatorType = 'dolar' | 'inflacion'
 type VariantType = 'blue' | 'oficial' | 'default'
@@ -95,16 +98,22 @@ function formatPrice(price: number | undefined): string {
 
 // Format last update time
 const formattedLastUpdate = computed(() => {
-  if (!props.lastUpdate) return 'Sin actualización'
+  if (!props.lastUpdate) return t('dashboard.noUpdate')
 
   try {
     const date = new Date(props.lastUpdate)
-    return `Actualizado: ${date.toLocaleDateString('es-AR')} ${date.toLocaleTimeString('es-AR', {
+    const formattedDate = date.toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+    const formattedTime = date.toLocaleTimeString(undefined, {
       hour: '2-digit',
       minute: '2-digit',
-    })}`
+    })
+    return `${t('dashboard.updated')}: ${formattedDate} ${formattedTime}`
   } catch {
-    return 'Sin actualización'
+    return t('dashboard.noUpdate')
   }
 })
 
