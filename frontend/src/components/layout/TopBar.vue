@@ -8,12 +8,22 @@
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <button class="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors">
-            <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <UserIcon class="w-4 h-4 text-primary-foreground" />
-            </div>
+            <Avatar class="w-8 h-8">
+              <AvatarImage
+                v-if="authStore.profile?.avatar_url"
+                :src="authStore.profile.avatar_url"
+                alt="User avatar"
+              />
+              <AvatarFallback
+                :style="{ backgroundColor: avatarColor, color: 'white' }"
+                class="text-sm font-medium"
+              >
+                {{ initials }}
+              </AvatarFallback>
+            </Avatar>
             <div class="hidden sm:block text-left">
               <p class="text-sm font-medium text-foreground">
-                {{ authStore.profile?.full_name || authStore.profile?.email || 'User' }}
+                {{ displayName }}
               </p>
               <p v-if="authStore.profile?.full_name" class="text-xs text-muted-foreground">
                 {{ authStore.profile?.email }}
@@ -27,11 +37,31 @@
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-56">
           <DropdownMenuLabel>
-            <div>
-              <p class="font-medium">{{ authStore.profile?.full_name || 'User' }}</p>
-              <p class="text-xs text-muted-foreground font-normal">{{ authStore.profile?.email }}</p>
+            <div class="flex items-center gap-3">
+              <Avatar class="w-10 h-10">
+                <AvatarImage
+                  v-if="authStore.profile?.avatar_url"
+                  :src="authStore.profile.avatar_url"
+                  alt="User avatar"
+                />
+                <AvatarFallback
+                  :style="{ backgroundColor: avatarColor, color: 'white' }"
+                  class="text-sm font-medium"
+                >
+                  {{ initials }}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p class="font-medium">{{ displayName }}</p>
+                <p class="text-xs text-muted-foreground font-normal">{{ authStore.profile?.email }}</p>
+              </div>
             </div>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="goToProfileSettings">
+            <Settings class="w-4 h-4 mr-2" />
+            {{ $t('settings.profile') }}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem @click="handleLogout">
             <LogOut class="w-4 h-4 mr-2" />
@@ -44,10 +74,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { User as UserIcon, LogOut, ChevronDown } from 'lucide-vue-next'
+import { LogOut, ChevronDown, Settings } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useProfile } from '@/composables/useProfile'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +93,32 @@ import NotificationBell from '@/components/notifications/NotificationBell.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { getInitials, getAvatarColor } = useProfile()
+
+// Display name: full_name if available, otherwise email prefix
+const displayName = computed(() => {
+  if (authStore.profile?.full_name) {
+    return authStore.profile.full_name
+  }
+  if (authStore.profile?.email) {
+    return authStore.profile.email.split('@')[0]
+  }
+  return 'User'
+})
+
+// Initials for avatar fallback
+const initials = computed(() =>
+  getInitials(authStore.profile?.full_name ?? null, authStore.profile?.email)
+)
+
+// Avatar background color
+const avatarColor = computed(() =>
+  getAvatarColor(authStore.profile?.full_name ?? null, authStore.profile?.email)
+)
+
+function goToProfileSettings() {
+  router.push({ name: 'settings', hash: '#profile' })
+}
 
 async function handleLogout() {
   try {

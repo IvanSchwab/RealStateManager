@@ -8,6 +8,204 @@
         </p>
       </div>
 
+      <!-- My Profile Section -->
+      <Card id="profile">
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <UserCircle class="w-5 h-5 text-muted-foreground" />
+            <CardTitle>{{ $t('settings.profile') }}</CardTitle>
+          </div>
+          <CardDescription>
+            {{ $t('settings.profileDescription') }}
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <!-- Avatar Upload -->
+          <div class="space-y-4">
+            <Label>{{ $t('settings.profileAvatar') }}</Label>
+
+            <div class="flex items-center gap-4">
+              <Avatar size="lg" class="h-16 w-16">
+                <AvatarImage
+                  v-if="avatarPreview || profile?.avatar_url"
+                  :src="avatarPreview || profile?.avatar_url || ''"
+                  alt="Avatar preview"
+                />
+                <AvatarFallback
+                  v-else
+                  :style="{ backgroundColor: profileAvatarColor, color: 'white' }"
+                  class="text-xl"
+                >
+                  {{ profileInitials }}
+                </AvatarFallback>
+              </Avatar>
+
+              <div class="flex flex-col gap-2">
+                <div class="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    @click="triggerAvatarFileInput"
+                    :disabled="savingProfile"
+                  >
+                    <Upload class="w-4 h-4 mr-2" />
+                    {{ profile?.avatar_url ? $t('settings.changeAvatar') : $t('settings.uploadAvatar') }}
+                  </Button>
+                  <Button
+                    v-if="profile?.avatar_url || avatarPreview"
+                    variant="outline"
+                    size="sm"
+                    @click="handleRemoveAvatar"
+                    :disabled="savingProfile"
+                  >
+                    <Trash2 class="w-4 h-4 mr-2" />
+                    {{ $t('settings.removeAvatar') }}
+                  </Button>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                  {{ $t('settings.avatarHelp') }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Hidden File Input for Avatar -->
+            <input
+              ref="avatarFileInputRef"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/svg+xml"
+              class="hidden"
+              @change="handleAvatarFileSelect"
+            />
+          </div>
+
+          <!-- Full Name -->
+          <div class="space-y-2">
+            <Label for="full-name">{{ $t('settings.fullName') }}</Label>
+            <Input
+              id="full-name"
+              v-model="fullName"
+              :placeholder="$t('settings.fullNamePlaceholder')"
+              :disabled="savingProfile"
+            />
+          </div>
+
+          <!-- Email (read-only) -->
+          <div class="space-y-2">
+            <Label for="email">{{ $t('common.email') }}</Label>
+            <Input
+              id="email"
+              :value="profile?.email || ''"
+              disabled
+              class="bg-muted"
+            />
+            <p class="text-xs text-muted-foreground">
+              {{ $t('settings.emailReadOnly') }}
+            </p>
+          </div>
+
+          <!-- Save Profile Button -->
+          <div class="flex items-center gap-4">
+            <Button
+              @click="handleSaveProfile"
+              :disabled="savingProfile || !hasProfileChanges"
+            >
+              <Loader2 v-if="savingProfile" class="w-4 h-4 mr-2 animate-spin" />
+              <Save v-else class="w-4 h-4 mr-2" />
+              {{ $t('settings.saveChanges') }}
+            </Button>
+          </div>
+
+          <!-- Profile Success/Error message -->
+          <div
+            v-if="profileMessage"
+            class="p-3 rounded-lg text-sm"
+            :class="profileSuccess ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-destructive/10 text-destructive border border-destructive/20'"
+          >
+            <div class="flex items-center gap-2">
+              <CheckCircle v-if="profileSuccess" class="w-4 h-4" />
+              <AlertCircle v-else class="w-4 h-4" />
+              {{ profileMessage }}
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="border-t border-border my-4"></div>
+
+          <!-- Change Password Section -->
+          <div class="space-y-4">
+            <div>
+              <Label>{{ $t('settings.changePassword') }}</Label>
+              <p class="text-xs text-muted-foreground mt-1">
+                {{ $t('settings.changePasswordDescription') }}
+              </p>
+            </div>
+
+            <div v-if="!showPasswordForm" class="flex">
+              <Button
+                variant="outline"
+                @click="showPasswordForm = true"
+              >
+                <Key class="w-4 h-4 mr-2" />
+                {{ $t('settings.changePassword') }}
+              </Button>
+            </div>
+
+            <div v-else class="space-y-4 p-4 border border-border rounded-lg bg-muted/30">
+              <div class="space-y-2">
+                <Label for="new-password">{{ $t('auth.newPassword') }}</Label>
+                <Input
+                  id="new-password"
+                  v-model="newPassword"
+                  type="password"
+                  :placeholder="$t('auth.minCharacters', { min: 8 })"
+                  :disabled="changingPassword"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <Label for="confirm-password">{{ $t('auth.confirmPassword') }}</Label>
+                <Input
+                  id="confirm-password"
+                  v-model="confirmPassword"
+                  type="password"
+                  :placeholder="$t('auth.repeatPassword')"
+                  :disabled="changingPassword"
+                />
+              </div>
+
+              <div class="flex gap-2">
+                <Button
+                  @click="handleChangePassword"
+                  :disabled="changingPassword || !canChangePassword"
+                >
+                  <Loader2 v-if="changingPassword" class="w-4 h-4 mr-2 animate-spin" />
+                  {{ $t('auth.updatePassword') }}
+                </Button>
+                <Button
+                  variant="ghost"
+                  @click="cancelPasswordChange"
+                  :disabled="changingPassword"
+                >
+                  {{ $t('common.cancel') }}
+                </Button>
+              </div>
+
+              <div
+                v-if="passwordMessage"
+                class="p-3 rounded-lg text-sm"
+                :class="passwordSuccess ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-destructive/10 text-destructive border border-destructive/20'"
+              >
+                <div class="flex items-center gap-2">
+                  <CheckCircle v-if="passwordSuccess" class="w-4 h-4" />
+                  <AlertCircle v-else class="w-4 h-4" />
+                  {{ passwordMessage }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Organization Section (Admin only) -->
       <Card v-if="isAdmin" id="organization">
         <CardHeader>
@@ -241,7 +439,9 @@ import {
   Save,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  UserCircle,
+  Key
 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -251,6 +451,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { useNotifications } from '@/composables/useNotifications'
 import { useOrganization } from '@/composables/useOrganization'
 import { useAuth } from '@/composables/useAuth'
+import { useProfile } from '@/composables/useProfile'
 import { useTheme, type Theme } from '@/composables/useTheme'
 import { useLocale, type Locale } from '@/composables/useLocale'
 
@@ -267,6 +468,15 @@ const {
   getAvatarColor
 } = useOrganization()
 const { isAdmin } = useAuth()
+const {
+  profile,
+  updateProfile,
+  uploadAvatar,
+  removeAvatar,
+  changePassword,
+  getInitials: getProfileInitials,
+  getAvatarColor: getProfileAvatarColor
+} = useProfile()
 const { theme, setTheme } = useTheme()
 const { currentLocale, setLocale } = useLocale()
 
@@ -275,6 +485,46 @@ const themeOptions = computed(() => [
   { value: 'dark' as Theme, label: t('settings.themeDark'), icon: Moon },
   { value: 'system' as Theme, label: t('settings.themeSystem'), icon: Monitor }
 ])
+
+// Profile edit state
+const fullName = ref('')
+const avatarFile = ref<File | null>(null)
+const avatarPreview = ref<string | null>(null)
+const savingProfile = ref(false)
+const profileMessage = ref('')
+const profileSuccess = ref(false)
+let profileMessageTimeout: ReturnType<typeof setTimeout> | null = null
+const avatarFileInputRef = ref<HTMLInputElement | null>(null)
+
+// Password change state
+const showPasswordForm = ref(false)
+const newPassword = ref('')
+const confirmPassword = ref('')
+const changingPassword = ref(false)
+const passwordMessage = ref('')
+const passwordSuccess = ref(false)
+let passwordMessageTimeout: ReturnType<typeof setTimeout> | null = null
+
+// Profile computed
+const profileInitials = computed(() => getProfileInitials(fullName.value || profile.value?.full_name, profile.value?.email))
+const profileAvatarColor = computed(() => getProfileAvatarColor(fullName.value || profile.value?.full_name, profile.value?.email))
+
+const hasProfileChanges = computed(() => {
+  if (!profile.value) return false
+  const nameChanged = fullName.value !== (profile.value.full_name || '')
+  return nameChanged || avatarFile.value !== null
+})
+
+const canChangePassword = computed(() => {
+  return newPassword.value.length >= 8 && newPassword.value === confirmPassword.value
+})
+
+// Watch profile changes to sync local state
+watch(profile, (newProfile) => {
+  if (newProfile && !fullName.value) {
+    fullName.value = newProfile.full_name || ''
+  }
+}, { immediate: true })
 
 // Notification test state
 const testingNotification = ref(false)
@@ -308,11 +558,11 @@ watch(organization, (newOrg) => {
   }
 }, { immediate: true })
 
-// Scroll to organization section if hash is present
+// Scroll to section if hash is present
 watch(() => route.hash, (hash) => {
-  if (hash === '#organization') {
+  if (hash === '#organization' || hash === '#profile') {
     setTimeout(() => {
-      const el = document.getElementById('organization')
+      const el = document.getElementById(hash.slice(1))
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' })
       }
@@ -322,6 +572,164 @@ watch(() => route.hash, (hash) => {
 
 function handleSetLocale(locale: Locale) {
   setLocale(locale)
+}
+
+// Profile methods
+function triggerAvatarFileInput() {
+  avatarFileInputRef.value?.click()
+}
+
+function handleAvatarFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  if (!file) return
+
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+  if (!allowedTypes.includes(file.type)) {
+    profileMessage.value = t('errors.fileTypeNotAllowed')
+    profileSuccess.value = false
+    clearProfileMessageAfterDelay()
+    return
+  }
+
+  // Validate file size (max 2MB)
+  const maxSize = 2 * 1024 * 1024
+  if (file.size > maxSize) {
+    profileMessage.value = t('errors.fileTooLarge')
+    profileSuccess.value = false
+    clearProfileMessageAfterDelay()
+    return
+  }
+
+  avatarFile.value = file
+
+  // Create preview
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    avatarPreview.value = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+
+  // Reset file input
+  input.value = ''
+}
+
+async function handleRemoveAvatar() {
+  avatarFile.value = null
+  avatarPreview.value = null
+
+  if (profile.value?.avatar_url) {
+    savingProfile.value = true
+    try {
+      await removeAvatar()
+      profileMessage.value = t('settings.avatarRemoved')
+      profileSuccess.value = true
+    } catch (e) {
+      profileMessage.value = e instanceof Error ? e.message : t('errors.deleteError')
+      profileSuccess.value = false
+    } finally {
+      savingProfile.value = false
+      clearProfileMessageAfterDelay()
+    }
+  }
+}
+
+async function handleSaveProfile() {
+  if (!hasProfileChanges.value) return
+
+  savingProfile.value = true
+  profileMessage.value = ''
+
+  try {
+    let newAvatarUrl: string | undefined
+
+    // Upload avatar if selected
+    if (avatarFile.value) {
+      newAvatarUrl = await uploadAvatar(avatarFile.value)
+    }
+
+    // Update profile
+    const updates: { full_name?: string; avatar_url?: string } = {}
+
+    if (fullName.value !== (profile.value?.full_name || '')) {
+      updates.full_name = fullName.value
+    }
+
+    if (newAvatarUrl) {
+      updates.avatar_url = newAvatarUrl
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await updateProfile(updates)
+    }
+
+    // Clear local file state
+    avatarFile.value = null
+    avatarPreview.value = null
+
+    profileMessage.value = t('settings.changesSaved')
+    profileSuccess.value = true
+  } catch (e) {
+    profileMessage.value = e instanceof Error ? e.message : t('errors.unknownError')
+    profileSuccess.value = false
+  } finally {
+    savingProfile.value = false
+    clearProfileMessageAfterDelay()
+  }
+}
+
+function clearProfileMessageAfterDelay() {
+  if (profileMessageTimeout) {
+    clearTimeout(profileMessageTimeout)
+  }
+  profileMessageTimeout = setTimeout(() => {
+    profileMessage.value = ''
+  }, 5000)
+}
+
+async function handleChangePassword() {
+  if (!canChangePassword.value) return
+
+  changingPassword.value = true
+  passwordMessage.value = ''
+
+  try {
+    await changePassword(newPassword.value)
+    passwordMessage.value = t('auth.passwordUpdated')
+    passwordSuccess.value = true
+
+    // Reset form after success
+    setTimeout(() => {
+      showPasswordForm.value = false
+      newPassword.value = ''
+      confirmPassword.value = ''
+      passwordMessage.value = ''
+    }, 2000)
+  } catch (e) {
+    passwordMessage.value = e instanceof Error ? e.message : t('errors.errorUpdatingPassword')
+    passwordSuccess.value = false
+    clearPasswordMessageAfterDelay()
+  } finally {
+    changingPassword.value = false
+  }
+}
+
+function cancelPasswordChange() {
+  showPasswordForm.value = false
+  newPassword.value = ''
+  confirmPassword.value = ''
+  passwordMessage.value = ''
+}
+
+function clearPasswordMessageAfterDelay() {
+  if (passwordMessageTimeout) {
+    clearTimeout(passwordMessageTimeout)
+  }
+  passwordMessageTimeout = setTimeout(() => {
+    passwordMessage.value = ''
+  }, 5000)
 }
 
 async function handleTestNotification() {
@@ -476,6 +884,12 @@ onUnmounted(() => {
   }
   if (orgMessageTimeout) {
     clearTimeout(orgMessageTimeout)
+  }
+  if (profileMessageTimeout) {
+    clearTimeout(profileMessageTimeout)
+  }
+  if (passwordMessageTimeout) {
+    clearTimeout(passwordMessageTimeout)
   }
 })
 </script>

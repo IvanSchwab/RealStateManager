@@ -461,6 +461,21 @@ export default {
   settings: {
     title: 'Settings',
     subtitle: 'Manage your account preferences',
+    // Profile section
+    profile: 'My Profile',
+    profileDescription: 'Manage your personal information and avatar',
+    profileAvatar: 'Profile photo',
+    uploadAvatar: 'Upload photo',
+    changeAvatar: 'Change photo',
+    removeAvatar: 'Remove',
+    avatarHelp: 'JPG, PNG, WebP or SVG. Maximum 2MB.',
+    avatarRemoved: 'Profile photo removed successfully',
+    fullName: 'Full name',
+    fullNamePlaceholder: 'Your full name',
+    emailReadOnly: 'Email cannot be changed',
+    changePassword: 'Change password',
+    changePasswordDescription: 'Update your access password',
+    // Organization section
     organization: 'My Organization',
     organizationDescription: 'Configure your organization name and logo',
     orgName: 'Organization name',
