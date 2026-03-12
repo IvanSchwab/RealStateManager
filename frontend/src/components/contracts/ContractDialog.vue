@@ -99,6 +99,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
@@ -121,7 +122,11 @@ import { Loader2, CheckCircle, CreditCard } from 'lucide-vue-next'
 import ContractFormWizard from './ContractFormWizard.vue'
 import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
 import { useContracts } from '@/composables/useContracts'
+import { useToast } from '@/composables/useToast'
 import type { Contract, ContractFormData, ContractWithRelations } from '@/types'
+
+const { t } = useI18n()
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -224,7 +229,7 @@ async function handleSubmit(formData: ContractFormData) {
   try {
     if (isEditMode.value && props.contractId) {
       await updateContract(props.contractId, formData)
-      alert('Contrato actualizado correctamente')
+      toast.success(t('toast.contractUpdated'))
       hasChanges.value = false
       emit('success')
       emit('update:open', false)
@@ -253,8 +258,8 @@ async function handleSubmit(formData: ContractFormData) {
       }
     }
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Error en la operación'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('toast.operationError')
+    toast.error(`${t('common.error')}: ${message}`)
   } finally {
     isSubmitting.value = false
   }

@@ -3,6 +3,7 @@
     <RouterView />
   </MainLayout>
   <RouterView v-else />
+  <ToastContainer />
 </template>
 
 <script setup lang="ts">
@@ -10,6 +11,7 @@ import { computed, onMounted } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import MainLayout from '@/components/layout/MainLayout.vue'
+import { ToastContainer } from '@/components/ui/toast'
 import { useTheme } from '@/composables/useTheme'
 import { useLocale } from '@/composables/useLocale'
 

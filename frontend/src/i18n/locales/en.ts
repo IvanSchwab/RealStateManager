@@ -223,9 +223,16 @@ export default {
     deleteOwner: 'Delete Owner',
     deleteConfirmTitle: 'Delete Owner',
     deleteConfirmDescription: 'Are you sure you want to delete the owner "{name}"?',
+    deleteConfirmNoProperties: 'Are you sure you want to delete the owner "{name}"?',
+    deleteConfirmWithProperties: 'The owner "{name}" has {count} associated property(ies).',
+    deletePropertiesWarning: 'Deleting this owner will also delete all their properties.',
+    deleteContractsWarning: 'Existing contracts will not be deleted but will have no associated property.',
+    deleteIrreversible: 'This action cannot be undone.',
     deleteError: 'Error deleting owner',
     deleteHasProperties: 'This owner has {count} property(ies) assigned. You must reassign or delete the properties first.',
     noEmail: 'No email',
+    fullNamePlaceholder: 'John Doe',
+    notesPlaceholder: 'Additional notes about the owner...',
   },
   tenants: {
     title: 'Tenants',
@@ -515,6 +522,16 @@ export default {
     applyCorrection: 'Apply Correction',
     keepEstimated: 'Keep Estimated',
   },
+  validation: {
+    required: 'This field is required',
+    fullNameRequired: 'Full name is required (minimum 3 characters)',
+    firstNameRequired: 'First name is required (minimum 2 characters)',
+    lastNameRequired: 'Last name is required (minimum 2 characters)',
+    phoneRequired: 'Phone is required',
+    invalidEmail: 'Please enter a valid email',
+    cuitLength: 'Tax ID (CUIT/CUIL) must have 11 digits',
+    positiveNumber: 'Must be a positive number',
+  },
   errors: {
     required: 'This field is required',
     invalidEmail: 'Invalid email address',
@@ -570,5 +587,33 @@ export default {
     noRecentPayments: 'No recent payments',
     noExpiringContracts: 'No expiring contracts',
     daysRemaining: '{days} days',
+  },
+  toast: {
+    // Owners
+    ownerCreated: 'Owner created successfully',
+    ownerUpdated: 'Owner updated successfully',
+    ownerDeleted: 'Owner deleted successfully',
+    ownerDeletedWithProperties: 'Owner and {count} property(ies) deleted successfully',
+    // Tenants
+    tenantCreated: 'Tenant created successfully',
+    tenantUpdated: 'Tenant updated successfully',
+    tenantDeleted: 'Tenant deleted successfully',
+    // Properties
+    propertyCreated: 'Property created successfully',
+    propertyUpdated: 'Property updated successfully',
+    propertyDeleted: 'Property deleted successfully',
+    // Contracts
+    contractCreated: 'Contract created successfully',
+    contractUpdated: 'Contract updated successfully',
+    contractCancelled: 'Contract cancelled successfully',
+    pdfGenerated: 'PDF generated successfully',
+    pdfError: 'Error generating PDF',
+    // Documents
+    documentUploaded: 'Document uploaded successfully',
+    documentDeleted: 'Document deleted successfully',
+    fileTypeNotAllowed: 'File type not allowed. Only PDF, JPG or PNG.',
+    fileTooLarge: 'File too large. Maximum size is 5MB.',
+    // Generic
+    operationError: 'Operation error',
   },
 }

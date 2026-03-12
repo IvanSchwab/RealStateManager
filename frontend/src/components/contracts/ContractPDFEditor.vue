@@ -440,7 +440,12 @@ import {
 } from 'lucide-vue-next'
 import { useContractPDF } from '@/composables/useContractPDF'
 import { useContracts } from '@/composables/useContracts'
+import { useToast } from '@/composables/useToast'
+import { useI18n } from 'vue-i18n'
 import type { ContractWithRelations, CustomClause } from '@/types'
+
+const { t } = useI18n()
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -668,10 +673,10 @@ async function handleSaveAndDownload() {
     await downloadPDF(contractWithEdits as ContractWithRelations)
 
     emit('success')
-    alert('PDF generado correctamente')
+    toast.success(t('toast.pdfGenerated'))
   } catch (e) {
     console.error('Error generating PDF:', e)
-    alert('Error al generar el PDF: ' + (e instanceof Error ? e.message : 'Error desconocido'))
+    toast.error(`${t('toast.pdfError')}: ${e instanceof Error ? e.message : t('errors.unknownError')}`)
   } finally {
     isSaving.value = false
   }

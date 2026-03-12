@@ -38,6 +38,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-vue-next'
 import { useTenants } from '@/composables/useTenants'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -60,11 +63,12 @@ async function handleConfirm() {
 
   try {
     await deleteTenant(props.tenantId)
+    toast.success(t('toast.tenantDeleted'))
     emit('confirm')
     emit('update:open', false)
   } catch (e) {
     const message = e instanceof Error ? e.message : t('tenants.deleteError')
-    alert(`${t('common.error')}: ${message}`)
+    toast.error(`${t('common.error')}: ${message}`)
   } finally {
     isDeleting.value = false
   }

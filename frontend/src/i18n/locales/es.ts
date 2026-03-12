@@ -223,9 +223,16 @@ export default {
     deleteOwner: 'Eliminar Propietario',
     deleteConfirmTitle: 'Eliminar Propietario',
     deleteConfirmDescription: '¿Esta seguro que desea eliminar el propietario "{name}"?',
+    deleteConfirmNoProperties: '¿Estas seguro que queres eliminar al propietario "{name}"?',
+    deleteConfirmWithProperties: 'Este propietario "{name}" tiene {count} propiedad(es) asociada(s).',
+    deletePropertiesWarning: 'Al eliminarlo, tambien se eliminaran todas sus propiedades.',
+    deleteContractsWarning: 'Los contratos existentes no seran eliminados pero quedaran sin propiedad asociada.',
+    deleteIrreversible: 'Esta accion no se puede deshacer.',
     deleteError: 'Error al eliminar propietario',
     deleteHasProperties: 'Este propietario tiene {count} propiedad(es) asignada(s). Debera reasignar o eliminar las propiedades primero.',
     noEmail: 'Sin email',
+    fullNamePlaceholder: 'Juan Perez',
+    notesPlaceholder: 'Notas adicionales sobre el propietario...',
   },
   tenants: {
     title: 'Inquilinos',
@@ -515,6 +522,16 @@ export default {
     applyCorrection: 'Aplicar Correccion',
     keepEstimated: 'Mantener Estimado',
   },
+  validation: {
+    required: 'Este campo es obligatorio',
+    fullNameRequired: 'El nombre completo es obligatorio (minimo 3 caracteres)',
+    firstNameRequired: 'El nombre es obligatorio (minimo 2 caracteres)',
+    lastNameRequired: 'El apellido es obligatorio (minimo 2 caracteres)',
+    phoneRequired: 'El telefono es obligatorio',
+    invalidEmail: 'Por favor, ingrese un email valido',
+    cuitLength: 'El CUIT/CUIL debe tener 11 digitos',
+    positiveNumber: 'Debe ser un numero positivo',
+  },
   errors: {
     required: 'Este campo es requerido',
     invalidEmail: 'El correo electronico no es valido',
@@ -570,5 +587,33 @@ export default {
     noRecentPayments: 'No hay pagos recientes',
     noExpiringContracts: 'No hay contratos por vencer',
     daysRemaining: '{days} dias',
+  },
+  toast: {
+    // Owners
+    ownerCreated: 'Propietario creado correctamente',
+    ownerUpdated: 'Propietario actualizado correctamente',
+    ownerDeleted: 'Propietario eliminado correctamente',
+    ownerDeletedWithProperties: 'Propietario y {count} propiedad(es) eliminados correctamente',
+    // Tenants
+    tenantCreated: 'Inquilino creado correctamente',
+    tenantUpdated: 'Inquilino actualizado correctamente',
+    tenantDeleted: 'Inquilino eliminado correctamente',
+    // Properties
+    propertyCreated: 'Propiedad creada correctamente',
+    propertyUpdated: 'Propiedad actualizada correctamente',
+    propertyDeleted: 'Propiedad eliminada correctamente',
+    // Contracts
+    contractCreated: 'Contrato creado correctamente',
+    contractUpdated: 'Contrato actualizado correctamente',
+    contractCancelled: 'Contrato cancelado correctamente',
+    pdfGenerated: 'PDF generado correctamente',
+    pdfError: 'Error al generar el PDF',
+    // Documents
+    documentUploaded: 'Documento subido correctamente',
+    documentDeleted: 'Documento eliminado correctamente',
+    fileTypeNotAllowed: 'Tipo de archivo no permitido. Solo PDF, JPG o PNG.',
+    fileTooLarge: 'Archivo demasiado grande. El maximo es 5MB.',
+    // Generic
+    operationError: 'Error en la operacion',
   },
 }

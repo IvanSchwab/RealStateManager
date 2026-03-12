@@ -3,14 +3,28 @@
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>{{ $t('owners.deleteConfirmTitle') }}</AlertDialogTitle>
-        <AlertDialogDescription>
-          {{ $t('owners.deleteConfirmDescription', { name: ownerName }) }}
-          <span
-            v-if="propertyCount > 0"
-            class="block mt-2 text-amber-600 dark:text-amber-500 font-medium"
-          >
-            {{ $t('owners.deleteHasProperties', { count: propertyCount }) }}
-          </span>
+        <AlertDialogDescription class="space-y-3">
+          <!-- Message when owner has NO properties -->
+          <template v-if="propertyCount === 0">
+            <p>{{ $t('owners.deleteConfirmNoProperties', { name: ownerName }) }}</p>
+          </template>
+
+          <!-- Message when owner HAS properties -->
+          <template v-else>
+            <p class="font-medium text-destructive">
+              {{ $t('owners.deleteConfirmWithProperties', { name: ownerName, count: propertyCount }) }}
+            </p>
+            <p class="text-muted-foreground">
+              {{ $t('owners.deletePropertiesWarning') }}
+            </p>
+            <p class="text-muted-foreground">
+              {{ $t('owners.deleteContractsWarning') }}
+            </p>
+          </template>
+
+          <p class="text-sm text-muted-foreground italic">
+            {{ $t('owners.deleteIrreversible') }}
+          </p>
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -20,6 +34,7 @@
         <AlertDialogAction
           class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           @click="handleConfirm"
+          :disabled="isDeleting"
         >
           <Loader2 v-if="isDeleting" class="w-4 h-4 mr-2 animate-spin" />
           {{ $t('common.delete') }}
@@ -44,6 +59,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-vue-next'
 import { useOwners } from '@/composables/useOwners'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -54,7 +72,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
-  (e: 'confirm'): void
+  (e: 'confirm', deletedPropertiesCount: number): void
   (e: 'cancel'): void
 }>()
 
@@ -66,12 +84,17 @@ async function handleConfirm() {
   isDeleting.value = true
 
   try {
-    await deleteOwner(props.ownerId)
-    emit('confirm')
+    const result = await deleteOwner(props.ownerId)
+    if (result.deletedPropertiesCount > 0) {
+      toast.success(t('toast.ownerDeletedWithProperties', { count: result.deletedPropertiesCount }))
+    } else {
+      toast.success(t('toast.ownerDeleted'))
+    }
+    emit('confirm', result.deletedPropertiesCount)
     emit('update:open', false)
   } catch (e) {
     const message = e instanceof Error ? e.message : t('owners.deleteError')
-    alert(`${t('common.error')}: ${message}`)
+    toast.error(`${t('common.error')}: ${message}`)
   } finally {
     isDeleting.value = false
   }

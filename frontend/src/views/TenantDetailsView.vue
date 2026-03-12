@@ -418,8 +418,10 @@ import {
 import { useTenants } from '@/composables/useTenants'
 import { useDocuments } from '@/composables/useDocuments'
 import { useDate } from '@/composables/useDate'
+import { useToast } from '@/composables/useToast'
 import type { Tenant, Document, DocumentType } from '@/types'
 
+const toast = useToast()
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -509,13 +511,13 @@ function handleFileSelect(event: Event) {
     // Validate file type
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
     if (!allowedTypes.includes(file.type)) {
-      alert('File type not allowed. Please upload PDF, JPG, or PNG files only.')
+      toast.warning(t('toast.fileTypeNotAllowed'))
       return
     }
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File too large. Maximum size is 5MB.')
+      toast.warning(t('toast.fileTooLarge'))
       return
     }
 
@@ -541,13 +543,13 @@ async function uploadSelectedFile() {
       tenant.value.id,
       selectedDocumentType.value as DocumentType
     )
-    alert('Document uploaded successfully!')
+    toast.success(t('toast.documentUploaded'))
     clearSelectedFile()
     // Refresh documents list
     await fetchDocuments('tenant', tenant.value.id)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to upload document'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('errors.uploadError')
+    toast.error(`${t('common.error')}: ${message}`)
   }
 }
 
@@ -555,8 +557,8 @@ async function handleDownload(doc: Document) {
   try {
     await downloadDocument(doc)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to download document'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('errors.downloadError')
+    toast.error(`${t('common.error')}: ${message}`)
   }
 }
 
@@ -570,14 +572,14 @@ async function handleDeleteDocument() {
 
   try {
     await deleteDocument(documentToDelete.value.id)
-    alert('Document deleted successfully!')
+    toast.success(t('toast.documentDeleted'))
     documentToDelete.value = null
     deleteDocDialogOpen.value = false
     // Refresh documents list
     await fetchDocuments('tenant', tenant.value.id)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to delete document'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('errors.deleteError')
+    toast.error(`${t('common.error')}: ${message}`)
   }
 }
 

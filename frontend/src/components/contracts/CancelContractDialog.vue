@@ -69,6 +69,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Loader2, AlertTriangle } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -94,11 +97,12 @@ async function handleConfirm() {
 
   try {
     await cancelContract(props.contractId, updatePropertyStatus.value)
+    toast.success(t('toast.contractCancelled'))
     emit('confirm')
     emit('update:open', false)
   } catch (e) {
     const message = e instanceof Error ? e.message : t('contracts.cancelError')
-    alert(`${t('common.error')}: ${message}`)
+    toast.error(`${t('common.error')}: ${message}`)
   } finally {
     isCancelling.value = false
   }

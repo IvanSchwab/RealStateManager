@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
@@ -52,7 +53,11 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-vue-next'
 import TenantForm from './TenantForm.vue'
 import { useTenants } from '@/composables/useTenants'
+import { useToast } from '@/composables/useToast'
 import type { Tenant, TenantFormData } from '@/types'
+
+const { t } = useI18n()
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -110,17 +115,17 @@ async function handleSubmit(formData: TenantFormData) {
   try {
     if (isEditMode.value && props.tenantId) {
       await updateTenant(props.tenantId, formData)
-      alert('Tenant updated successfully!')
+      toast.success(t('toast.tenantUpdated'))
     } else {
       await createTenant(formData)
-      alert('Tenant created successfully!')
+      toast.success(t('toast.tenantCreated'))
     }
 
     emit('success')
     emit('update:open', false)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Operation failed'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('toast.operationError')
+    toast.error(`${t('common.error')}: ${message}`)
   } finally {
     isSubmitting.value = false
   }

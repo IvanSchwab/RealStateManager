@@ -228,23 +228,30 @@ export function useOwners() {
         }
     }
 
-    // Soft delete owner (set deleted_at)
-    async function deleteOwner(id: string): Promise<boolean> {
+    // Soft delete owner and cascade to properties (set deleted_at)
+    async function deleteOwner(id: string): Promise<{ deletedPropertiesCount: number }> {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot delete owner')
+        }
+
         loading.value = true
         error.value = null
 
         try {
-            const { error: deleteError } = await supabase
-                .from('owners')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('id', id)
+            const { data: cascadeResult, error: cascadeError } = await supabase
+                .rpc('cascade_soft_delete_owner_properties', {
+                    p_owner_id: id,
+                    p_organization_id: organizationId.value
+                })
 
-            if (deleteError) throw deleteError
+            if (cascadeError) throw cascadeError
 
-            // Optimistic update - remove from list
+            const deletedPropertiesCount = cascadeResult ?? 0
+
+            // Optimistic update
             owners.value = owners.value.filter(o => o.id !== id)
 
-            return true
+            return { deletedPropertiesCount }
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error al eliminar propietario'
             console.error('Error deleting owner:', e)

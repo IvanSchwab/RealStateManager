@@ -38,6 +38,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-vue-next'
 import { useProperties } from '@/composables/useProperties'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -60,11 +63,12 @@ async function handleConfirm() {
 
   try {
     await deleteProperty(props.propertyId)
+    toast.success(t('toast.propertyDeleted'))
     emit('confirm')
     emit('update:open', false)
   } catch (e) {
     const message = e instanceof Error ? e.message : t('properties.deleteError')
-    alert(`${t('common.error')}: ${message}`)
+    toast.error(`${t('common.error')}: ${message}`)
   } finally {
     isDeleting.value = false
   }

@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
@@ -52,7 +53,11 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-vue-next'
 import PropertyForm from './PropertyForm.vue'
 import { useProperties } from '@/composables/useProperties'
+import { useToast } from '@/composables/useToast'
 import type { Property } from '@/types'
+
+const { t } = useI18n()
+const toast = useToast()
 
 const props = defineProps<{
   open: boolean
@@ -110,17 +115,17 @@ async function handleSubmit(formData: Partial<Property>) {
   try {
     if (isEditMode.value && props.propertyId) {
       await updateProperty(props.propertyId, formData)
-      alert('Property updated successfully!')
+      toast.success(t('toast.propertyUpdated'))
     } else {
       await createProperty(formData)
-      alert('Property created successfully!')
+      toast.success(t('toast.propertyCreated'))
     }
-    
+
     emit('success')
     emit('update:open', false)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Operation failed'
-    alert(`Error: ${message}`)
+    const message = e instanceof Error ? e.message : t('toast.operationError')
+    toast.error(`${t('common.error')}: ${message}`)
   } finally {
     isSubmitting.value = false
   }
