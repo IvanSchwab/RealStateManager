@@ -278,11 +278,13 @@ import {
   Loader2
 } from 'lucide-vue-next'
 import { useTenants } from '@/composables/useTenants'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { Tenant } from '@/types'
 
 const { t } = useI18n()
 const router = useRouter()
 const { tenants, loading, error, fetchTenants } = useTenants()
+const { formatCurrency } = useFormatCurrency()
 
 // Filter state
 const searchQuery = ref('')
@@ -335,16 +337,6 @@ const deletingTenantName = computed(() => {
 })
 
 // Methods
-function formatCurrency(amount: number | null): string {
-  if (amount === null) return '-'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
 function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
     case 'activo':

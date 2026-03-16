@@ -9,6 +9,8 @@ import type {
   Contract,
 } from '@/types'
 import { useAuth } from './useAuth'
+import { useDate } from './useDate'
+import { useFormatCurrency } from './useFormatCurrency'
 
 export interface PaymentFilters {
   search?: string
@@ -36,27 +38,16 @@ export function usePayments() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const { organizationId } = useAuth()
+  const { formatCurrency } = useFormatCurrency()
+  const { formatDate: formatDateFromComposable, dateLocale } = useDate()
 
   /**
-   * Format currency in Argentine style
-   */
-  function formatCurrency(amount: number | null | undefined): string {
-    if (amount === null || amount === undefined) return '$0'
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
-
-  /**
-   * Format date in DD/MM/YYYY format
+   * Format date using organization's date format preference
    */
   function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '-'
     const date = new Date(dateStr + 'T00:00:00')
-    return date.toLocaleDateString('es-AR', {
+    return date.toLocaleDateString(dateLocale.value, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

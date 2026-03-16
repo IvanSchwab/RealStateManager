@@ -60,10 +60,13 @@ import { computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Loader2 } from 'lucide-vue-next'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { PaymentDistribution } from '@/composables/useDashboard'
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend)
+
+const { formatCurrency } = useFormatCurrency()
 
 const props = withDefaults(defineProps<{
   data: PaymentDistribution
@@ -76,16 +79,6 @@ const props = withDefaults(defineProps<{
 const totalAmount = computed(() => {
   return props.data.paid + props.data.pending + props.data.overdue
 })
-
-// Format currency for display
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
 
 // Chart configuration
 const chartData = computed(() => ({

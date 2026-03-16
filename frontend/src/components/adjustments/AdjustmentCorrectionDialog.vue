@@ -130,6 +130,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Check } from 'lucide-vue-next'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { AdjustmentHistory, Property } from '@/types'
 
 const props = defineProps<{
@@ -145,6 +146,8 @@ const emit = defineEmits<{
   'keep-estimated': [adjustmentId: string]
 }>()
 
+const { formatCurrency } = useFormatCurrency()
+
 const manualPercentage = ref<number | null>(null)
 
 // Get property address from nested relation
@@ -157,17 +160,6 @@ function getPropertyAddress(property: Property | undefined): string {
     property.address_apartment ? `Depto ${property.address_apartment}` : null,
   ].filter(Boolean)
   return parts.join(' ')
-}
-
-// Format currency in Argentine style
-function formatCurrency(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined) return '$0'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 // Calculated suggested amount using official percentage

@@ -114,9 +114,11 @@ import { RouterLink } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Banknote, Calendar, Check, Clock, AlertTriangle } from 'lucide-vue-next'
 import { useDate } from '@/composables/useDate'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { RecentPayment, ExpiringContract } from '@/composables/useDashboard'
 
 const { formatDate } = useDate()
+const { formatCurrency } = useFormatCurrency()
 
 withDefaults(defineProps<{
   payments: RecentPayment[]
@@ -125,16 +127,6 @@ withDefaults(defineProps<{
 }>(), {
   loading: false,
 })
-
-// Format currency in Argentine style
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
 
 // Get urgency styling based on days remaining
 function getUrgencyClass(daysRemaining: number): string {

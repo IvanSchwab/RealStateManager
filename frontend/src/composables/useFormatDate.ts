@@ -2,29 +2,28 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOrganization } from './useOrganization'
 
-export function useDate() {
+/**
+ * Composable for formatting dates according to organization preferences.
+ * Uses the organization's dateFormat setting (DD/MM/YYYY or MM/DD/YYYY).
+ * Falls back to i18n locale-based formatting if no organization settings are available.
+ */
+export function useFormatDate() {
   const { locale } = useI18n()
   const { dateFormat } = useOrganization()
 
-  // Get the browser locale for date ORDER based on organization dateFormat preference
-  // DD/MM/YYYY uses es-AR locale, MM/DD/YYYY uses en-US locale
+  // Determine the locale for Intl based on dateFormat preference
   const dateLocale = computed(() => {
+    // If org prefers DD/MM/YYYY, use a locale that displays day first
+    // If org prefers MM/DD/YYYY, use a locale that displays month first
     if (dateFormat.value === 'MM/DD/YYYY') {
       return 'en-US'
     }
     return 'es-AR' // Default: DD/MM/YYYY
   })
 
-  // Get the locale for TEXT (month names, etc.) based on UI language
-  const textLocale = computed(() => {
-    return locale.value === 'es' ? 'es-AR' : 'en-US'
-  })
-
   /**
    * Format a date string or Date object to a localized date string
-   * Uses organization's date format preference:
-   * - DD/MM/YYYY (default) uses es-AR locale
-   * - MM/DD/YYYY uses en-US locale
+   * Uses organization's date format preference
    */
   function formatDate(date: string | Date | null | undefined): string {
     if (!date) return '-'
@@ -43,8 +42,7 @@ export function useDate() {
 
   /**
    * Format a date string or Date object to a short localized date string
-   * Spanish: DD/MM
-   * English: MM/DD
+   * Uses organization's date format preference
    */
   function formatDateShort(date: string | Date | null | undefined): string {
     if (!date) return '-'
@@ -82,29 +80,30 @@ export function useDate() {
 
   /**
    * Get month name from month number (1-12)
-   * Uses UI language preference (not date format preference)
    */
   function getMonthName(month: number): string {
     const date = new Date(2024, month - 1, 1)
-    return date.toLocaleDateString(textLocale.value, { month: 'long' })
+    // For month names, use i18n locale rather than dateFormat
+    const monthLocale = locale.value === 'es' ? 'es-AR' : 'en-US'
+    return date.toLocaleDateString(monthLocale, { month: 'long' })
   }
 
   /**
    * Get short month name from month number (1-12)
-   * Uses UI language preference (not date format preference)
    */
   function getMonthNameShort(month: number): string {
     const date = new Date(2024, month - 1, 1)
-    return date.toLocaleDateString(textLocale.value, { month: 'short' })
+    const monthLocale = locale.value === 'es' ? 'es-AR' : 'en-US'
+    return date.toLocaleDateString(monthLocale, { month: 'short' })
   }
 
   /**
    * Format a month/year string (e.g., "Enero 2024" or "January 2024")
-   * Uses UI language preference (not date format preference)
    */
   function formatMonthYear(month: number, year: number): string {
     const date = new Date(year, month - 1, 1)
-    const monthName = date.toLocaleDateString(textLocale.value, { month: 'long' })
+    const monthLocale = locale.value === 'es' ? 'es-AR' : 'en-US'
+    const monthName = date.toLocaleDateString(monthLocale, { month: 'long' })
     return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`
   }
 
@@ -141,6 +140,7 @@ export function useDate() {
 
   return {
     dateLocale,
+    dateFormat,
     formatDate,
     formatDateShort,
     formatDateTime,

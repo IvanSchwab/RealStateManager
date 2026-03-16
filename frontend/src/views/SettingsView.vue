@@ -315,6 +315,95 @@
         </CardContent>
       </Card>
 
+      <!-- Regional Preferences Section (Admin only) -->
+      <Card v-if="isAdmin" id="regional-preferences">
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <Globe class="w-5 h-5 text-muted-foreground" />
+            <CardTitle>{{ $t('settings.regionalPreferences') }}</CardTitle>
+          </div>
+          <CardDescription>
+            {{ $t('settings.regionalPreferencesDescription') }}
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <!-- Date Format -->
+          <div class="space-y-2">
+            <Label>{{ $t('settings.dateFormat') }}</Label>
+            <div class="flex gap-2">
+              <Button
+                :variant="selectedDateFormat === 'DD/MM/YYYY' ? 'default' : 'outline'"
+                size="sm"
+                @click="selectedDateFormat = 'DD/MM/YYYY'"
+                :disabled="savingPreferences"
+                class="flex-1"
+              >
+                {{ $t('settings.dateFormatDMY') }}
+              </Button>
+              <Button
+                :variant="selectedDateFormat === 'MM/DD/YYYY' ? 'default' : 'outline'"
+                size="sm"
+                @click="selectedDateFormat = 'MM/DD/YYYY'"
+                :disabled="savingPreferences"
+                class="flex-1"
+              >
+                {{ $t('settings.dateFormatMDY') }}
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground mt-2">
+              {{ $t('settings.dateFormatHelp') }}
+            </p>
+          </div>
+
+          <!-- Currency -->
+          <div class="space-y-2">
+            <Label>{{ $t('settings.currency') }}</Label>
+            <div class="flex gap-2">
+              <Button
+                :variant="selectedCurrency === 'ARS' ? 'default' : 'outline'"
+                size="sm"
+                @click="selectedCurrency = 'ARS'"
+                :disabled="savingPreferences"
+                class="flex-1"
+              >
+                {{ $t('settings.currencyARS') }}
+              </Button>
+              <Button
+                :variant="selectedCurrency === 'USD' ? 'default' : 'outline'"
+                size="sm"
+                @click="selectedCurrency = 'USD'"
+                :disabled="savingPreferences"
+                class="flex-1"
+              >
+                {{ $t('settings.currencyUSD') }}
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground mt-2">
+              {{ $t('settings.currencyHelp') }}
+            </p>
+            <!-- Conversion note for USD -->
+            <p
+              v-if="selectedCurrency === 'USD'"
+              class="text-xs text-amber-600 dark:text-amber-500 mt-1 p-2 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-200 dark:border-amber-800"
+            >
+              {{ $t('settings.currencyConversionNote') }}
+            </p>
+          </div>
+
+          <!-- Save Button -->
+          <div class="flex items-center gap-4">
+            <Button
+              @click="handleSavePreferences"
+              :disabled="savingPreferences || !hasPreferencesChanges"
+            >
+              <Loader2 v-if="savingPreferences" class="w-4 h-4 mr-2 animate-spin" />
+              <Save v-else class="w-4 h-4 mr-2" />
+              {{ $t('settings.saveChanges') }}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Notifications Section -->
       <Card>
         <CardHeader>
@@ -441,7 +530,8 @@ import {
   Moon,
   Monitor,
   UserCircle,
-  Key
+  Key,
+  Globe
 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -454,6 +544,9 @@ import { useAuth } from '@/composables/useAuth'
 import { useProfile } from '@/composables/useProfile'
 import { useTheme, type Theme } from '@/composables/useTheme'
 import { useLocale, type Locale } from '@/composables/useLocale'
+import { useToast } from '@/composables/useToast'
+import { useExchangeRate } from '@/composables/useExchangeRate'
+import type { DateFormat, CurrencyCode } from '@/types'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -462,10 +555,13 @@ const {
   organization,
   fetchOrganization,
   updateOrganization,
+  updateSettings,
   uploadLogo,
   removeLogo,
   getInitials,
-  getAvatarColor
+  getAvatarColor,
+  dateFormat,
+  defaultCurrency
 } = useOrganization()
 const { isAdmin } = useAuth()
 const {
@@ -479,12 +575,24 @@ const {
 } = useProfile()
 const { theme, setTheme } = useTheme()
 const { currentLocale, setLocale } = useLocale()
+const toast = useToast()
+const { fetchRate } = useExchangeRate()
 
 const themeOptions = computed(() => [
   { value: 'light' as Theme, label: t('settings.themeLight'), icon: Sun },
   { value: 'dark' as Theme, label: t('settings.themeDark'), icon: Moon },
   { value: 'system' as Theme, label: t('settings.themeSystem'), icon: Monitor }
 ])
+
+// Regional preferences state
+const selectedDateFormat = ref<DateFormat>('DD/MM/YYYY')
+const selectedCurrency = ref<CurrencyCode>('ARS')
+const savingPreferences = ref(false)
+
+const hasPreferencesChanges = computed(() => {
+  return selectedDateFormat.value !== dateFormat.value ||
+         selectedCurrency.value !== defaultCurrency.value
+})
 
 // Profile edit state
 const fullName = ref('')
@@ -555,6 +663,11 @@ const hasOrgChanges = computed(() => {
 watch(organization, (newOrg) => {
   if (newOrg && !orgName.value) {
     orgName.value = newOrg.name
+  }
+  // Also sync preferences when organization loads/changes
+  if (newOrg) {
+    selectedDateFormat.value = newOrg.settings?.date_format ?? 'DD/MM/YYYY'
+    selectedCurrency.value = newOrg.settings?.default_currency ?? 'ARS'
   }
 }, { immediate: true })
 
@@ -869,12 +982,56 @@ function clearOrgMessageAfterDelay() {
   }, 5000)
 }
 
+async function handleSavePreferences() {
+  if (!hasPreferencesChanges.value) return
+
+  savingPreferences.value = true
+
+  // Store previous currency in case we need to revert
+  const previousCurrency = defaultCurrency.value
+  const switchingToUsd = selectedCurrency.value === 'USD' && previousCurrency !== 'USD'
+
+  try {
+    // If switching to USD, fetch exchange rate first
+    if (switchingToUsd) {
+      try {
+        await fetchRate()
+      } catch (rateError) {
+        // Revert the currency selection
+        selectedCurrency.value = previousCurrency
+        toast.error(t('settings.exchangeRateFetchError'))
+        savingPreferences.value = false
+        return
+      }
+    }
+
+    await updateSettings({
+      date_format: selectedDateFormat.value,
+      default_currency: selectedCurrency.value,
+    })
+    toast.success(t('settings.preferencesSaved'))
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : t('errors.unknownError'))
+  } finally {
+    savingPreferences.value = false
+  }
+}
+
+// Initialize preferences from organization settings
+function initPreferences() {
+  selectedDateFormat.value = dateFormat.value
+  selectedCurrency.value = defaultCurrency.value
+}
+
 onMounted(async () => {
   if (isAdmin.value && !organization.value) {
     await fetchOrganization()
     if (organization.value) {
       orgName.value = organization.value.name
+      initPreferences()
     }
+  } else if (organization.value) {
+    initPreferences()
   }
 })
 

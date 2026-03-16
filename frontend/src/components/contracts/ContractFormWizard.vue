@@ -672,6 +672,7 @@ import {
 import { useProperties } from '@/composables/useProperties'
 import { useTenants } from '@/composables/useTenants'
 import { useContracts } from '@/composables/useContracts'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type {
   Contract,
   ContractFormData,
@@ -705,6 +706,7 @@ const emit = defineEmits<{
 const { properties, fetchProperties } = useProperties()
 const { tenants, fetchTenants } = useTenants()
 const { calculateEndDate } = useContracts()
+const { formatCurrency } = useFormatCurrency()
 
 const currentStep = ref(0)
 const isSubmitting = ref(false)
@@ -862,15 +864,6 @@ function formatDate(dateStr: string): string {
     month: '2-digit',
     year: 'numeric',
   })
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 function getStepClass(index: number): string {

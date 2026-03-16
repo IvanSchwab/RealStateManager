@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { jsPDF } from 'jspdf'
 import { supabase } from '@/lib/supabase'
+import { useDate } from './useDate'
 import type {
   Contract,
   ContractWithRelations,
@@ -86,12 +87,19 @@ const ADJUSTMENT_PERIOD_LABELS: Record<AdjustmentPeriod, string> = {
 export function useContractPDF() {
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const { dateLocale } = useDate()
 
   /**
-   * Format currency in Argentine format
+   * Format currency for PDF contracts.
+   * PDFs always display amounts in their original stored currency (ARS)
+   * without conversion, regardless of the organization's display preference.
    */
   function formatCurrency(amount: number | null | undefined): string {
-    if (amount === null || amount === undefined) return '$0'
+    if (amount === null || amount === undefined) {
+      return '$ 0'
+    }
+
+    // PDFs always use ARS formatting (no conversion)
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS',
@@ -101,12 +109,12 @@ export function useContractPDF() {
   }
 
   /**
-   * Format date in DD/MM/YYYY format
+   * Format date using organization's date format preference
    */
   function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '[FECHA]'
     const date = new Date(dateStr + 'T00:00:00')
-    return date.toLocaleDateString('es-AR', {
+    return date.toLocaleDateString(dateLocale.value, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

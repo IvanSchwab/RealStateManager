@@ -42,10 +42,13 @@ import {
   Legend,
 } from 'chart.js'
 import { Loader2 } from 'lucide-vue-next'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { MonthlyIncomeData } from '@/composables/useDashboard'
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
+
+const { formatCurrency } = useFormatCurrency()
 
 const props = withDefaults(defineProps<{
   data: MonthlyIncomeData[]
@@ -53,16 +56,6 @@ const props = withDefaults(defineProps<{
 }>(), {
   loading: false,
 })
-
-// Format currency for tooltips
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
 
 // Chart configuration
 const chartData = computed(() => ({

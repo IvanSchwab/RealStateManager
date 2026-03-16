@@ -2,6 +2,8 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useInflationData } from './useInflationData'
 import { useAuth } from './useAuth'
+import { useOrganization } from './useOrganization'
+import { useDate } from './useDate'
 import type {
   Contract,
   AdjustmentHistory,
@@ -41,29 +43,44 @@ export function useAutomaticAdjustments() {
   const pendingAdjustments = ref<AdjustmentCalculation[]>([])
   const estimatedAdjustments = ref<AdjustmentHistory[]>([])
   const { organizationId } = useAuth()
+  const { defaultCurrency } = useOrganization()
+  const { dateLocale } = useDate()
 
   const { getInflationForPeriod, formatYearMonth } = useInflationData()
 
   /**
-   * Format currency in Argentine style
+   * Format currency using organization's default currency preference
    */
   function formatCurrency(amount: number | null | undefined): string {
-    if (amount === null || amount === undefined) return '$0'
-    return new Intl.NumberFormat('es-AR', {
+    if (amount === null || amount === undefined) {
+      return defaultCurrency.value === 'USD' ? 'US$ 0' : '$ 0'
+    }
+
+    const currency = defaultCurrency.value
+    const locale = currency === 'USD' ? 'en-US' : 'es-AR'
+    const showDecimals = currency === 'USD'
+
+    const formatted = new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      currency,
+      minimumFractionDigits: showDecimals ? 2 : 0,
+      maximumFractionDigits: showDecimals ? 2 : 0,
     }).format(amount)
+
+    if (currency === 'USD') {
+      return formatted.replace('$', 'US$ ').replace('US$  ', 'US$ ')
+    }
+
+    return formatted
   }
 
   /**
-   * Format date in DD/MM/YYYY format
+   * Format date using organization's date format preference
    */
   function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '-'
     const date = new Date(dateStr + 'T00:00:00')
-    return date.toLocaleDateString('es-AR', {
+    return date.toLocaleDateString(dateLocale.value, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

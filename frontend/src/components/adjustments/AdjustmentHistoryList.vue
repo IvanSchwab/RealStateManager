@@ -101,12 +101,15 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, TrendingUp } from 'lucide-vue-next'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { AdjustmentHistory, Property } from '@/types'
 
 defineProps<{
   adjustments: AdjustmentHistory[]
   loading?: boolean
 }>()
+
+const { formatCurrency } = useFormatCurrency()
 
 // Get property address from nested relation
 function getPropertyAddress(property: Property | undefined): string {
@@ -129,16 +132,5 @@ function formatDate(dateStr: string | null | undefined): string {
     month: '2-digit',
     year: 'numeric',
   })
-}
-
-// Format currency in Argentine style
-function formatCurrency(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined) return '$0'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 </script>

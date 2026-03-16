@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import type { PaymentWithDetails } from '@/types'
+import { useDate } from './useDate'
 
 // Receipt dimensions (mm) - 6 per A4 page (2 columns x 3 rows)
 const RECEIPT_WIDTH = 99
@@ -9,11 +10,19 @@ const A4_WIDTH = 210
 const A4_HEIGHT = 297
 
 export function useReceiptPDF() {
+  const { dateFormat } = useDate()
+
   /**
-   * Format currency in Argentine style
+   * Format currency for PDF receipts.
+   * PDFs always display amounts in their original stored currency (ARS)
+   * without conversion, regardless of the organization's display preference.
    */
   function formatCurrency(amount: number | null | undefined): string {
-    if (amount === null || amount === undefined) return '$0'
+    if (amount === null || amount === undefined) {
+      return '$ 0'
+    }
+
+    // PDFs always use ARS formatting (no conversion)
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS',
@@ -23,7 +32,7 @@ export function useReceiptPDF() {
   }
 
   /**
-   * Format date as DD/MM/YYYY
+   * Format date using organization's date format preference
    */
   function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '___/___/______'
@@ -31,6 +40,11 @@ export function useReceiptPDF() {
     const day = String(date.getDate()).padStart(2, '0')
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const year = date.getFullYear()
+
+    // Use organization's date format preference
+    if (dateFormat.value === 'MM/DD/YYYY') {
+      return `${month}/${day}/${year}`
+    }
     return `${day}/${month}/${year}`
   }
 

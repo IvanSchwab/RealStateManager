@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { PaymentConcept } from '@/types'
+import { useOrganization } from './useOrganization'
 
 export interface ConceptFormData {
   concept_name: string
@@ -12,6 +13,7 @@ export function usePaymentConcepts() {
   const concepts = ref<PaymentConcept[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const { defaultCurrency } = useOrganization()
 
   /**
    * Fetch all concepts for a payment
@@ -245,15 +247,25 @@ export function usePaymentConcepts() {
   }
 
   /**
-   * Format currency for display
+   * Format currency using organization's default currency preference
    */
   function formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('es-AR', {
+    const currency = defaultCurrency.value
+    const locale = currency === 'USD' ? 'en-US' : 'es-AR'
+    const showDecimals = currency === 'USD'
+
+    const formatted = new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      currency,
+      minimumFractionDigits: showDecimals ? 2 : 0,
+      maximumFractionDigits: showDecimals ? 2 : 0,
     }).format(amount)
+
+    if (currency === 'USD') {
+      return formatted.replace('$', 'US$ ').replace('US$  ', 'US$ ')
+    }
+
+    return formatted
   }
 
   return {

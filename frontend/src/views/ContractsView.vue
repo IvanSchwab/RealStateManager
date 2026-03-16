@@ -303,6 +303,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { ContractWithRelations, ContractType, ContractDisplayStatus } from '@/types'
 
 import { useDate } from '@/composables/useDate'
@@ -310,6 +311,7 @@ import { useDate } from '@/composables/useDate'
 const router = useRouter()
 const { t } = useI18n()
 const { formatDate } = useDate()
+const { formatCurrency } = useFormatCurrency()
 const {
   contracts,
   loading,
@@ -381,16 +383,6 @@ function getTitularName(contract: ContractWithRelations): string {
   const titular = getTitular(contract)
   if (!titular) return t('contracts.noTenantAssigned')
   return `${titular.first_name} ${titular.last_name}`
-}
-
-function formatCurrency(amount: number | null): string {
-  if (amount === null) return '-'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 function getStatusBadgeClass(status: ContractDisplayStatus): string {

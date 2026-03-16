@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './useAuth'
+import { useDate } from './useDate'
+import { useFormatCurrency } from './useFormatCurrency'
 
 // Types for dashboard data
 export interface IncomeKPIs {
@@ -66,6 +68,8 @@ export function useDashboard() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const { organizationId } = useAuth()
+  const { formatCurrency } = useFormatCurrency()
+  const { formatDate: formatDateFromComposable, dateLocale, getMonthName: getMonthNameFromComposable } = useDate()
 
   // KPIs
   const incomeKPIs = ref<IncomeKPIs>({
@@ -102,25 +106,12 @@ export function useDashboard() {
   const expiringContracts = ref<ExpiringContract[]>([])
 
   /**
-   * Format currency in Argentine style
-   */
-  function formatCurrency(amount: number | null | undefined): string {
-    if (amount === null || amount === undefined) return '$0'
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
-
-  /**
-   * Format date in DD/MM/YYYY format
+   * Format date using organization's date format preference
    */
   function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '-'
     const date = new Date(dateStr + 'T00:00:00')
-    return date.toLocaleDateString('es-AR', {
+    return date.toLocaleDateString(dateLocale.value, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -128,14 +119,10 @@ export function useDashboard() {
   }
 
   /**
-   * Get month name in Spanish
+   * Get month name using i18n locale
    */
   function getMonthName(month: number): string {
-    const months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-    ]
-    return months[month - 1] || ''
+    return getMonthNameFromComposable(month)
   }
 
   /**

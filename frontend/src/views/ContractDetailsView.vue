@@ -134,13 +134,13 @@
                       <div>
                         <p class="text-sm text-muted-foreground">{{ $t('contracts.baseRent') }}</p>
                         <p class="text-2xl font-bold text-primary">
-                          {{ formatContractCurrency(contract.base_rent_amount) }}
+                          {{ formatCurrency(contract.base_rent_amount) }}
                         </p>
                       </div>
                       <div v-if="contract.current_rent_amount !== contract.base_rent_amount">
                         <p class="text-sm text-muted-foreground">{{ $t('contracts.currentRent') }}</p>
                         <p class="text-2xl font-bold text-primary">
-                          {{ formatContractCurrency(contract.current_rent_amount) }}
+                          {{ formatCurrency(contract.current_rent_amount) }}
                         </p>
                       </div>
                     </div>
@@ -148,7 +148,7 @@
 
                   <div>
                     <dt class="text-sm text-muted-foreground">{{ $t('contracts.deposit') }}</dt>
-                    <dd class="font-medium">{{ formatContractCurrency(contract.deposit_amount) }}</dd>
+                    <dd class="font-medium">{{ formatCurrency(contract.deposit_amount) }}</dd>
                   </div>
                   <div>
                     <dt class="text-sm text-muted-foreground">{{ $t('contracts.paymentDay') }}</dt>
@@ -631,6 +631,7 @@ import {
 import { useContracts } from '@/composables/useContracts'
 import { usePayments } from '@/composables/usePayments'
 import { useDate } from '@/composables/useDate'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import AdjustmentAlert from '@/components/payments/AdjustmentAlert.vue'
 import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
 import RentAdjustmentDialog from '@/components/payments/RentAdjustmentDialog.vue'
@@ -659,6 +660,7 @@ const {
 } = useContracts()
 
 const { formatDate, formatDateTime, getMonthName } = useDate()
+const { formatCurrency } = useFormatCurrency()
 
 const contract = ref<ContractWithRelations | null>(null)
 const dialogOpen = ref(false)
@@ -671,7 +673,6 @@ const showAdjustmentDialog = ref(false)
 const {
   getPaymentsSummary,
   fetchPayments,
-  formatCurrency,
   getStatusLabel: getPaymentStatusLabel,
 } = usePayments()
 
@@ -731,16 +732,6 @@ const isAdjustmentSoon = computed(() => {
 })
 
 // Methods
-function formatContractCurrency(amount: number | null): string {
-  if (amount === null) return '-'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
 function getPaymentStatusClass(status: PaymentStatus): string {
   const classes: Record<PaymentStatus, string> = {
     pendiente: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',

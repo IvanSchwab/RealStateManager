@@ -419,6 +419,7 @@ import { useTenants } from '@/composables/useTenants'
 import { useDocuments } from '@/composables/useDocuments'
 import { useDate } from '@/composables/useDate'
 import { useToast } from '@/composables/useToast'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { Tenant, Document, DocumentType } from '@/types'
 
 const toast = useToast()
@@ -427,6 +428,7 @@ const route = useRoute()
 const router = useRouter()
 const { fetchTenantById, loading, error } = useTenants()
 const { formatDate, formatDateTime } = useDate()
+const { formatCurrency } = useFormatCurrency()
 const {
   documents,
   loading: documentsLoading,
@@ -452,16 +454,6 @@ const documentToDelete = ref<Document | null>(null)
 const tenantId = computed(() => route.params.id as string)
 
 // Methods
-function formatCurrency(amount: number | null): string {
-  if (amount === null) return '-'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
 function formatFileSize(bytes: number | null): string {
   return formatFileSizeUtil(bytes)
 }

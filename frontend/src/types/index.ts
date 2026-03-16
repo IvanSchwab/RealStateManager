@@ -20,12 +20,20 @@ export interface Profile {
 
 // --- Organization ---
 
+export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY'
+export type CurrencyCode = 'ARS' | 'USD'
+
+export interface OrganizationSettings {
+  date_format?: DateFormat
+  default_currency?: CurrencyCode
+}
+
 export interface Organization {
   id: string
   name: string
   slug: string
   logo_url: string | null
-  settings: Record<string, unknown>
+  settings: OrganizationSettings
   created_at: string
   deleted_at: string | null
 }

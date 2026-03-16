@@ -123,10 +123,12 @@ import ContractFormWizard from './ContractFormWizard.vue'
 import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
 import { useContracts } from '@/composables/useContracts'
 import { useToast } from '@/composables/useToast'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import type { Contract, ContractFormData, ContractWithRelations } from '@/types'
 
 const { t } = useI18n()
 const toast = useToast()
+const { formatCurrency } = useFormatCurrency()
 
 const props = defineProps<{
   open: boolean
@@ -157,15 +159,6 @@ const createdContractDuration = ref(0)
 const createdContractRent = ref(0)
 
 const isEditMode = computed(() => !!props.contractId)
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
 
 // Load contract data when dialog opens in edit mode
 watch([() => props.open, () => props.contractId], async ([open, id]) => {

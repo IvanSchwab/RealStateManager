@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
-import type { Organization } from '@/types'
+import type { Organization, OrganizationSettings, DateFormat, CurrencyCode } from '@/types'
 import { useAuth } from './useAuth'
 
 // Shared state across all instances
@@ -8,10 +8,23 @@ const organization = ref<Organization | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
+// Default values for organization settings
+const DEFAULT_DATE_FORMAT: DateFormat = 'DD/MM/YYYY'
+const DEFAULT_CURRENCY: CurrencyCode = 'ARS'
+
 export function useOrganization() {
   const { organizationId, profile } = useAuth()
 
   const isAdmin = computed(() => profile.value?.role === 'admin')
+
+  // Reactive settings with defaults
+  const dateFormat = computed<DateFormat>(() =>
+    organization.value?.settings?.date_format ?? DEFAULT_DATE_FORMAT
+  )
+
+  const defaultCurrency = computed<CurrencyCode>(() =>
+    organization.value?.settings?.default_currency ?? DEFAULT_CURRENCY
+  )
 
   async function fetchOrganization() {
     if (!organizationId.value) {
@@ -185,6 +198,43 @@ export function useOrganization() {
       .toUpperCase()
   }
 
+  async function updateSettings(newSettings: Partial<OrganizationSettings>) {
+    if (!organizationId.value) {
+      throw new Error('No organization_id available')
+    }
+
+    if (!isAdmin.value) {
+      throw new Error('Solo los administradores pueden modificar la configuracion')
+    }
+
+    loading.value = true
+    error.value = null
+
+    try {
+      // Merge new settings with existing settings
+      const currentSettings = organization.value?.settings ?? {}
+      const mergedSettings = { ...currentSettings, ...newSettings }
+
+      const { data: updated, error: updateError } = await supabase
+        .from('organizations')
+        .update({ settings: mergedSettings })
+        .eq('id', organizationId.value)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+
+      organization.value = updated
+      return updated
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Error al actualizar la configuracion'
+      console.error('Error updating organization settings:', e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Helper: generate deterministic color from org name
   function getAvatarColor(name: string): string {
     const colors = [
@@ -212,8 +262,11 @@ export function useOrganization() {
     loading,
     error,
     isAdmin,
+    dateFormat,
+    defaultCurrency,
     fetchOrganization,
     updateOrganization,
+    updateSettings,
     uploadLogo,
     removeLogo,
     getInitials,
