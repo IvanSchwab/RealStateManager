@@ -1,8 +1,34 @@
 <template>
-  <header class="h-16 bg-card border-b border-border flex items-center justify-between px-6">
-    <div></div>
+  <header class="h-16 bg-card border-b border-border flex items-center justify-between shrink-0">
+    <!-- Organization Branding (left side, same width as sidebar) -->
+    <RouterLink
+      to="/settings#organization"
+      class="w-64 h-full px-4 flex items-center gap-3 hover:bg-accent/50 transition-colors cursor-pointer border-r border-border shrink-0"
+    >
+      <Avatar size="default">
+        <AvatarImage
+          v-if="organization?.logo_url"
+          :src="organization.logo_url"
+          :alt="organization?.name || 'Logo'"
+        />
+        <AvatarFallback
+          v-else
+          :style="{ backgroundColor: orgAvatarColor, color: 'white' }"
+        >
+          {{ orgInitials }}
+        </AvatarFallback>
+      </Avatar>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-sm font-semibold text-foreground truncate">
+          {{ organization?.name || $t('common.loading') }}
+        </h1>
+        <p class="text-xs text-muted-foreground">{{ $t('nav.managementSystem') }}</p>
+      </div>
+    </RouterLink>
 
-    <div class="flex items-center gap-4">
+    <div class="flex-1"></div>
+
+    <div class="flex items-center gap-4 px-6">
       <NotificationBell />
 
       <DropdownMenu>
@@ -74,11 +100,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { LogOut, ChevronDown, Settings } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useProfile } from '@/composables/useProfile'
+import { useOrganization } from '@/composables/useOrganization'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -94,6 +121,16 @@ import NotificationBell from '@/components/notifications/NotificationBell.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const { getInitials, getAvatarColor } = useProfile()
+const {
+  organization,
+  fetchOrganization,
+  getInitials: getOrgInitials,
+  getAvatarColor: getOrgAvatarColor
+} = useOrganization()
+
+// Organization branding
+const orgInitials = computed(() => getOrgInitials(organization.value?.name || ''))
+const orgAvatarColor = computed(() => getOrgAvatarColor(organization.value?.name || ''))
 
 // Display name: full_name if available, otherwise email prefix
 const displayName = computed(() => {
@@ -128,4 +165,10 @@ async function handleLogout() {
     console.error('Logout error:', error)
   }
 }
+
+onMounted(() => {
+  if (!organization.value) {
+    fetchOrganization()
+  }
+})
 </script>

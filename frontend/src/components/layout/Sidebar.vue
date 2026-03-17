@@ -1,31 +1,5 @@
 <template>
-  <aside class="w-64 bg-card border-r border-border flex flex-col fixed top-0 left-0 h-screen overflow-y-auto">
-    <!-- Organization Branding -->
-    <RouterLink
-      to="/settings#organization"
-      class="p-4 border-b border-border flex items-center gap-3 hover:bg-accent/50 transition-colors cursor-pointer"
-    >
-      <Avatar size="default">
-        <AvatarImage
-          v-if="organization?.logo_url"
-          :src="organization.logo_url"
-          :alt="organization?.name || 'Logo'"
-        />
-        <AvatarFallback
-          v-else
-          :style="{ backgroundColor: avatarColor, color: 'white' }"
-        >
-          {{ initials }}
-        </AvatarFallback>
-      </Avatar>
-      <div class="flex-1 min-w-0">
-        <h1 class="text-sm font-semibold text-foreground truncate">
-          {{ organization?.name || $t('common.loading') }}
-        </h1>
-        <p class="text-xs text-muted-foreground">{{ $t('nav.managementSystem') }}</p>
-      </div>
-    </RouterLink>
-
+  <aside class="w-64 bg-card border-r border-border flex flex-col fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto">
     <nav class="flex-1 p-4">
       <ul class="space-y-2">
         <li v-for="item in navItems" :key="item.path">
@@ -74,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -88,17 +62,11 @@ import {
   Sun,
   Moon
 } from 'lucide-vue-next'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { useOrganization } from '@/composables/useOrganization'
 import { useTheme } from '@/composables/useTheme'
 
 const { t } = useI18n()
 const route = useRoute()
-const { organization, fetchOrganization, getInitials, getAvatarColor } = useOrganization()
 const { isDark, toggleTheme } = useTheme()
-
-const initials = computed(() => getInitials(organization.value?.name || ''))
-const avatarColor = computed(() => getAvatarColor(organization.value?.name || ''))
 
 const navItems = computed(() => [
   { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
@@ -115,10 +83,4 @@ const isActive = (path: string) => {
   }
   return route.path.startsWith(path)
 }
-
-onMounted(() => {
-  if (!organization.value) {
-    fetchOrganization()
-  }
-})
 </script>

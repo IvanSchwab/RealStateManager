@@ -1,9 +1,12 @@
 <template>
   <div class="min-h-screen bg-background">
+    <!-- Full-width header with border spanning 100% -->
+    <TopBar class="fixed top-0 left-0 right-0 z-20" />
+    <!-- Sidebar starts below header -->
     <Sidebar />
-    <div class="ml-64 h-screen flex flex-col overflow-y-auto">
-      <TopBar />
-      <main class="flex-1">
+    <!-- Content area with proper offsets -->
+    <div class="ml-64 pt-16 min-h-screen">
+      <main>
         <slot />
       </main>
     </div>

@@ -524,6 +524,16 @@ export default {
     currencyConversionNote: 'Amounts are converted using the official exchange rate (dolar oficial). Values are approximate and for reference only.',
     exchangeRateFetchError: 'Could not fetch exchange rate. Please try again.',
     preferencesSaved: 'Preferences saved successfully',
+    // Profile card titles
+    personalInfo: 'Personal information',
+    changePasswordCard: 'Change password',
+    changePasswordHint: 'Leave blank to keep your current password',
+  },
+  roles: {
+    admin: 'Admin',
+    manager: 'Manager',
+    employee: 'Employee',
+    agent: 'Agent',
   },
   adjustments: {
     applied: 'Applied',

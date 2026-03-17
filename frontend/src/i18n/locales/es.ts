@@ -524,6 +524,16 @@ export default {
     currencyConversionNote: 'Los importes se convierten usando el tipo de cambio oficial (dolar oficial). Los valores son aproximados y solo de referencia.',
     exchangeRateFetchError: 'No se pudo obtener el tipo de cambio. Intente nuevamente.',
     preferencesSaved: 'Preferencias guardadas correctamente',
+    // Profile card titles
+    personalInfo: 'Informacion personal',
+    changePasswordCard: 'Cambiar contrasena',
+    changePasswordHint: 'Deja en blanco para mantener tu contrasena actual',
+  },
+  roles: {
+    admin: 'Admin',
+    manager: 'Manager',
+    employee: 'Empleado',
+    agent: 'Agente',
   },
   adjustments: {
     applied: 'Aplicados',
