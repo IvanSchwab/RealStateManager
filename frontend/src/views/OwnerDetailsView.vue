@@ -198,15 +198,17 @@
               </CardContent>
             </Card>
 
-            <!-- Contracts Placeholder -->
+            <!-- Contract History -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">{{ $t('nav.contracts') }}</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contractHistory.title') }}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p class="text-sm text-muted-foreground">
-                  {{ $t('properties.contractsPlaceholder') }}
-                </p>
+                <ContractHistoryList
+                  v-if="owner"
+                  entity-type="owner"
+                  :entity-id="owner.id"
+                />
               </CardContent>
             </Card>
           </div>
@@ -241,6 +243,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import OwnerDialog from '@/components/owners/OwnerDialog.vue'
 import DeleteOwnerDialog from '@/components/owners/DeleteOwnerDialog.vue'
+import ContractHistoryList from '@/components/contracts/ContractHistoryList.vue'
 import {
   ArrowLeft,
   Pencil,

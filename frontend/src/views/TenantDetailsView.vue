@@ -231,6 +231,14 @@
                       <Button
                         variant="ghost"
                         size="icon"
+                        :title="$t('common.view')"
+                        @click="handleView(doc)"
+                      >
+                        <Eye class="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         :title="$t('common.download')"
                         @click="handleDownload(doc)"
                       >
@@ -318,15 +326,17 @@
               </CardContent>
             </Card>
 
-            <!-- Contracts Placeholder -->
+            <!-- Contract History -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">{{ $t('nav.contracts') }}</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contractHistory.title') }}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p class="text-sm text-muted-foreground">
-                  {{ $t('tenants.contractsPlaceholder') }}
-                </p>
+                <ContractHistoryList
+                  v-if="tenant"
+                  entity-type="tenant"
+                  :entity-id="tenant.id"
+                />
               </CardContent>
             </Card>
           </div>
@@ -401,6 +411,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import TenantDialog from '@/components/tenants/TenantDialog.vue'
 import DeleteTenantDialog from '@/components/tenants/DeleteTenantDialog.vue'
+import ContractHistoryList from '@/components/contracts/ContractHistoryList.vue'
 import {
   ArrowLeft,
   Pencil,
@@ -410,6 +421,7 @@ import {
   User,
   Upload,
   Download,
+  Eye,
   FileText,
   File as FileIcon,
   Image,
@@ -434,6 +446,7 @@ const {
   loading: documentsLoading,
   fetchDocuments,
   uploadDocument,
+  viewDocument,
   downloadDocument,
   deleteDocument,
   getDocumentTypeLabel,
@@ -548,6 +561,15 @@ async function uploadSelectedFile() {
 async function handleDownload(doc: Document) {
   try {
     await downloadDocument(doc)
+  } catch (e) {
+    const message = e instanceof Error ? e.message : t('errors.downloadError')
+    toast.error(`${t('common.error')}: ${message}`)
+  }
+}
+
+async function handleView(doc: Document) {
+  try {
+    await viewDocument(doc)
   } catch (e) {
     const message = e instanceof Error ? e.message : t('errors.downloadError')
     toast.error(`${t('common.error')}: ${message}`)

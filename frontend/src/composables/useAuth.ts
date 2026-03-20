@@ -151,22 +151,28 @@ export function useAuth() {
       }
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && user.value?.id === session?.user?.id) {
+          return
+        }
+
         user.value = session?.user ?? null
 
-        // Skip profile loading for password recovery - user just needs to reset password
         if (event === 'PASSWORD_RECOVERY') {
           return
         }
 
-        if (session?.user) {
-          await loadProfile()
-        } else {
-          profile.value = null
-          // Clean up realtime subscriptions when user signs out
-          if (event === 'SIGNED_OUT') {
-            const { unsubscribeFromRealtime } = useNotifications()
-            unsubscribeFromRealtime()
+        try {
+          if (session?.user) {
+            await loadProfile()
+          } else {
+            profile.value = null
+            if (event === 'SIGNED_OUT') {
+              const { unsubscribeFromRealtime } = useNotifications()
+              unsubscribeFromRealtime()
+            }
           }
+        } catch (error) {
+          console.error('Auth state change error:', error)
         }
       })
       authSubscription = subscription

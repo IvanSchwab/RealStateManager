@@ -155,13 +155,11 @@ export function useDocuments() {
         }
     }
 
-    // Download document - generates signed URL and triggers download
-    async function downloadDocument(document: Document): Promise<string | null> {
-        loading.value = true
+    // View document - generates signed URL and opens in new tab
+    async function viewDocument(document: Document): Promise<string | null> {
         error.value = null
 
         try {
-            // Create signed URL with 60 second expiration
             const { data, error: signError } = await supabase.storage
                 .from('documents')
                 .createSignedUrl(document.storage_path, 60)
@@ -169,11 +167,10 @@ export function useDocuments() {
             if (signError) throw signError
 
             if (data?.signedUrl) {
-                // Trigger download
                 const link = window.document.createElement('a')
                 link.href = data.signedUrl
-                link.download = document.file_name
                 link.target = '_blank'
+                link.rel = 'noopener noreferrer'
                 window.document.body.appendChild(link)
                 link.click()
                 window.document.body.removeChild(link)
@@ -182,11 +179,43 @@ export function useDocuments() {
 
             return null
         } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Failed to view document'
+            console.error('Error viewing document:', e)
+            throw e
+        }
+    }
+
+    // Download document - fetches as blob and forces file save
+    async function downloadDocument(document: Document): Promise<string | null> {
+        error.value = null
+
+        try {
+            const { data, error: signError } = await supabase.storage
+                .from('documents')
+                .createSignedUrl(document.storage_path, 60)
+
+            if (signError) throw signError
+
+            if (!data?.signedUrl) {
+                throw new Error('Failed to get signed URL')
+            }
+
+            const response = await fetch(data.signedUrl)
+            const blob = await response.blob()
+            const blobUrl = URL.createObjectURL(blob)
+            const link = window.document.createElement('a')
+            link.href = blobUrl
+            link.download = document.file_name
+            window.document.body.appendChild(link)
+            link.click()
+            window.document.body.removeChild(link)
+            URL.revokeObjectURL(blobUrl)
+
+            return data.signedUrl
+        } catch (e) {
             error.value = e instanceof Error ? e.message : 'Failed to download document'
             console.error('Error downloading document:', e)
             throw e
-        } finally {
-            loading.value = false
         }
     }
 
@@ -303,6 +332,7 @@ export function useDocuments() {
         uploadProgress,
         fetchDocuments,
         uploadDocument,
+        viewDocument,
         downloadDocument,
         getPreviewUrl,
         deleteDocument,

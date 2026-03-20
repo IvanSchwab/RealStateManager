@@ -380,6 +380,34 @@ export interface Document {
   created_at: string
 }
 
+// --- Contract Document ---
+
+export type ContractDocumentType = 'dni' | 'payslip' | 'guarantor_doc' | 'custom'
+
+export interface ContractDocument {
+  id: string
+  contract_id: string
+  org_id: string
+  name: string
+  document_type: ContractDocumentType
+  custom_type_label: string | null
+  storage_path: string
+  file_size: number
+  uploaded_by: string
+  deleted_at: string | null
+  created_at: string
+  // Relations (populated when fetching with select)
+  uploader?: {
+    full_name: string | null
+  }
+}
+
+export interface ContractDocumentFormData {
+  file: File
+  document_type: ContractDocumentType
+  custom_type_label?: string
+}
+
 // --- Notification ---
 
 export type NotificationType =

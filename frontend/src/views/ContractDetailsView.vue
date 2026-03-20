@@ -337,20 +337,11 @@
               </CardContent>
             </Card>
 
-            <!-- Documents Placeholder Card -->
-            <Card>
-              <CardHeader>
-                <CardTitle class="text-lg">{{ $t('contracts.contractDocuments') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="py-8 text-center">
-                  <FileText class="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                  <p class="text-sm text-muted-foreground">
-                    {{ $t('contracts.documentsPlaceholder') }}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <!-- Contract Documents Section -->
+            <ContractDocumentsSection
+              v-if="contract"
+              :contract-id="contract.id"
+            />
 
             <!-- Payments Section -->
             <Card>
@@ -614,6 +605,7 @@ import { Separator } from '@/components/ui/separator'
 import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
 import ContractPDFEditor from '@/components/contracts/ContractPDFEditor.vue'
+import ContractDocumentsSection from '@/components/contracts/ContractDocumentsSection.vue'
 import {
   ArrowLeft,
   Pencil,

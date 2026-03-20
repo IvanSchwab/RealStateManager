@@ -219,15 +219,17 @@
               </CardContent>
             </Card>
 
-            <!-- Contracts Placeholder -->
+            <!-- Contract History -->
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">{{ $t('properties.contracts') }}</CardTitle>
+                <CardTitle class="text-lg">{{ $t('contractHistory.title') }}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p class="text-sm text-muted-foreground">
-                  {{ $t('properties.contractsPlaceholder') }}
-                </p>
+                <ContractHistoryList
+                  v-if="property"
+                  entity-type="property"
+                  :entity-id="property.id"
+                />
               </CardContent>
             </Card>
           </div>
@@ -262,6 +264,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PropertyDialog from '@/components/properties/PropertyDialog.vue'
 import DeletePropertyDialog from '@/components/properties/DeletePropertyDialog.vue'
 import PropertyImageGallery from '@/components/properties/PropertyImageGallery.vue'
+import ContractHistoryList from '@/components/contracts/ContractHistoryList.vue'
 import {
   ArrowLeft,
   Pencil,
