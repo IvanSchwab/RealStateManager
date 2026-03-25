@@ -1,13 +1,23 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
-import type { Tenant, TenantFormData } from '@/types'
+import type { Tenant, TenantFormData, TenantStatus } from '@/types'
 import { useAuth } from './useAuth'
 
 export interface TenantFilters {
     search?: string
-    hasEmployer?: boolean
+    hasEmployer?: boolean | 'all'
     minIncome?: number
-    status?: 'activo' | 'inactivo' | 'all'
+    status?: TenantStatus | 'all'
+}
+
+export interface PaginationParams {
+    page: number
+    pageSize: number
+}
+
+export interface FetchTenantsResult {
+    data: Tenant[]
+    totalCount: number
 }
 
 export function useTenants() {
@@ -16,8 +26,11 @@ export function useTenants() {
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
 
-    // Fetch all tenants (non-deleted) with optional filters
-    async function fetchTenants(filters?: TenantFilters) {
+    // Fetch all tenants (non-deleted) with server-side filters and pagination
+    async function fetchTenants(
+        filters?: TenantFilters,
+        pagination?: PaginationParams
+    ): Promise<FetchTenantsResult | null> {
         if (!organizationId.value) {
             console.warn('No organization_id available, skipping fetch')
             return null
@@ -29,12 +42,12 @@ export function useTenants() {
         try {
             let query = supabase
                 .from('tenants')
-                .select('*')
+                .select('*', { count: 'exact' })
                 .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
 
-            // Apply filters
+            // Apply server-side filters
             if (filters?.search) {
                 const searchTerm = `%${filters.search}%`
                 query = query.or(
@@ -56,12 +69,22 @@ export function useTenants() {
                 query = query.eq('status', filters.status)
             }
 
-            const { data, error: fetchError } = await query
+            // Apply pagination using .range()
+            if (pagination) {
+                const from = (pagination.page - 1) * pagination.pageSize
+                const to = from + pagination.pageSize - 1
+                query = query.range(from, to)
+            }
+
+            const { data, error: fetchError, count } = await query
 
             if (fetchError) throw fetchError
 
             tenants.value = data ?? []
-            return data
+            return {
+                data: data ?? [],
+                totalCount: count ?? 0,
+            }
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Failed to fetch tenants'
             console.error('Error fetching tenants:', e)

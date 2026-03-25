@@ -19,6 +19,16 @@ export interface ContractFilters {
     property_id?: string
 }
 
+export interface PaginationParams {
+    page: number
+    pageSize: number
+}
+
+export interface FetchContractsResult {
+    data: ContractWithRelations[]
+    totalCount: number
+}
+
 export function useContracts() {
     const contracts = ref<ContractWithRelations[]>([])
     const loading = ref(false)
@@ -77,9 +87,13 @@ export function useContracts() {
     }
 
     /**
-     * Fetch all contracts with relations
+     * Fetch all contracts with relations and server-side pagination
+     * Search and status filters are now handled server-side
      */
-    async function fetchContracts(filters?: ContractFilters) {
+    async function fetchContracts(
+        filters?: ContractFilters,
+        pagination?: PaginationParams
+    ): Promise<FetchContractsResult | null> {
         if (!organizationId.value) {
             console.warn('No organization_id available, skipping fetch')
             return null
@@ -89,6 +103,42 @@ export function useContracts() {
         error.value = null
 
         try {
+            // For search filter, we need to find matching contract IDs first
+            // because we search across multiple related tables
+            let contractIdsFromSearch: string[] | null = null
+
+            if (filters?.search) {
+                const searchTerm = `%${filters.search}%`
+
+                // Run both search queries in parallel
+                const [propertyResult, tenantResult] = await Promise.all([
+                    // Search in properties (address_street, address_number)
+                    supabase
+                        .from('contracts')
+                        .select('id, property:properties!inner(address_street, address_number)')
+                        .eq('organization_id', organizationId.value)
+                        .is('deleted_at', null)
+                        .or(`address_street.ilike.${searchTerm},address_number.ilike.${searchTerm}`, { referencedTable: 'properties' }),
+
+                    // Search in tenants (first_name, last_name) via contract_tenants
+                    supabase
+                        .from('contract_tenants')
+                        .select('contract_id, tenant:tenants!inner(first_name, last_name)')
+                        .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm}`, { referencedTable: 'tenants' }),
+                ])
+
+                // Combine unique contract IDs from both searches
+                const propertyContractIds = propertyResult.data?.map(c => c.id) ?? []
+                const tenantContractIds = tenantResult.data?.map(ct => ct.contract_id) ?? []
+                contractIdsFromSearch = [...new Set([...propertyContractIds, ...tenantContractIds])]
+
+                // If no matches found, return empty result
+                if (contractIdsFromSearch.length === 0) {
+                    contracts.value = []
+                    return { data: [], totalCount: 0 }
+                }
+            }
+
             let query = supabase
                 .from('contracts')
                 .select(`
@@ -102,58 +152,80 @@ export function useContracts() {
                         contract_id, tenant_id, role, created_at,
                         tenant:tenants(id, first_name, last_name, email, phone)
                     )
-                `)
+                `, { count: 'exact' })
                 .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
 
-            // Filter by property_id if specified
+            // Apply search filter using contract IDs
+            if (contractIdsFromSearch !== null) {
+                query = query.in('id', contractIdsFromSearch)
+            }
+
+            // Filter by property_id if specified (server-side)
             if (filters?.property_id) {
                 query = query.eq('property_id', filters.property_id)
             }
 
-            // Filter by contract_type
+            // Filter by contract_type (server-side)
             if (filters?.contract_type && filters.contract_type !== 'all') {
                 query = query.eq('contract_type', filters.contract_type)
             }
 
-            const { data, error: fetchError } = await query
+            // Apply status filter server-side using date calculations
+            if (filters?.status && filters.status !== 'all') {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const todayStr = today.toISOString().split('T')[0]
+
+                const sixtyDaysFromNow = new Date(today)
+                sixtyDaysFromNow.setDate(sixtyDaysFromNow.getDate() + 60)
+                const sixtyDaysStr = sixtyDaysFromNow.toISOString().split('T')[0]
+
+                switch (filters.status) {
+                    case 'cancelled':
+                        // Contracts with status 'rescindido'
+                        query = query.eq('status', 'rescindido')
+                        break
+                    case 'expired':
+                        // end_date < today AND not cancelled
+                        query = query
+                            .lt('end_date', todayStr)
+                            .neq('status', 'rescindido')
+                        break
+                    case 'expiring_soon':
+                        // end_date >= today AND end_date <= today + 60 days AND not cancelled
+                        query = query
+                            .gte('end_date', todayStr)
+                            .lte('end_date', sixtyDaysStr)
+                            .neq('status', 'rescindido')
+                        break
+                    case 'active':
+                        // end_date > today + 60 days AND not cancelled
+                        query = query
+                            .gt('end_date', sixtyDaysStr)
+                            .neq('status', 'rescindido')
+                        break
+                }
+            }
+
+            // Apply server-side pagination
+            if (pagination) {
+                const from = (pagination.page - 1) * pagination.pageSize
+                const to = from + pagination.pageSize - 1
+                query = query.range(from, to)
+            }
+
+            const { data, error: fetchError, count } = await query
 
             if (fetchError) throw fetchError
 
-            // Transform and filter results
-            let result = (data ?? []) as ContractWithRelations[]
-
-            // Client-side filtering for search (across property address and tenant name)
-            if (filters?.search) {
-                const searchLower = filters.search.toLowerCase()
-                result = result.filter(contract => {
-                    // Search in property address
-                    const propertyAddress = contract.property
-                        ? `${contract.property.address_street} ${contract.property.address_number || ''}`
-                        : ''
-                    if (propertyAddress.toLowerCase().includes(searchLower)) return true
-
-                    // Search in tenant names
-                    const tenantNames = contract.tenants
-                        ?.map(ct => `${ct.tenant?.first_name} ${ct.tenant?.last_name}`)
-                        .join(' ') ?? ''
-                    if (tenantNames.toLowerCase().includes(searchLower)) return true
-
-                    return false
-                })
-            }
-
-            // Client-side filtering for display status
-            if (filters?.status && filters.status !== 'all') {
-                result = result.filter(contract => {
-                    const displayStatus = calculateDisplayStatus(contract)
-                    return displayStatus === filters.status
-                })
-            }
-
+            const result = (data ?? []) as ContractWithRelations[]
             contracts.value = result
-            return result
+            return {
+                data: result,
+                totalCount: count ?? 0,
+            }
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error al cargar contratos'
             console.error('Error fetching contracts:', e)

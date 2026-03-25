@@ -21,6 +21,16 @@ export interface PaymentFilters {
   year?: number
 }
 
+export interface PaginationParams {
+  page: number
+  pageSize: number
+}
+
+export interface FetchPaymentsResult {
+  data: PaymentWithDetails[]
+  totalCount: number
+}
+
 export interface RegisterPaymentData {
   paid_date: string
   paid_amount: number
@@ -86,9 +96,13 @@ export function usePayments() {
   }
 
   /**
-   * Fetch all payments with filters
+   * Fetch all payments with filters and server-side pagination
+   * Search filter is now handled server-side
    */
-  async function fetchPayments(filters?: PaymentFilters) {
+  async function fetchPayments(
+    filters?: PaymentFilters,
+    pagination?: PaginationParams
+  ): Promise<FetchPaymentsResult | null> {
     if (!organizationId.value) {
       console.warn('No organization_id available, skipping fetch')
       return null
@@ -98,6 +112,63 @@ export function usePayments() {
     error.value = null
 
     try {
+      // For search filter, we need to find matching payment IDs first
+      // because we search across multiple related tables
+      let paymentIdsFromSearch: string[] | null = null
+
+      if (filters?.search) {
+        const searchTerm = `%${filters.search}%`
+
+        // Run independent search queries in parallel
+        const [referenceResult, propertyResult, tenantContractsResult] = await Promise.all([
+          // Search in reference_number (directly on payments table)
+          supabase
+            .from('payments')
+            .select('id')
+            .eq('organization_id', organizationId.value)
+            .ilike('reference_number', searchTerm),
+
+          // Search in properties (address_street, address_number) via contracts
+          supabase
+            .from('payments')
+            .select('id, contract:contracts!inner(property:properties!inner(address_street, address_number))')
+            .eq('organization_id', organizationId.value)
+            .or(`address_street.ilike.${searchTerm},address_number.ilike.${searchTerm}`, { referencedTable: 'contracts.properties' }),
+
+          // Search in tenants (first_name, last_name) via contract_tenants
+          // Get contract_ids that match tenant search
+          supabase
+            .from('contract_tenants')
+            .select('contract_id, tenant:tenants!inner(first_name, last_name)')
+            .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm}`, { referencedTable: 'tenants' }),
+        ])
+
+        // Then get payment IDs for tenant contracts (depends on tenantContractsResult)
+        let tenantPaymentIds: string[] = []
+        const tenantContracts = tenantContractsResult.data
+        if (tenantContracts && tenantContracts.length > 0) {
+          const contractIds = [...new Set(tenantContracts.map(ct => ct.contract_id))]
+          const { data: tenantPayments } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('organization_id', organizationId.value)
+            .in('contract_id', contractIds)
+
+          tenantPaymentIds = tenantPayments?.map(p => p.id) ?? []
+        }
+
+        // Combine unique payment IDs from all searches
+        const referencePaymentIds = referenceResult.data?.map(p => p.id) ?? []
+        const propertyPaymentIds = propertyResult.data?.map(p => p.id) ?? []
+        paymentIdsFromSearch = [...new Set([...referencePaymentIds, ...propertyPaymentIds, ...tenantPaymentIds])]
+
+        // If no matches found, return empty result
+        if (paymentIdsFromSearch.length === 0) {
+          payments.value = []
+          return { data: [], totalCount: 0 }
+        }
+      }
+
       let query = supabase
         .from('payments')
         .select(`
@@ -116,22 +187,27 @@ export function usePayments() {
             )
           ),
           concepts:payment_concepts(*)
-        `)
+        `, { count: 'exact' })
         .eq('organization_id', organizationId.value)
         .is('contract.deleted_at', null)
         .order('due_date', { ascending: false })
 
-      // Filter by contract ID
+      // Apply search filter using payment IDs
+      if (paymentIdsFromSearch !== null) {
+        query = query.in('id', paymentIdsFromSearch)
+      }
+
+      // Filter by contract ID (server-side)
       if (filters?.contractId) {
         query = query.eq('contract_id', filters.contractId)
       }
 
-      // Filter by status
+      // Filter by status (server-side)
       if (filters?.status && filters.status !== 'all') {
         query = query.eq('status', filters.status)
       }
 
-      // Filter by month/year
+      // Filter by month/year (server-side)
       if (filters?.month) {
         query = query.eq('period_month', filters.month)
       }
@@ -139,17 +215,24 @@ export function usePayments() {
         query = query.eq('period_year', filters.year)
       }
 
-      // Filter by property ID (via contract)
+      // Filter by property ID (via contract, server-side)
       if (filters?.propertyId) {
         query = query.eq('contract.property_id', filters.propertyId)
       }
 
-      const { data, error: fetchError } = await query
+      // Apply server-side pagination
+      if (pagination) {
+        const from = (pagination.page - 1) * pagination.pageSize
+        const to = from + pagination.pageSize - 1
+        query = query.range(from, to)
+      }
+
+      const { data, error: fetchError, count } = await query
 
       if (fetchError) throw fetchError
 
       // Transform tenant data structure
-      let result = (data ?? []).map(payment => ({
+      const result = (data ?? []).map(payment => ({
         ...payment,
         contract: {
           ...payment.contract,
@@ -160,31 +243,11 @@ export function usePayments() {
         },
       })) as PaymentWithDetails[]
 
-      // Client-side search filter
-      if (filters?.search) {
-        const searchLower = filters.search.toLowerCase()
-        result = result.filter(payment => {
-          // Search in property address
-          const propertyAddress = payment.contract?.property
-            ? `${payment.contract.property.address_street} ${payment.contract.property.address_number || ''}`
-            : ''
-          if (propertyAddress.toLowerCase().includes(searchLower)) return true
-
-          // Search in tenant names
-          const tenantNames = payment.contract?.tenants
-            ?.map(ct => `${ct.tenant?.first_name} ${ct.tenant?.last_name}`)
-            .join(' ') ?? ''
-          if (tenantNames.toLowerCase().includes(searchLower)) return true
-
-          // Search in receipt number
-          if (payment.reference_number?.toLowerCase().includes(searchLower)) return true
-
-          return false
-        })
-      }
-
       payments.value = result
-      return result
+      return {
+        data: result,
+        totalCount: count ?? 0,
+      }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error al cargar pagos'
       console.error('Error fetching payments:', e)

@@ -5,7 +5,17 @@ import { useAuth } from './useAuth'
 
 export interface OwnerFilters {
     search?: string
-    hasProperties?: boolean
+    hasProperties?: boolean | 'all'
+}
+
+export interface PaginationParams {
+    page: number
+    pageSize: number
+}
+
+export interface FetchOwnersResult {
+    data: Owner[]
+    totalCount: number
 }
 
 export function useOwners() {
@@ -14,8 +24,11 @@ export function useOwners() {
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
 
-    // Fetch all owners (non-deleted) with optional filters
-    async function fetchOwners(filters?: OwnerFilters) {
+    // Fetch all owners (non-deleted) with server-side filters and pagination
+    async function fetchOwners(
+        filters?: OwnerFilters,
+        pagination?: PaginationParams
+    ): Promise<FetchOwnersResult | null> {
         if (!organizationId.value) {
             console.warn('No organization_id available, skipping fetch')
             return null
@@ -25,14 +38,31 @@ export function useOwners() {
         error.value = null
 
         try {
+            const needsPropertyFilter = filters?.hasProperties !== undefined && filters.hasProperties !== 'all'
+
+            // If filtering by hasProperties, first get the set of owner IDs that have properties
+            let ownerIdsWithProperties: Set<string> | null = null
+            if (needsPropertyFilter) {
+                const { data: propertyOwners, error: propError } = await supabase
+                    .from('properties')
+                    .select('owner_id')
+                    .eq('organization_id', organizationId.value)
+                    .is('deleted_at', null)
+                    .not('owner_id', 'is', null)
+
+                if (propError) throw propError
+
+                ownerIdsWithProperties = new Set(propertyOwners?.map(p => p.owner_id) ?? [])
+            }
+
             let query = supabase
                 .from('owners')
-                .select('*')
+                .select('*', { count: 'exact' })
                 .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('full_name', { ascending: true })
 
-            // Apply search filter
+            // Apply search filter server-side
             if (filters?.search) {
                 const searchTerm = `%${filters.search}%`
                 query = query.or(
@@ -40,41 +70,43 @@ export function useOwners() {
                 )
             }
 
-            const { data, error: fetchError } = await query
+            // Apply hasProperties filter server-side using IN/NOT IN
+            if (needsPropertyFilter && ownerIdsWithProperties) {
+                const ownerIdsArray = Array.from(ownerIdsWithProperties)
 
-            if (fetchError) throw fetchError
-
-            // If we need to filter by hasProperties, we need to do it client-side
-            // after fetching property counts
-            let result = data ?? []
-
-            if (filters?.hasProperties !== undefined) {
-                // Fetch property counts for each owner
-                const ownerIds = result.map(o => o.id)
-                if (ownerIds.length > 0) {
-                    const { data: propertyCounts } = await supabase
-                        .from('properties')
-                        .select('owner_id')
-                        .eq('organization_id', organizationId.value)
-                        .in('owner_id', ownerIds)
-                        .is('deleted_at', null)
-
-                    const ownerPropertyCount = new Map<string, number>()
-                    propertyCounts?.forEach(p => {
-                        const count = ownerPropertyCount.get(p.owner_id) || 0
-                        ownerPropertyCount.set(p.owner_id, count + 1)
-                    })
-
-                    if (filters.hasProperties === true) {
-                        result = result.filter(o => (ownerPropertyCount.get(o.id) || 0) > 0)
-                    } else {
-                        result = result.filter(o => (ownerPropertyCount.get(o.id) || 0) === 0)
+                if (filters?.hasProperties === true) {
+                    // Owners WITH properties - must be in the set
+                    if (ownerIdsArray.length === 0) {
+                        // No owners have properties, return empty result
+                        owners.value = []
+                        return { data: [], totalCount: 0 }
                     }
+                    query = query.in('id', ownerIdsArray)
+                } else if (filters?.hasProperties === false) {
+                    // Owners WITHOUT properties - must NOT be in the set
+                    if (ownerIdsArray.length > 0) {
+                        query = query.not('id', 'in', `(${ownerIdsArray.join(',')})`)
+                    }
+                    // If ownerIdsArray is empty, all owners have no properties, no filter needed
                 }
             }
 
-            owners.value = result
-            return result
+            // Apply pagination using .range()
+            if (pagination) {
+                const from = (pagination.page - 1) * pagination.pageSize
+                const to = from + pagination.pageSize - 1
+                query = query.range(from, to)
+            }
+
+            const { data, error: fetchError, count } = await query
+
+            if (fetchError) throw fetchError
+
+            owners.value = data ?? []
+            return {
+                data: data ?? [],
+                totalCount: count ?? 0,
+            }
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error al cargar propietarios'
             console.error('Error fetching owners:', e)

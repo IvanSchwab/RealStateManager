@@ -13,7 +13,7 @@
       <div class="flex flex-wrap gap-4 mb-6">
         <div class="flex-1 min-w-[200px]">
           <Input
-            v-model="searchQuery"
+            v-model="filterStore.search"
             :placeholder="$t('owners.searchPlaceholder')"
             class="w-full"
           >
@@ -23,7 +23,7 @@
           </Input>
         </div>
 
-        <Select v-model="filterProperties" class="w-[200px]">
+        <Select v-model="propertiesFilter" class="w-[200px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('nav.properties')" />
           </SelectTrigger>
@@ -65,7 +65,7 @@
       <!-- Data loaded -->
       <template v-else>
         <!-- Empty state -->
-        <div v-if="filteredOwners.length === 0" class="py-12 text-center">
+        <div v-if="owners.length === 0" class="py-12 text-center">
           <UserCircle class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
             {{ hasActiveFilters ? $t('owners.noOwnersFiltered') : $t('owners.noOwners') }}
@@ -100,7 +100,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="owner in filteredOwners"
+                v-for="owner in owners"
                 :key="owner.id"
                 class="border-t border-border hover:bg-muted/30 transition-colors cursor-pointer"
                 @click="viewOwner(owner.id)"
@@ -157,12 +157,37 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="flex items-center justify-between p-4 border-t">
+            <p class="text-sm text-muted-foreground">
+              {{ $t('common.showing') }} {{ paginationStart }}-{{ paginationEnd }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+            </p>
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage === 1"
+                @click="goToPreviousPage"
+              >
+                {{ $t('common.previous') }}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage >= totalPages"
+                @click="goToNextPage"
+              >
+                {{ $t('common.next') }}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <!-- Owners cards (mobile) -->
-        <div v-if="filteredOwners.length > 0" class="md:hidden space-y-4">
+        <div v-if="owners.length > 0" class="md:hidden space-y-4">
           <div
-            v-for="owner in filteredOwners"
+            v-for="owner in owners"
             :key="owner.id"
             class="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/30 transition-colors"
             @click="viewOwner(owner.id)"
@@ -211,11 +236,34 @@
               </Button>
             </div>
           </div>
+
+          <!-- Mobile Pagination -->
+          <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="filterStore.currentPage === 1"
+              @click="goToPreviousPage"
+            >
+              {{ $t('common.previous') }}
+            </Button>
+            <span class="flex items-center text-sm text-muted-foreground px-2">
+              {{ filterStore.currentPage }} / {{ totalPages }}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="filterStore.currentPage >= totalPages"
+              @click="goToNextPage"
+            >
+              {{ $t('common.next') }}
+            </Button>
+          </div>
         </div>
 
-        <p class="mt-4 text-sm text-muted-foreground">
-          {{ $t('common.showing') }} {{ filteredOwners.length }} {{ $t('common.of') }} {{ owners.length }}
-          {{ owners.length === 1 ? $t('properties.owner').toLowerCase() : $t('owners.title').toLowerCase() }}
+        <p v-if="totalPages <= 1" class="mt-4 text-sm text-muted-foreground">
+          {{ $t('common.showing') }} {{ owners.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+          {{ filterStore.totalCount === 1 ? $t('properties.owner').toLowerCase() : $t('owners.title').toLowerCase() }}
         </p>
       </template>
 
@@ -238,9 +286,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -265,19 +312,25 @@ import {
   Loader2
 } from 'lucide-vue-next'
 import { useOwners } from '@/composables/useOwners'
+import { useDebounce } from '@/composables/useDebounce'
+import { useOwnersFilterStore } from '@/stores/filters/useOwnersFilterStore'
+import { storeToRefs } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import type { Owner } from '@/types'
 
-const { t } = useI18n()
 const router = useRouter()
 const { owners, loading, error, fetchOwners, getOwnerPropertyCount } = useOwners()
+const filterStore = useOwnersFilterStore()
 
-// Property counts for each owner
+// Create debounced search value
+const { search } = storeToRefs(filterStore)
+const debouncedSearch = useDebounce(search, 300)
+
+// Property counts for each owner (for display in table)
 const propertyCounts = ref<Map<string, number>>(new Map())
 
-// Filter state
-const searchQuery = ref('')
-const filterProperties = ref('all')
+// Local properties filter that maps to store's hasProperties
+const propertiesFilter = ref<'all' | 'with' | 'without'>('all')
 
 // Dialog state
 const dialogOpen = ref(false)
@@ -288,30 +341,19 @@ const deletingOwnerPropertyCount = ref(0)
 
 // Computed
 const hasActiveFilters = computed(() =>
-  searchQuery.value !== '' || filterProperties.value !== 'all'
+  filterStore.search !== '' || filterStore.hasProperties !== 'all'
 )
 
-const filteredOwners = computed(() => {
-  let result = owners.value
+const totalPages = computed(() => {
+  return Math.ceil(filterStore.totalCount / filterStore.pageSize)
+})
 
-  // Search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(o =>
-      o.full_name.toLowerCase().includes(query) ||
-      (o.email?.toLowerCase().includes(query) ?? false) ||
-      (o.phone?.toLowerCase().includes(query) ?? false)
-    )
-  }
+const paginationStart = computed(() => {
+  return filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1
+})
 
-  // Properties filter
-  if (filterProperties.value === 'with') {
-    result = result.filter(o => getPropertyCount(o.id) > 0)
-  } else if (filterProperties.value === 'without') {
-    result = result.filter(o => getPropertyCount(o.id) === 0)
-  }
-
-  return result
+const paginationEnd = computed(() => {
+  return Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount)
 })
 
 // Methods
@@ -346,13 +388,27 @@ async function loadPropertyCounts() {
 }
 
 async function loadOwners() {
-  await fetchOwners()
-  await loadPropertyCounts()
+  const result = await fetchOwners(
+    {
+      search: filterStore.search || undefined,
+      hasProperties: filterStore.hasProperties !== 'all' ? filterStore.hasProperties : undefined,
+    },
+    {
+      page: filterStore.currentPage,
+      pageSize: filterStore.pageSize,
+    }
+  )
+
+  if (result) {
+    filterStore.setTotalCount(result.totalCount)
+    await loadPropertyCounts()
+  }
 }
 
 function clearFilters() {
-  searchQuery.value = ''
-  filterProperties.value = 'all'
+  filterStore.resetFilters()
+  propertiesFilter.value = 'all'
+  loadOwners()
 }
 
 function openCreateDialog() {
@@ -375,6 +431,16 @@ function viewOwner(ownerId: string) {
   router.push({ name: 'owner-details', params: { id: ownerId } })
 }
 
+function goToPreviousPage() {
+  filterStore.setPage(filterStore.currentPage - 1)
+  loadOwners()
+}
+
+function goToNextPage() {
+  filterStore.setPage(filterStore.currentPage + 1)
+  loadOwners()
+}
+
 async function handleDialogSuccess() {
   await loadOwners()
 }
@@ -385,7 +451,41 @@ async function handleDeleteSuccess() {
   await loadOwners()
 }
 
+// Sync properties filter with store
+watch(propertiesFilter, (newValue) => {
+  if (newValue === 'all') {
+    filterStore.hasProperties = 'all'
+  } else if (newValue === 'with') {
+    filterStore.hasProperties = true
+  } else {
+    filterStore.hasProperties = false
+  }
+})
+
+// Watch for non-search filter changes - immediate re-fetch
+watch(
+  () => filterStore.hasProperties,
+  () => {
+    filterStore.resetPage()
+    loadOwners()
+  }
+)
+
+// Watch debounced search - re-fetch after debounce
+watch(debouncedSearch, () => {
+  filterStore.resetPage()
+  loadOwners()
+})
+
+// Initialize properties filter from store
 onMounted(() => {
+  if (filterStore.hasProperties === true) {
+    propertiesFilter.value = 'with'
+  } else if (filterStore.hasProperties === false) {
+    propertiesFilter.value = 'without'
+  } else {
+    propertiesFilter.value = 'all'
+  }
   loadOwners()
 })
 </script>

@@ -13,7 +13,7 @@
       <div class="flex flex-wrap gap-4 mb-6">
         <div class="flex-1 min-w-[200px]">
           <Input
-            v-model="searchQuery"
+            v-model="filterStore.search"
             :placeholder="$t('properties.searchPlaceholder')"
             class="w-full"
           >
@@ -23,7 +23,7 @@
           </Input>
         </div>
 
-        <Select v-model="filterType" class="w-[180px]">
+        <Select v-model="filterStore.type" class="w-[180px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('properties.type')" />
           </SelectTrigger>
@@ -41,7 +41,7 @@
           </SelectContent>
         </Select>
 
-        <Select v-model="filterStatus" class="w-[180px]">
+        <Select v-model="filterStore.status" class="w-[180px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('common.status')" />
           </SelectTrigger>
@@ -56,7 +56,7 @@
           </SelectContent>
         </Select>
 
-        <Select v-model="filterPurpose" class="w-[180px]">
+        <Select v-model="filterStore.purpose" class="w-[180px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('properties.purpose')" />
           </SelectTrigger>
@@ -90,7 +90,7 @@
       <div v-else-if="error" class="py-12 text-center">
         <p class="text-destructive font-medium mb-2">{{ $t('properties.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-        <Button variant="outline" @click="fetchProperties">
+        <Button variant="outline" @click="loadProperties">
           {{ $t('common.retry') }}
         </Button>
       </div>
@@ -98,7 +98,7 @@
       <!-- Data loaded -->
       <template v-else>
         <!-- Empty state -->
-        <div v-if="filteredProperties.length === 0" class="py-12 text-center">
+        <div v-if="properties.length === 0" class="py-12 text-center">
           <Building class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
             {{ hasActiveFilters ? $t('properties.noPropertiesFiltered') : $t('properties.noProperties') }}
@@ -131,7 +131,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="property in filteredProperties"
+                v-for="property in properties"
                 :key="property.id"
                 class="border-t border-border hover:bg-muted/30 transition-colors"
               >
@@ -193,11 +193,36 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="flex items-center justify-between p-4 border-t">
+            <p class="text-sm text-muted-foreground">
+              {{ $t('common.showing') }} {{ paginationStart }}-{{ paginationEnd }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+            </p>
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage === 1"
+                @click="goToPreviousPage"
+              >
+                {{ $t('common.previous') }}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage >= totalPages"
+                @click="goToNextPage"
+              >
+                {{ $t('common.next') }}
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <p class="mt-4 text-sm text-muted-foreground">
-          {{ $t('common.showing') }} {{ filteredProperties.length }} {{ $t('common.of') }} {{ properties.length }}
-          {{ properties.length === 1 ? $t('properties.property').toLowerCase() : $t('properties.title').toLowerCase() }}
+        <p v-if="totalPages <= 1" class="mt-4 text-sm text-muted-foreground">
+          {{ $t('common.showing') }} {{ properties.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+          {{ filterStore.totalCount === 1 ? $t('properties.property').toLowerCase() : $t('properties.title').toLowerCase() }}
         </p>
       </template>
 
@@ -219,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -245,16 +270,18 @@ import {
   Loader2
 } from 'lucide-vue-next'
 import { useProperties } from '@/composables/useProperties'
+import { useDebounce } from '@/composables/useDebounce'
+import { usePropertiesFilterStore } from '@/stores/filters/usePropertiesFilterStore'
+import { storeToRefs } from 'pinia'
 import type { Property } from '@/types'
 
 const router = useRouter()
 const { properties, loading, error, fetchProperties } = useProperties()
+const filterStore = usePropertiesFilterStore()
 
-// Filter state
-const searchQuery = ref('')
-const filterType = ref('all')
-const filterStatus = ref('all')
-const filterPurpose = ref('all')
+// Create debounced search value
+const { search } = storeToRefs(filterStore)
+const debouncedSearch = useDebounce(search, 300)
 
 // Dialog state
 const dialogOpen = ref(false)
@@ -264,39 +291,20 @@ const deletingProperty = ref<Property | null>(null)
 
 // Computed
 const hasActiveFilters = computed(() =>
-  searchQuery.value !== '' || filterType.value !== 'all' ||
-  filterStatus.value !== 'all' || filterPurpose.value !== 'all'
+  filterStore.search !== '' || filterStore.type !== 'all' ||
+  filterStore.status !== 'all' || filterStore.purpose !== 'all'
 )
 
-const filteredProperties = computed(() => {
-  let result = properties.value
+const totalPages = computed(() => {
+  return Math.ceil(filterStore.totalCount / filterStore.pageSize)
+})
 
-  // Search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(p =>
-      p.name.toLowerCase().includes(query) ||
-      p.address_street.toLowerCase().includes(query) ||
-      p.address_city.toLowerCase().includes(query)
-    )
-  }
+const paginationStart = computed(() => {
+  return filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1
+})
 
-  // Type filter
-  if (filterType.value !== 'all') {
-    result = result.filter(p => p.property_type === filterType.value)
-  }
-
-  // Status filter
-  if (filterStatus.value !== 'all') {
-    result = result.filter(p => p.status === filterStatus.value)
-  }
-
-  // Purpose filter
-  if (filterPurpose.value !== 'all') {
-    result = result.filter(p => p.purpose === filterPurpose.value)
-  }
-
-  return result
+const paginationEnd = computed(() => {
+  return Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount)
 })
 
 // Methods
@@ -323,10 +331,8 @@ function getStatusVariant(status: string): 'default' | 'secondary' | 'destructiv
 }
 
 function clearFilters() {
-  searchQuery.value = ''
-  filterType.value = 'all'
-  filterStatus.value = 'all'
-  filterPurpose.value = 'all'
+  filterStore.resetFilters()
+  loadProperties()
 }
 
 function openCreateDialog() {
@@ -348,16 +354,60 @@ function viewProperty(propertyId: string) {
   router.push({ name: 'property-details', params: { id: propertyId } })
 }
 
+function goToPreviousPage() {
+  filterStore.setPage(filterStore.currentPage - 1)
+  loadProperties()
+}
+
+function goToNextPage() {
+  filterStore.setPage(filterStore.currentPage + 1)
+  loadProperties()
+}
+
+async function loadProperties() {
+  const result = await fetchProperties(
+    {
+      search: filterStore.search || undefined,
+      type: filterStore.type,
+      status: filterStore.status,
+      purpose: filterStore.purpose,
+    },
+    {
+      page: filterStore.currentPage,
+      pageSize: filterStore.pageSize,
+    }
+  )
+
+  if (result) {
+    filterStore.setTotalCount(result.totalCount)
+  }
+}
+
 async function handleDialogSuccess() {
-  await fetchProperties()
+  await loadProperties()
 }
 
 async function handleDeleteSuccess() {
   deletingProperty.value = null
-  await fetchProperties()
+  await loadProperties()
 }
 
+// Watch for non-search filter changes - immediate re-fetch
+watch(
+  () => [filterStore.type, filterStore.status, filterStore.purpose],
+  () => {
+    filterStore.resetPage()
+    loadProperties()
+  }
+)
+
+// Watch debounced search - re-fetch after debounce
+watch(debouncedSearch, () => {
+  filterStore.resetPage()
+  loadProperties()
+})
+
 onMounted(() => {
-  fetchProperties()
+  loadProperties()
 })
 </script>

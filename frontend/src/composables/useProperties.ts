@@ -1,7 +1,24 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
-import type { Property } from '@/types'
+import type { Property, PropertyType, PropertyStatus, PropertyPurpose } from '@/types'
 import { useAuth } from './useAuth'
+
+export interface PropertiesFilters {
+    search?: string
+    type?: PropertyType | 'all'
+    status?: PropertyStatus | 'all'
+    purpose?: PropertyPurpose | 'all'
+}
+
+export interface PaginationParams {
+    page: number
+    pageSize: number
+}
+
+export interface FetchPropertiesResult {
+    data: Property[]
+    totalCount: number
+}
 
 export function useProperties() {
     const properties = ref<Property[]>([])
@@ -9,8 +26,11 @@ export function useProperties() {
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
 
-    // Fetch all properties (non-deleted)
-    async function fetchProperties() {
+    // Fetch all properties (non-deleted) with server-side filters and pagination
+    async function fetchProperties(
+        filters?: PropertiesFilters,
+        pagination?: PaginationParams
+    ): Promise<FetchPropertiesResult | null> {
         if (!organizationId.value) {
             console.warn('No organization_id available, skipping fetch')
             return null
@@ -20,20 +40,53 @@ export function useProperties() {
         error.value = null
 
         try {
-            const { data, error: fetchError } = await supabase
+            // Start building the query
+            let query = supabase
                 .from('properties')
                 .select(`
-          *,
-          owner:owners(id, full_name, email)
-        `)
+                    *,
+                    owner:owners(id, full_name, email)
+                `, { count: 'exact' })
                 .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
 
+            // Apply server-side filters
+            if (filters?.search) {
+                const searchTerm = `%${filters.search}%`
+                query = query.or(
+                    `name.ilike.${searchTerm},address_street.ilike.${searchTerm},address_city.ilike.${searchTerm}`
+                )
+            }
+
+            if (filters?.type && filters.type !== 'all') {
+                query = query.eq('property_type', filters.type)
+            }
+
+            if (filters?.status && filters.status !== 'all') {
+                query = query.eq('status', filters.status)
+            }
+
+            if (filters?.purpose && filters.purpose !== 'all') {
+                query = query.eq('purpose', filters.purpose)
+            }
+
+            // Apply pagination using .range()
+            if (pagination) {
+                const from = (pagination.page - 1) * pagination.pageSize
+                const to = from + pagination.pageSize - 1
+                query = query.range(from, to)
+            }
+
+            const { data, error: fetchError, count } = await query
+
             if (fetchError) throw fetchError
 
             properties.value = data ?? []
-            return data
+            return {
+                data: data ?? [],
+                totalCount: count ?? 0,
+            }
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Failed to fetch properties'
             console.error('Error fetching properties:', e)
@@ -57,9 +110,9 @@ export function useProperties() {
             const { data, error: fetchError } = await supabase
                 .from('properties')
                 .select(`
-          *,
-          owner:owners(id, full_name, email)
-        `)
+                    *,
+                    owner:owners(id, full_name, email)
+                `)
                 .eq('id', id)
                 .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
@@ -131,9 +184,9 @@ export function useProperties() {
                 })
                 .eq('id', id)
                 .select(`
-          *,
-          owner:owners(id, full_name, email)
-        `)
+                    *,
+                    owner:owners(id, full_name, email)
+                `)
                 .single()
 
             if (updateError) throw updateError

@@ -13,7 +13,7 @@
       <div class="flex flex-wrap gap-4 mb-6">
         <div class="flex-1 min-w-[200px]">
           <Input
-            v-model="searchQuery"
+            v-model="filterStore.search"
             :placeholder="$t('tenants.searchPlaceholder')"
             class="w-full"
           >
@@ -23,7 +23,7 @@
           </Input>
         </div>
 
-        <Select v-model="filterStatus" class="w-[180px]">
+        <Select v-model="filterStore.status" class="w-[180px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('common.status')" />
           </SelectTrigger>
@@ -36,7 +36,7 @@
           </SelectContent>
         </Select>
 
-        <Select v-model="filterEmployer" class="w-[200px]">
+        <Select v-model="employerFilter" class="w-[200px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('tenants.employmentInfo')" />
           </SelectTrigger>
@@ -70,7 +70,7 @@
       <div v-else-if="error" class="py-12 text-center">
         <p class="text-destructive font-medium mb-2">{{ $t('tenants.errorLoading') }}</p>
         <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-        <Button variant="outline" @click="fetchTenants()">
+        <Button variant="outline" @click="loadTenants">
           {{ $t('common.retry') }}
         </Button>
       </div>
@@ -78,7 +78,7 @@
       <!-- Data loaded -->
       <template v-else>
         <!-- Empty state -->
-        <div v-if="filteredTenants.length === 0" class="py-12 text-center">
+        <div v-if="tenants.length === 0" class="py-12 text-center">
           <Users class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
             {{ hasActiveFilters ? $t('tenants.noTenantsFiltered') : $t('tenants.noTenants') }}
@@ -114,7 +114,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="tenant in filteredTenants"
+                v-for="tenant in tenants"
                 :key="tenant.id"
                 class="border-t border-border hover:bg-muted/30 transition-colors cursor-pointer"
                 @click="viewTenant(tenant.id)"
@@ -172,12 +172,37 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="flex items-center justify-between p-4 border-t">
+            <p class="text-sm text-muted-foreground">
+              {{ $t('common.showing') }} {{ paginationStart }}-{{ paginationEnd }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+            </p>
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage === 1"
+                @click="goToPreviousPage"
+              >
+                {{ $t('common.previous') }}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage >= totalPages"
+                @click="goToNextPage"
+              >
+                {{ $t('common.next') }}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <!-- Tenants cards (mobile) -->
-        <div v-if="filteredTenants.length > 0" class="md:hidden space-y-4">
+        <div v-if="tenants.length > 0" class="md:hidden space-y-4">
           <div
-            v-for="tenant in filteredTenants"
+            v-for="tenant in tenants"
             :key="tenant.id"
             class="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/30 transition-colors"
             @click="viewTenant(tenant.id)"
@@ -225,11 +250,34 @@
               </Button>
             </div>
           </div>
+
+          <!-- Mobile Pagination -->
+          <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="filterStore.currentPage === 1"
+              @click="goToPreviousPage"
+            >
+              {{ $t('common.previous') }}
+            </Button>
+            <span class="flex items-center text-sm text-muted-foreground px-2">
+              {{ filterStore.currentPage }} / {{ totalPages }}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="filterStore.currentPage >= totalPages"
+              @click="goToNextPage"
+            >
+              {{ $t('common.next') }}
+            </Button>
+          </div>
         </div>
 
-        <p class="mt-4 text-sm text-muted-foreground">
-          {{ $t('common.showing') }} {{ filteredTenants.length }} {{ $t('common.of') }} {{ tenants.length }}
-          {{ tenants.length === 1 ? $t('contracts.tenant').toLowerCase() : $t('tenants.title').toLowerCase() }}
+        <p v-if="totalPages <= 1" class="mt-4 text-sm text-muted-foreground">
+          {{ $t('common.showing') }} {{ tenants.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+          {{ filterStore.totalCount === 1 ? $t('contracts.tenant').toLowerCase() : $t('tenants.title').toLowerCase() }}
         </p>
       </template>
 
@@ -251,9 +299,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -279,17 +326,22 @@ import {
 } from 'lucide-vue-next'
 import { useTenants } from '@/composables/useTenants'
 import { useFormatCurrency } from '@/composables/useFormatCurrency'
+import { useDebounce } from '@/composables/useDebounce'
+import { useTenantsFilterStore } from '@/stores/filters/useTenantsFilterStore'
+import { storeToRefs } from 'pinia'
 import type { Tenant } from '@/types'
 
-const { t } = useI18n()
 const router = useRouter()
 const { tenants, loading, error, fetchTenants } = useTenants()
 const { formatCurrency } = useFormatCurrency()
+const filterStore = useTenantsFilterStore()
 
-// Filter state
-const searchQuery = ref('')
-const filterStatus = ref('all')
-const filterEmployer = ref('all')
+// Create debounced search value
+const { search } = storeToRefs(filterStore)
+const debouncedSearch = useDebounce(search, 300)
+
+// Local employer filter that maps to store's hasEmployer
+const employerFilter = ref<'all' | 'with' | 'without'>('all')
 
 // Dialog state
 const dialogOpen = ref(false)
@@ -299,36 +351,19 @@ const deletingTenant = ref<Tenant | null>(null)
 
 // Computed
 const hasActiveFilters = computed(() =>
-  searchQuery.value !== '' || filterStatus.value !== 'all' || filterEmployer.value !== 'all'
+  filterStore.search !== '' || filterStore.status !== 'all' || filterStore.hasEmployer !== 'all'
 )
 
-const filteredTenants = computed(() => {
-  let result = tenants.value
+const totalPages = computed(() => {
+  return Math.ceil(filterStore.totalCount / filterStore.pageSize)
+})
 
-  // Search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(t =>
-      t.first_name.toLowerCase().includes(query) ||
-      t.last_name.toLowerCase().includes(query) ||
-      (t.email?.toLowerCase().includes(query) ?? false) ||
-      t.phone.toLowerCase().includes(query)
-    )
-  }
+const paginationStart = computed(() => {
+  return filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1
+})
 
-  // Status filter
-  if (filterStatus.value !== 'all') {
-    result = result.filter(t => t.status === filterStatus.value)
-  }
-
-  // Employer filter
-  if (filterEmployer.value === 'with') {
-    result = result.filter(t => t.employer !== null)
-  } else if (filterEmployer.value === 'without') {
-    result = result.filter(t => t.employer === null)
-  }
-
-  return result
+const paginationEnd = computed(() => {
+  return Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount)
 })
 
 const deletingTenantName = computed(() => {
@@ -349,9 +384,9 @@ function getStatusVariant(status: string): 'default' | 'secondary' | 'destructiv
 }
 
 function clearFilters() {
-  searchQuery.value = ''
-  filterStatus.value = 'all'
-  filterEmployer.value = 'all'
+  filterStore.resetFilters()
+  employerFilter.value = 'all'
+  loadTenants()
 }
 
 function openCreateDialog() {
@@ -373,16 +408,78 @@ function viewTenant(tenantId: string) {
   router.push({ name: 'tenant-details', params: { id: tenantId } })
 }
 
+function goToPreviousPage() {
+  filterStore.setPage(filterStore.currentPage - 1)
+  loadTenants()
+}
+
+function goToNextPage() {
+  filterStore.setPage(filterStore.currentPage + 1)
+  loadTenants()
+}
+
+async function loadTenants() {
+  const result = await fetchTenants(
+    {
+      search: filterStore.search || undefined,
+      status: filterStore.status !== 'all' ? filterStore.status : undefined,
+      hasEmployer: filterStore.hasEmployer !== 'all' ? filterStore.hasEmployer : undefined,
+    },
+    {
+      page: filterStore.currentPage,
+      pageSize: filterStore.pageSize,
+    }
+  )
+
+  if (result) {
+    filterStore.setTotalCount(result.totalCount)
+  }
+}
+
 async function handleDialogSuccess() {
-  await fetchTenants()
+  await loadTenants()
 }
 
 async function handleDeleteSuccess() {
   deletingTenant.value = null
-  await fetchTenants()
+  await loadTenants()
 }
 
+// Sync employer filter with store
+watch(employerFilter, (newValue) => {
+  if (newValue === 'all') {
+    filterStore.hasEmployer = 'all'
+  } else if (newValue === 'with') {
+    filterStore.hasEmployer = true
+  } else {
+    filterStore.hasEmployer = false
+  }
+})
+
+// Watch for non-search filter changes - immediate re-fetch
+watch(
+  () => [filterStore.status, filterStore.hasEmployer],
+  () => {
+    filterStore.resetPage()
+    loadTenants()
+  }
+)
+
+// Watch debounced search - re-fetch after debounce
+watch(debouncedSearch, () => {
+  filterStore.resetPage()
+  loadTenants()
+})
+
+// Initialize employer filter from store
 onMounted(() => {
-  fetchTenants()
+  if (filterStore.hasEmployer === true) {
+    employerFilter.value = 'with'
+  } else if (filterStore.hasEmployer === false) {
+    employerFilter.value = 'without'
+  } else {
+    employerFilter.value = 'all'
+  }
+  loadTenants()
 })
 </script>

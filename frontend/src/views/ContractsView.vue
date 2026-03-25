@@ -13,7 +13,7 @@
       <div class="flex flex-wrap gap-4 mb-6">
         <div class="flex-1 min-w-[200px]">
           <Input
-            v-model="searchQuery"
+            v-model="filterStore.search"
             :placeholder="$t('contracts.searchPlaceholder')"
             class="w-full"
           >
@@ -23,7 +23,7 @@
           </Input>
         </div>
 
-        <Select v-model="filterStatus" class="w-[180px]">
+        <Select v-model="filterStore.status" class="w-[180px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('common.status')" />
           </SelectTrigger>
@@ -38,7 +38,7 @@
           </SelectContent>
         </Select>
 
-        <Select v-model="filterContractType" class="w-[180px]">
+        <Select v-model="filterStore.contractType" class="w-[180px]">
           <SelectTrigger>
             <SelectValue :placeholder="$t('common.type')" />
           </SelectTrigger>
@@ -82,7 +82,7 @@
       <!-- Data loaded -->
       <template v-else>
         <!-- Empty state -->
-        <div v-if="filteredContracts.length === 0" class="py-12 text-center">
+        <div v-if="contracts.length === 0" class="py-12 text-center">
           <FileText class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">
             {{ hasActiveFilters ? $t('contracts.noContractsFiltered') : $t('contracts.noContracts') }}
@@ -119,7 +119,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="contract in filteredContracts"
+                v-for="contract in contracts"
                 :key="contract.id"
                 class="border-t border-border hover:bg-muted/30 transition-colors cursor-pointer"
                 @click="viewContract(contract.id)"
@@ -182,12 +182,37 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="flex items-center justify-between p-4 border-t">
+            <p class="text-sm text-muted-foreground">
+              {{ $t('common.showing') }} {{ paginationStart }}-{{ paginationEnd }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+            </p>
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage === 1"
+                @click="goToPreviousPage"
+              >
+                {{ $t('common.previous') }}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="filterStore.currentPage >= totalPages"
+                @click="goToNextPage"
+              >
+                {{ $t('common.next') }}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <!-- Contracts cards (mobile) -->
-        <div v-if="filteredContracts.length > 0" class="md:hidden space-y-4">
+        <div v-if="contracts.length > 0" class="md:hidden space-y-4">
           <div
-            v-for="contract in filteredContracts"
+            v-for="contract in contracts"
             :key="contract.id"
             class="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/30 transition-colors"
             @click="viewContract(contract.id)"
@@ -249,11 +274,34 @@
               </Button>
             </div>
           </div>
+
+          <!-- Mobile Pagination -->
+          <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="filterStore.currentPage === 1"
+              @click="goToPreviousPage"
+            >
+              {{ $t('common.previous') }}
+            </Button>
+            <span class="flex items-center text-sm text-muted-foreground px-2">
+              {{ filterStore.currentPage }} / {{ totalPages }}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="filterStore.currentPage >= totalPages"
+              @click="goToNextPage"
+            >
+              {{ $t('common.next') }}
+            </Button>
+          </div>
         </div>
 
-        <p class="mt-4 text-sm text-muted-foreground">
-          {{ $t('common.showing') }} {{ filteredContracts.length }} {{ $t('common.of') }} {{ contracts.length }}
-          {{ $t('contracts.title').toLowerCase() }}
+        <p v-if="totalPages <= 1" class="mt-4 text-sm text-muted-foreground">
+          {{ $t('common.showing') }} {{ contracts.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+          {{ filterStore.totalCount === 1 ? $t('contracts.contract').toLowerCase() : $t('contracts.title').toLowerCase() }}
         </p>
       </template>
 
@@ -276,7 +324,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
@@ -304,7 +352,10 @@ import {
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import { useFormatCurrency } from '@/composables/useFormatCurrency'
-import type { ContractWithRelations, ContractType, ContractDisplayStatus } from '@/types'
+import { useDebounce } from '@/composables/useDebounce'
+import { useContractsFilterStore } from '@/stores/filters/useContractsFilterStore'
+import { storeToRefs } from 'pinia'
+import type { ContractWithRelations, ContractDisplayStatus } from '@/types'
 
 import { useDate } from '@/composables/useDate'
 
@@ -321,11 +372,11 @@ const {
   formatPropertyAddress,
   getTitular,
 } = useContracts()
+const filterStore = useContractsFilterStore()
 
-// Filter state
-const searchQuery = ref('')
-const filterStatus = ref<ContractDisplayStatus | 'all'>('all')
-const filterContractType = ref<ContractType | 'all'>('all')
+// Create debounced search value
+const { search } = storeToRefs(filterStore)
+const debouncedSearch = useDebounce(search, 300)
 
 // Dialog state
 const dialogOpen = ref(false)
@@ -335,37 +386,21 @@ const cancellingContract = ref<ContractWithRelations | null>(null)
 
 // Computed
 const hasActiveFilters = computed(() =>
-  searchQuery.value !== '' ||
-  filterStatus.value !== 'all' ||
-  filterContractType.value !== 'all'
+  filterStore.search !== '' ||
+  filterStore.status !== 'all' ||
+  filterStore.contractType !== 'all'
 )
 
-const filteredContracts = computed(() => {
-  let result = contracts.value
+const totalPages = computed(() => {
+  return Math.ceil(filterStore.totalCount / filterStore.pageSize)
+})
 
-  // Search filter (client-side for instant feedback)
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(contract => {
-      const address = formatPropertyAddress(contract).toLowerCase()
-      const titularName = getTitularName(contract).toLowerCase()
-      return address.includes(query) || titularName.includes(query)
-    })
-  }
+const paginationStart = computed(() => {
+  return filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1
+})
 
-  // Status filter (client-side)
-  if (filterStatus.value !== 'all') {
-    result = result.filter(contract => {
-      return calculateDisplayStatus(contract) === filterStatus.value
-    })
-  }
-
-  // Contract type filter (client-side)
-  if (filterContractType.value !== 'all') {
-    result = result.filter(contract => contract.contract_type === filterContractType.value)
-  }
-
-  return result
+const paginationEnd = computed(() => {
+  return Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount)
 })
 
 const cancellingContractPropertyAddress = computed(() => {
@@ -396,9 +431,8 @@ function getStatusBadgeClass(status: ContractDisplayStatus): string {
 }
 
 function clearFilters() {
-  searchQuery.value = ''
-  filterStatus.value = 'all'
-  filterContractType.value = 'all'
+  filterStore.resetFilters()
+  loadContracts()
 }
 
 function openCreateDialog() {
@@ -420,11 +454,32 @@ function viewContract(contractId: string) {
   router.push({ name: 'contract-details', params: { id: contractId } })
 }
 
+function goToPreviousPage() {
+  filterStore.setPage(filterStore.currentPage - 1)
+  loadContracts()
+}
+
+function goToNextPage() {
+  filterStore.setPage(filterStore.currentPage + 1)
+  loadContracts()
+}
+
 async function loadContracts() {
-  await fetchContracts({
-    status: filterStatus.value,
-    contract_type: filterContractType.value,
-  })
+  const result = await fetchContracts(
+    {
+      search: filterStore.search || undefined,
+      status: filterStore.status,
+      contract_type: filterStore.contractType,
+    },
+    {
+      page: filterStore.currentPage,
+      pageSize: filterStore.pageSize,
+    }
+  )
+
+  if (result) {
+    filterStore.setTotalCount(result.totalCount)
+  }
 }
 
 async function handleDialogSuccess() {
@@ -436,27 +491,22 @@ async function handleCancelSuccess() {
   await loadContracts()
 }
 
-// Fetch contracts when filters change (debounced for search)
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
-watch(searchQuery, () => {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
+// Watch for non-search filter changes - immediate re-fetch
+watch(
+  () => [filterStore.status, filterStore.contractType],
+  () => {
+    filterStore.resetPage()
     loadContracts()
-  }, 300)
-})
+  }
+)
 
-watch([filterStatus, filterContractType], () => {
+// Watch debounced search - re-fetch after debounce
+watch(debouncedSearch, () => {
+  filterStore.resetPage()
   loadContracts()
 })
 
 onMounted(() => {
   loadContracts()
-})
-
-onUnmounted(() => {
-  // Clean up any pending search timeout to prevent memory leaks
-  if (searchTimeout) {
-    clearTimeout(searchTimeout)
-  }
 })
 </script>

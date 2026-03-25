@@ -5,7 +5,7 @@
         <div>
           <h1 class="text-2xl font-bold">{{ $t('payments.title') }}</h1>
           <p class="text-muted-foreground">
-            {{ getMonthName(filters.month) }} {{ filters.year }} - {{ $t('payments.subtitle') }}
+            {{ getMonthName(filterStore.month) }} {{ filterStore.year }} - {{ $t('payments.subtitle') }}
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -117,7 +117,7 @@
               <div class="relative">
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  v-model="filters.search"
+                  v-model="filterStore.search"
                   :placeholder="$t('payments.searchPlaceholder')"
                   class="pl-9"
                 />
@@ -125,7 +125,7 @@
             </div>
 
             <!-- Status Filter -->
-            <Select v-model="filters.status">
+            <Select v-model="filterStore.status">
               <SelectTrigger class="w-[150px]">
                 <SelectValue :placeholder="$t('common.status')" />
               </SelectTrigger>
@@ -139,7 +139,7 @@
 
             <!-- Month/Year Filter -->
             <div class="flex gap-2">
-              <Select v-model="filters.month">
+              <Select v-model="filterStore.month">
                 <SelectTrigger class="w-[130px]">
                   <SelectValue :placeholder="$t('payments.month')" />
                 </SelectTrigger>
@@ -153,7 +153,7 @@
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <Select v-model="filters.year">
+              <Select v-model="filterStore.year">
                 <SelectTrigger class="w-[90px]">
                   <SelectValue :placeholder="$t('payments.year')" />
                 </SelectTrigger>
@@ -199,7 +199,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="filteredPayments.length === 0" class="py-12 text-center">
+      <div v-else-if="payments.length === 0" class="py-12 text-center">
         <CreditCard class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <p class="text-lg font-medium text-muted-foreground mb-2">
           {{ hasActiveFilters ? $t('payments.noPaymentsFiltered') : $t('payments.noPayments') }}
@@ -235,7 +235,7 @@
           </TableHeader>
           <TableBody>
             <TableRow
-              v-for="payment in paginatedPayments"
+              v-for="payment in payments"
               :key="payment.id"
               class="cursor-pointer hover:bg-muted/50"
               :class="{
@@ -336,24 +336,24 @@
         </Table>
 
         <!-- Pagination -->
-        <div class="flex items-center justify-between p-4 border-t">
+        <div v-if="totalPages > 1" class="flex items-center justify-between p-4 border-t">
           <p class="text-sm text-muted-foreground">
-            {{ $t('payments.showingPayments', { start: paginationStart, end: paginationEnd, total: filteredPayments.length }) }}
+            {{ $t('common.showing') }} {{ paginationStart }}-{{ paginationEnd }} {{ $t('common.of') }} {{ filterStore.totalCount }}
           </p>
           <div class="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              :disabled="currentPage === 1"
-              @click="currentPage--"
+              :disabled="filterStore.currentPage === 1"
+              @click="goToPreviousPage"
             >
               {{ $t('common.previous') }}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              :disabled="currentPage >= totalPages"
-              @click="currentPage++"
+              :disabled="filterStore.currentPage >= totalPages"
+              @click="goToNextPage"
             >
               {{ $t('common.next') }}
             </Button>
@@ -387,7 +387,7 @@
 
         <!-- Payment Cards -->
         <PaymentCard
-          v-for="payment in paginatedPayments"
+          v-for="payment in payments"
           :key="payment.id"
           :payment="payment"
           :selected="selectedPayments.includes(payment.id)"
@@ -404,24 +404,29 @@
           <Button
             variant="outline"
             size="sm"
-            :disabled="currentPage === 1"
-            @click="currentPage--"
+            :disabled="filterStore.currentPage === 1"
+            @click="goToPreviousPage"
           >
             {{ $t('common.previous') }}
           </Button>
           <span class="flex items-center text-sm text-muted-foreground px-2">
-            {{ currentPage }} / {{ totalPages }}
+            {{ filterStore.currentPage }} / {{ totalPages }}
           </span>
           <Button
             variant="outline"
             size="sm"
-            :disabled="currentPage >= totalPages"
-            @click="currentPage++"
+            :disabled="filterStore.currentPage >= totalPages"
+            @click="goToNextPage"
           >
             {{ $t('common.next') }}
           </Button>
         </div>
       </div>
+
+      <p v-if="totalPages <= 1 && payments.length > 0" class="mt-4 text-sm text-muted-foreground">
+        {{ $t('common.showing') }} {{ payments.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
+        {{ $t('payments.title').toLowerCase() }}
+      </p>
 
       <!-- Payment Dialog -->
       <PaymentDialog
@@ -463,7 +468,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -521,6 +526,9 @@ import {
 import { usePayments } from '@/composables/usePayments'
 import { useReceiptPDF } from '@/composables/useReceiptPDF'
 import { useDate } from '@/composables/useDate'
+import { useDebounce } from '@/composables/useDebounce'
+import { usePaymentsFilterStore } from '@/stores/filters/usePaymentsFilterStore'
+import { storeToRefs } from 'pinia'
 import type { PaymentWithDetails, PaymentStatus } from '@/types'
 
 const { t } = useI18n()
@@ -544,17 +552,11 @@ const { formatDate, getMonthName } = useDate()
 
 const { printReceiptPDF } = useReceiptPDF()
 
-// Filters
-const filters = ref({
-  search: '',
-  status: 'all' as PaymentStatus | 'all',
-  month: new Date().getMonth() + 1,
-  year: new Date().getFullYear(),
-})
+const filterStore = usePaymentsFilterStore()
 
-// Pagination
-const currentPage = ref(1)
-const pageSize = 15
+// Create debounced search value
+const { search } = storeToRefs(filterStore)
+const debouncedSearch = useDebounce(search, 300)
 
 // Selection
 const selectedPayments = ref<string[]>([])
@@ -570,8 +572,8 @@ const selectedPayment = ref<PaymentWithDetails | null>(null)
 // Computed
 const hasActiveFilters = computed(() => {
   return (
-    filters.value.search ||
-    filters.value.status !== 'all'
+    filterStore.search !== '' ||
+    filterStore.status !== 'all'
   )
 })
 
@@ -580,74 +582,31 @@ const yearOptions = computed(() => {
   return [currentYear - 1, currentYear, currentYear + 1]
 })
 
-const filteredPayments = computed(() => {
-  let result = [...payments.value]
-
-  // Client-side search filter
-  if (filters.value.search) {
-    const searchLower = filters.value.search.toLowerCase()
-    result = result.filter(p => {
-      const address = formatPropertyAddress(p).toLowerCase()
-      const tenant = getTenantName(p).toLowerCase()
-      const receipt = p.reference_number?.toLowerCase() || ''
-      return address.includes(searchLower) || tenant.includes(searchLower) || receipt.includes(searchLower)
-    })
-  }
-
-  return result
-})
-
-const paginatedPayments = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return filteredPayments.value.slice(start, end)
-})
-
 const totalPages = computed(() => {
-  return Math.ceil(filteredPayments.value.length / pageSize)
+  return Math.ceil(filterStore.totalCount / filterStore.pageSize)
 })
 
 const paginationStart = computed(() => {
-  return filteredPayments.value.length === 0 ? 0 : (currentPage.value - 1) * pageSize + 1
+  return filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1
 })
 
 const paginationEnd = computed(() => {
-  return Math.min(currentPage.value * pageSize, filteredPayments.value.length)
+  return Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount)
 })
 
 const isAllSelected = computed(() => {
-  if (paginatedPayments.value.length === 0) return false
-  return paginatedPayments.value.every(p => selectedPayments.value.includes(p.id))
+  if (payments.value.length === 0) return false
+  return payments.value.every(p => selectedPayments.value.includes(p.id))
 })
 
 const isPartiallySelected = computed(() => {
-  if (paginatedPayments.value.length === 0) return false
-  const selected = paginatedPayments.value.filter(p => selectedPayments.value.includes(p.id))
-  return selected.length > 0 && selected.length < paginatedPayments.value.length
+  if (payments.value.length === 0) return false
+  const selected = payments.value.filter(p => selectedPayments.value.includes(p.id))
+  return selected.length > 0 && selected.length < payments.value.length
 })
 
 const summary = computed(() => {
-  return getMonthSummary(payments.value, filters.value.month, filters.value.year)
-})
-
-// Watch filters to reload
-watch(
-  () => [filters.value.status, filters.value.month, filters.value.year],
-  () => {
-    currentPage.value = 1
-    selectedPayments.value = []
-    loadPayments()
-  },
-  { deep: true }
-)
-
-// Debounced search
-let searchTimeout: ReturnType<typeof setTimeout>
-watch(() => filters.value.search, () => {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    currentPage.value = 1
-  }, 300)
+  return getMonthSummary(payments.value, filterStore.month, filterStore.year)
 })
 
 // Methods
@@ -668,22 +627,44 @@ function getStatusBadgeClass(status: PaymentStatus): string {
 }
 
 async function loadPayments() {
-  await fetchPayments({
-    search: filters.value.search || undefined,
-    status: filters.value.status !== 'all' ? filters.value.status : undefined,
-    month: filters.value.month,
-    year: filters.value.year,
-  })
+  const result = await fetchPayments(
+    {
+      search: filterStore.search || undefined,
+      status: filterStore.status !== 'all' ? filterStore.status : undefined,
+      month: filterStore.month,
+      year: filterStore.year,
+    },
+    {
+      page: filterStore.currentPage,
+      pageSize: filterStore.pageSize,
+    }
+  )
+
+  if (result) {
+    filterStore.setTotalCount(result.totalCount)
+  }
 }
 
 function clearFilters() {
-  filters.value.search = ''
-  filters.value.status = 'all'
+  filterStore.resetFilters()
+  loadPayments()
+}
+
+function goToPreviousPage() {
+  filterStore.setPage(filterStore.currentPage - 1)
+  selectedPayments.value = []
+  loadPayments()
+}
+
+function goToNextPage() {
+  filterStore.setPage(filterStore.currentPage + 1)
+  selectedPayments.value = []
+  loadPayments()
 }
 
 function toggleSelectAll(checked: boolean) {
   if (checked) {
-    selectedPayments.value = paginatedPayments.value.map(p => p.id)
+    selectedPayments.value = payments.value.map(p => p.id)
   } else {
     selectedPayments.value = []
   }
@@ -743,8 +724,8 @@ function handlePrintAllPaid() {
 }
 
 function handleExportToExcel() {
-  // Export current filtered payments to Excel/CSV
-  const dataToExport = filteredPayments.value.map(p => ({
+  // Export current payments to Excel/CSV
+  const dataToExport = payments.value.map(p => ({
     [t('payments.period')]: getPeriodLabel(p),
     [t('payments.tenant')]: getTenantName(p),
     [t('payments.property')]: formatPropertyAddress(p),
@@ -765,10 +746,27 @@ function handleExportToExcel() {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `Pagos_${filters.value.year}-${String(filters.value.month).padStart(2, '0')}.csv`
+  link.download = `Pagos_${filterStore.year}-${String(filterStore.month).padStart(2, '0')}.csv`
   link.click()
   URL.revokeObjectURL(url)
 }
+
+// Watch for non-search filter changes - immediate re-fetch
+watch(
+  () => [filterStore.status, filterStore.month, filterStore.year],
+  () => {
+    filterStore.resetPage()
+    selectedPayments.value = []
+    loadPayments()
+  }
+)
+
+// Watch debounced search - re-fetch after debounce
+watch(debouncedSearch, () => {
+  filterStore.resetPage()
+  selectedPayments.value = []
+  loadPayments()
+})
 
 // Lifecycle
 onMounted(async () => {
@@ -776,12 +774,5 @@ onMounted(async () => {
   await updateOverduePayments()
   // Then load payments
   await loadPayments()
-})
-
-onUnmounted(() => {
-  // Clean up any pending search timeout to prevent memory leaks
-  if (searchTimeout) {
-    clearTimeout(searchTimeout)
-  }
 })
 </script>
