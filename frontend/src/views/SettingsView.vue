@@ -26,6 +26,17 @@
         </button>
         <button
           v-if="isAdmin"
+          @click="activeSection = 'team'"
+          class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+          :class="activeSection === 'team'
+            ? 'bg-primary text-primary-foreground'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+        >
+          <Users class="w-4 h-4" />
+          {{ $t('settings.team') }}
+        </button>
+        <button
+          v-if="isAdmin"
           @click="activeSection = 'regional'"
           class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors"
           :class="activeSection === 'regional'
@@ -61,6 +72,17 @@
         >
           <UserCircle class="w-4 h-4" />
           {{ $t('settings.profile') }}
+        </button>
+        <button
+          v-if="isAdmin"
+          @click="activeSection = 'team'"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
+          :class="activeSection === 'team'
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-muted-foreground'"
+        >
+          <Users class="w-4 h-4" />
+          {{ $t('settings.team') }}
         </button>
         <button
           v-if="isAdmin"
@@ -485,6 +507,11 @@
           </Card>
         </template>
 
+        <!-- Team Section -->
+        <template v-if="activeSection === 'team' && isAdmin">
+          <TeamSettings />
+        </template>
+
         <!-- Regional Preferences Section -->
         <template v-if="activeSection === 'regional' && isAdmin">
           <div>
@@ -611,7 +638,8 @@ import {
   Moon,
   Monitor,
   UserCircle,
-  Globe
+  Globe,
+  Users
 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -626,6 +654,7 @@ import { useTheme, type Theme } from '@/composables/useTheme'
 import { useLocale, type Locale } from '@/composables/useLocale'
 import { useToast } from '@/composables/useToast'
 import { useExchangeRate } from '@/composables/useExchangeRate'
+import TeamSettings from '@/components/settings/TeamSettings.vue'
 import type { DateFormat, CurrencyCode } from '@/types'
 
 const { t } = useI18n()
@@ -659,7 +688,7 @@ const toast = useToast()
 const { fetchRate } = useExchangeRate()
 
 // Active section state
-type Section = 'organization' | 'profile' | 'regional'
+type Section = 'organization' | 'profile' | 'team' | 'regional'
 const activeSection = ref<Section>('profile')
 
 const themeOptions = computed(() => [
@@ -760,6 +789,8 @@ watch(() => route.hash, (hash) => {
     activeSection.value = 'organization'
   } else if (hash === '#profile') {
     activeSection.value = 'profile'
+  } else if (hash === '#team' && isAdmin.value) {
+    activeSection.value = 'team'
   } else if (hash === '#regional' && isAdmin.value) {
     activeSection.value = 'regional'
   }
@@ -768,7 +799,7 @@ watch(() => route.hash, (hash) => {
 // Set default section based on admin status
 watch(isAdmin, (admin) => {
   // If not admin and on admin-only section, switch to profile
-  if (!admin && (activeSection.value === 'organization' || activeSection.value === 'regional')) {
+  if (!admin && (activeSection.value === 'organization' || activeSection.value === 'team' || activeSection.value === 'regional')) {
     activeSection.value = 'profile'
   }
 }, { immediate: true })

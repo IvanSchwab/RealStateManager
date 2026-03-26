@@ -23,10 +23,28 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/invite/:token',
+      name: 'accept-invite',
+      component: () => import('@/views/auth/AcceptInviteView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('@/views/auth/AuthCallbackView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/onboarding',
       name: 'onboarding',
       component: () => import('@/views/OnboardingView.vue'),
       meta: { requiresAuth: true, requiresOnboarding: false },
+    },
+    {
+      path: '/deactivated',
+      name: 'deactivated',
+      component: () => import('@/views/auth/DeactivatedView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/',
@@ -101,7 +119,7 @@ router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
   // Public routes that don't require any auth checks
-  const publicRoutes = ['login', 'forgot-password', 'reset-password']
+  const publicRoutes = ['login', 'forgot-password', 'reset-password', 'accept-invite', 'auth-callback', 'deactivated']
   const isPublicRoute = publicRoutes.includes(to.name as string)
 
   // 1. Always allow public routes immediately — no auth checks needed
@@ -123,17 +141,29 @@ router.beforeEach(async (to, _from, next) => {
 
   const hasOrganization = profile?.organization_id != null
 
-  // 4. Authenticated but no organization → go to onboarding
-  if (!hasOrganization && to.name !== 'onboarding') {
+  // 4. Authenticated but no organization → go to onboarding or deactivated
+  // Skip if user has an invite_token (they're in the process of accepting an invitation)
+  const hasInviteToken = !!to.query.invite_token
+  if (!hasOrganization && !hasInviteToken && to.name !== 'onboarding' && to.name !== 'deactivated') {
+    // Has a profile but no org = was removed from org
+    if (profile?.id) {
+      return next({ name: 'deactivated' })
+    }
+    // No profile yet = brand new user going through onboarding
     return next({ name: 'onboarding' })
   }
 
-  // 5. Authenticated with organization, trying to access onboarding → go to dashboard
+  // 5. Deactivated user (has profile but no org) trying to access onboarding → go to deactivated
+  if (!hasOrganization && profile?.id && to.name === 'onboarding') {
+    return next({ name: 'deactivated' })
+  }
+
+  // 6. Authenticated with organization, trying to access onboarding → go to dashboard
   if (hasOrganization && to.name === 'onboarding') {
     return next({ name: 'dashboard' })
   }
 
-  // 6. All good — allow navigation
+  // 7. All good — allow navigation
   return next()
 })
 

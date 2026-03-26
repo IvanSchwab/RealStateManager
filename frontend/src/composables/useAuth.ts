@@ -14,9 +14,8 @@ let initializePromise: Promise<void> | null = null
 export function useAuth() {
   const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => profile.value?.role === 'admin')
-  const isManager = computed(() => profile.value?.role === 'manager')
-  const isEmployee = computed(() => profile.value?.role === 'employee')
-  const isAgent = computed(() => profile.value?.role === 'agent')
+  const isCollaborator = computed(() => profile.value?.role === 'collaborator')
+  const isOwnerRole = computed(() => profile.value?.role === 'owner') // for future use
   const userRole = computed(() => profile.value?.role ?? null)
   const organizationId = computed(() => profile.value?.organization_id ?? null)
 
@@ -191,9 +190,8 @@ export function useAuth() {
     isInitialized,
     isAuthenticated,
     isAdmin,
-    isManager,
-    isEmployee,
-    isAgent,
+    isCollaborator,
+    isOwnerRole,
     userRole,
     organizationId,
     signIn,

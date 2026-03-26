@@ -97,10 +97,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Check if user has permission to delete (admin or manager)
-    if (!['admin', 'manager'].includes(profile.role)) {
+    // Check if user has permission to delete (admin or collaborator)
+    if (!['admin', 'collaborator'].includes(profile.role)) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Insufficient permissions. Admin or manager role required.' }),
+        JSON.stringify({ success: false, error: 'Insufficient permissions. Admin or collaborator role required.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

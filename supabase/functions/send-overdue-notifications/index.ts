@@ -273,11 +273,11 @@ Deno.serve(async (req) => {
             .update({ notification_sent_at: new Date().toISOString() })
             .eq('id', payment.id)
 
-          // Create in-app notifications for admin/manager users
+          // Create in-app notifications for admin/collaborator users
           const { data: staffUsers } = await supabase
             .from('profiles')
             .select('id')
-            .in('role', ['admin', 'manager'])
+            .in('role', ['admin', 'collaborator'])
 
           if (staffUsers && staffUsers.length > 0) {
             const notificationRecords = staffUsers.map((user) => ({

@@ -11,6 +11,12 @@
 
       <CardContent>
         <form class="space-y-4" @submit.prevent="handleLogin">
+          <!-- Invite Token Banner -->
+          <div v-if="hasInviteToken" class="p-3 rounded-md bg-primary/10 text-primary text-sm flex items-center gap-2">
+            <UserPlus class="w-4 h-4 flex-shrink-0" />
+            {{ $t('invite.loginToAccept') }}
+          </div>
+
           <div v-if="errorMessage" class="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
             {{ errorMessage }}
           </div>
@@ -67,10 +73,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Building2, Loader2 } from 'lucide-vue-next'
+import { Building2, Loader2, UserPlus } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -88,6 +94,8 @@ const emailError = ref('')
 const passwordError = ref('')
 const errorMessage = ref('')
 const isSubmitting = ref(false)
+
+const hasInviteToken = computed(() => !!route.query.invite_token)
 
 function validate(): boolean {
   emailError.value = ''
@@ -122,6 +130,14 @@ async function handleLogin() {
 
   try {
     await authStore.signIn(email.value, password.value)
+
+    // Check if there's an invite_token to process
+    const inviteToken = route.query.invite_token as string
+    if (inviteToken) {
+      router.push({ name: 'accept-invite', params: { token: inviteToken } })
+      return
+    }
+
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
   } catch (error: unknown) {

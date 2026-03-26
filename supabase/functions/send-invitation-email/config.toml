@@ -1,0 +1,6 @@
+# After creating or modifying this file, redeploy the function:
+# supabase functions deploy send-invitation-email
+
+# Disable JWT verification at the gateway level.
+# Security is handled by the RLS policy on the INSERT that triggers this function.
+verify_jwt = false

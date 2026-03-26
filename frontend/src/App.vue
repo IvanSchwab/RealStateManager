@@ -30,7 +30,7 @@ onMounted(() => {
 // Show MainLayout only for authenticated users who have completed onboarding
 // Exclude: login, forgot-password, reset-password, onboarding
 const showMainLayout = computed(() => {
-  const publicRoutes = ['login', 'forgot-password', 'reset-password', 'onboarding']
+  const publicRoutes = ['login', 'forgot-password', 'reset-password', 'onboarding', 'deactivated']
   return (
     authStore.isAuthenticated &&
     !publicRoutes.includes(route.name as string) &&

@@ -5,7 +5,7 @@
 
 // --- User / Profile ---
 
-export type UserRole = 'admin' | 'manager' | 'employee' | 'agent'
+export type UserRole = 'admin' | 'collaborator' | 'owner'
 
 export interface Profile {
   id: string
@@ -36,6 +36,28 @@ export interface Organization {
   settings: OrganizationSettings
   created_at: string
   deleted_at: string | null
+}
+
+// --- Organization Invitation ---
+
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'cancelled'
+export type InvitationRole = 'admin' | 'collaborator'
+
+export interface OrganizationInvitation {
+  id: string
+  organization_id: string
+  email: string
+  role: InvitationRole
+  token: string
+  invited_by: string
+  status: InvitationStatus
+  expires_at: string
+  created_at: string
+  accepted_at: string | null
+  deleted_at: string | null
+  // Relations
+  inviter?: Profile
+  organization?: Organization
 }
 
 // --- Owner ---
