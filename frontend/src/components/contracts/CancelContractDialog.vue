@@ -48,6 +48,12 @@
               </SelectItem>
             </SelectContent>
           </Select>
+          <Input
+            v-if="form.reason === 'otro'"
+            v-model="form.customReason"
+            :placeholder="$t('contracts.customReasonPlaceholder')"
+            required
+          />
         </div>
 
         <!-- Notes -->
@@ -93,19 +99,42 @@
           </Label>
         </div>
 
-        <!-- Actions -->
-        <div class="flex justify-end gap-3 pt-4">
+        <!-- Actions / Confirmation Step -->
+        <div v-if="!showConfirmStep" class="flex justify-end gap-3 pt-4">
           <Button type="button" variant="outline" @click="$emit('cancel')">
             {{ $t('contracts.keepContract') }}
           </Button>
           <Button
             type="submit"
             variant="destructive"
-            :disabled="!canSubmit || isCancelling"
+            :disabled="!canSubmit"
           >
-            <Loader2 v-if="isCancelling" class="w-4 h-4 mr-2 animate-spin" />
             {{ $t('contracts.cancelContract') }}
           </Button>
+        </div>
+
+        <!-- Second Confirmation Step -->
+        <div v-else class="space-y-4 pt-4">
+          <div class="flex items-start space-x-3 p-4 border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 rounded-lg">
+            <AlertTriangle class="w-6 h-6 text-red-600 dark:text-red-500 flex-shrink-0 mt-0.5" />
+            <p class="text-sm text-red-700 dark:text-red-400">
+              Esta acción es irreversible. Se generará un documento de rescisión oficial y el contrato quedará rescindido permanentemente.
+            </p>
+          </div>
+          <div class="flex justify-end gap-3">
+            <Button type="button" variant="outline" @click="showConfirmStep = false">
+              {{ $t('common.back') }}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              :disabled="isCancelling"
+              @click="executeCancel"
+            >
+              <Loader2 v-if="isCancelling" class="w-4 h-4 mr-2 animate-spin" />
+              {{ $t('contracts.confirmRescission') }}
+            </Button>
+          </div>
         </div>
       </form>
     </DialogContent>
@@ -163,11 +192,13 @@ const { cancelContract } = useContracts()
 const { formatCurrency } = useFormatCurrency()
 
 const isCancelling = ref(false)
+const showConfirmStep = ref(false)
 
 // Form state
 const form = ref({
   effectiveDate: new Date().toISOString().split('T')[0],
   reason: '' as 'incumplimiento_pago' | 'acuerdo_mutuo' | 'otro' | '',
+  customReason: '',
   notes: '',
   updatePropertyStatus: true,
 })
@@ -181,7 +212,9 @@ const estimatedPenalty = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return form.value.effectiveDate && form.value.reason
+  const hasRequiredFields = form.value.effectiveDate && form.value.reason
+  const hasCustomReasonIfNeeded = form.value.reason !== 'otro' || form.value.customReason.trim()
+  return hasRequiredFields && hasCustomReasonIfNeeded
 })
 
 // Reset form when dialog opens
@@ -190,32 +223,57 @@ watch(() => props.open, (isOpen) => {
     form.value = {
       effectiveDate: new Date().toISOString().split('T')[0],
       reason: '',
+      customReason: '',
       notes: '',
       updatePropertyStatus: true,
     }
+    showConfirmStep.value = false
   }
 })
 
-async function handleConfirm() {
-  if (!canSubmit.value) return
+// Clear customReason when reason changes away from 'otro'
+watch(() => form.value.reason, (newReason) => {
+  if (newReason !== 'otro') {
+    form.value.customReason = ''
+  }
+})
 
+function handleConfirm() {
+  if (!canSubmit.value) return
+  showConfirmStep.value = true
+}
+
+async function executeCancel() {
   isCancelling.value = true
 
   try {
-    await cancelContract({
+    const { blob, fileName } = await cancelContract({
       id: props.contractId,
       updatePropertyStatus: form.value.updatePropertyStatus,
       effectiveDate: form.value.effectiveDate,
       reason: form.value.reason as 'incumplimiento_pago' | 'acuerdo_mutuo' | 'otro',
       notes: form.value.notes || undefined,
       penaltyAmount: estimatedPenalty.value > 0 ? estimatedPenalty.value : undefined,
+      customReason: form.value.reason === 'otro' ? form.value.customReason : undefined,
     })
+
+    // Trigger download of the rescission PDF
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
     toast.success(t('toast.contractCancelled'))
     emit('confirm')
     emit('update:open', false)
   } catch (e) {
     const message = e instanceof Error ? e.message : t('contracts.cancelError')
     toast.error(`${t('common.error')}: ${message}`)
+    showConfirmStep.value = false
   } finally {
     isCancelling.value = false
   }

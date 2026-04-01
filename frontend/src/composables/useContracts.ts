@@ -12,6 +12,7 @@ import type {
     Guarantor,
 } from '@/types'
 import { useAuth } from './useAuth'
+import { useContractPDF } from './useContractPDF'
 
 export interface ContractFilters {
     search?: string
@@ -37,6 +38,7 @@ export interface CancelContractParams {
     reason: 'incumplimiento_pago' | 'acuerdo_mutuo' | 'otro'
     notes?: string
     penaltyAmount?: number
+    customReason?: string
 }
 
 export function useContracts() {
@@ -44,6 +46,7 @@ export function useContracts() {
     const loading = ref(false)
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
+    const { generateRescisionPDF, saveLegalDocument } = useContractPDF()
 
     /**
      * Calculate the display status of a contract based on dates and deleted_at
@@ -531,9 +534,10 @@ export function useContracts() {
 
     /**
      * Cancel a contract and record the cancellation event
+     * Returns the rescission PDF blob and fileName for download
      */
-    async function cancelContract(params: CancelContractParams): Promise<boolean> {
-        const { id, updatePropertyStatus, effectiveDate, reason, notes, penaltyAmount } = params
+    async function cancelContract(params: CancelContractParams): Promise<{ blob: Blob; fileName: string }> {
+        const { id, updatePropertyStatus, effectiveDate, reason, notes, penaltyAmount, customReason } = params
 
         loading.value = true
         error.value = null
@@ -543,17 +547,49 @@ export function useContracts() {
             const contract = contracts.value.find(c => c.id === id)
                 ?? await fetchContractById(id)
 
-            // 1. Update contract status to rescindido only (no deleted_at)
+            if (!contract) {
+                throw new Error('No se pudo encontrar el contrato')
+            }
+
+            // 1. Generate and save rescission PDF before updating status
+            const rescisionBlob = await generateRescisionPDF(
+                contract,
+                reason,
+                customReason || '',
+                effectiveDate
+            )
+
+            const titular = contract.tenants?.find(ct => ct.role === 'titular')?.tenant
+            const titularName = titular
+                ? `${titular.first_name}_${titular.last_name}`.replace(/[^a-zA-Z0-9]/g, '_')
+                : 'Inquilino'
+            const dateStr = effectiveDate.replace(/-/g, '')
+            const fileName = `Rescision_${titularName}_${dateStr}.pdf`
+
+            const savedDocument = await saveLegalDocument({
+                contractId: id,
+                organizationId: contract.organization_id,
+                documentType: 'rescision',
+                blob: rescisionBlob,
+                fileName,
+            })
+
+            if (!savedDocument) {
+                throw new Error('Error al guardar el documento de rescisión')
+            }
+
+            // 2. Update contract status and end_date to effective rescission date
             const { error: cancelError } = await supabase
                 .from('contracts')
                 .update({
                     status: 'rescindido' as ContractStatus,
+                    end_date: effectiveDate,
                 })
                 .eq('id', id)
 
             if (cancelError) throw cancelError
 
-            // 2. Insert contract_events record
+            // 3. Insert contract_events record
             const { error: eventError } = await supabase
                 .from('contract_events')
                 .insert({
@@ -566,6 +602,7 @@ export function useContracts() {
                     metadata: {
                         reason,
                         penalty_amount: penaltyAmount ?? 0,
+                        ...(reason === 'otro' && customReason ? { custom_reason: customReason } : {}),
                     },
                 })
 
@@ -573,7 +610,7 @@ export function useContracts() {
                 console.warn('Failed to insert contract event:', eventError)
             }
 
-            // 3. Optionally update property status to disponible
+            // 4. Optionally update property status to disponible
             if (updatePropertyStatus && contract?.property_id) {
                 const { error: propertyError } = await supabase
                     .from('properties')
@@ -585,17 +622,26 @@ export function useContracts() {
                 }
             }
 
-            // 4. Update the contract status in place in the reactive array
+            // 5. Update the contract status and end_date in place in the reactive array
             const index = contracts.value.findIndex(c => c.id === id)
             if (index !== -1) {
                 contracts.value[index] = {
                     ...contracts.value[index],
                     status: 'rescindido' as ContractStatus,
+                    end_date: effectiveDate,
                 }
             }
 
-            return true
+            return { blob: rescisionBlob, fileName }
         } catch (e) {
+            // Check for Postgres check constraint violation (e.g., end_date < start_date)
+            const pgError = e as { code?: string }
+            if (pgError.code === '23514') {
+                const dateError = new Error('La fecha de rescisión no puede ser anterior a la fecha de inicio del contrato.')
+                error.value = dateError.message
+                console.error('Error cancelling contract:', e)
+                throw dateError
+            }
             error.value = e instanceof Error ? e.message : 'Error al cancelar contrato'
             console.error('Error cancelling contract:', e)
             throw e
