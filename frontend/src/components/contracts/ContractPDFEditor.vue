@@ -217,7 +217,7 @@
               >
                 <Textarea
                   :model-value="getClauseContent(clauseNum)"
-                  @update:model-value="updateClause(clauseNum, $event)"
+                  @update:model-value="updateClause(clauseNum, String($event))"
                   class="min-h-[150px] text-sm"
                 />
                 <div class="flex items-center justify-between">
@@ -376,6 +376,64 @@
                   <Pencil class="w-4 h-4 mr-2" />
                   Editar
                 </Button>
+                <Button
+                  variant="outline"
+                  @click="handleClose(false)"
+                >
+                  {{ t('common.close') }}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Previously Generated Legal Documents -->
+          <Card>
+            <CardHeader>
+              <CardTitle class="text-lg">{{ t('contracts.legalDocuments.title') }}</CardTitle>
+              <CardDescription>
+                {{ t('contracts.legalDocuments.description') }}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <!-- Loading state -->
+              <div v-if="loadingLegalDocs" class="flex items-center justify-center py-6">
+                <Loader2 class="w-5 h-5 animate-spin text-muted-foreground" />
+                <span class="ml-2 text-sm text-muted-foreground">{{ t('common.loading') }}</span>
+              </div>
+
+              <!-- Empty state -->
+              <div v-else-if="legalDocuments.length === 0" class="py-6 text-center text-muted-foreground">
+                <FileText class="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p class="text-sm">{{ t('contracts.legalDocuments.noDocuments') }}</p>
+              </div>
+
+              <!-- Documents list -->
+              <div v-else class="space-y-2">
+                <div
+                  v-for="doc in legalDocuments"
+                  :key="doc.id"
+                  class="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div class="flex items-center gap-3 min-w-0">
+                    <Badge :variant="getDocumentTypeBadgeVariant(doc.document_type)">
+                      {{ t(`contracts.legalDocuments.types.${doc.document_type}`) }}
+                    </Badge>
+                    <div class="min-w-0">
+                      <p class="font-medium text-sm truncate">{{ doc.file_name }}</p>
+                      <p class="text-xs text-muted-foreground">
+                        {{ formatLegalDocDate(doc.generated_at) }}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    @click="downloadLegalDocument(doc)"
+                    :title="t('common.download')"
+                  >
+                    <Download class="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -405,7 +463,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   Dialog,
   DialogContent,
@@ -442,7 +500,8 @@ import { useContractPDF } from '@/composables/useContractPDF'
 import { useContracts } from '@/composables/useContracts'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from 'vue-i18n'
-import type { ContractWithRelations, CustomClause } from '@/types'
+import type { ContractWithRelations, CustomClause, ContractLegalDocument } from '@/types'
+import { supabase } from '@/lib/supabase'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -459,7 +518,6 @@ const emit = defineEmits<{
 
 const { fetchContractById } = useContracts()
 const {
-  loading: pdfLoading,
   getClauseKey,
   CLAUSE_TITLES,
   getDefaultClauseText,
@@ -468,7 +526,6 @@ const {
   saveContractPDFData,
   getPropertyAddress,
   getTitular,
-  getCoTitulares,
   isPluralContract,
 } = useContractPDF()
 
@@ -477,6 +534,10 @@ const isSaving = ref(false)
 const currentStep = ref(0)
 const maxVisitedStep = ref(0)
 const contract = ref<ContractWithRelations | null>(null)
+
+// Legal documents state
+const legalDocuments = ref<ContractLegalDocument[]>([])
+const loadingLegalDocs = ref(false)
 
 // Form data
 const formData = ref({
@@ -717,10 +778,117 @@ async function loadContract() {
   }
 }
 
+/**
+ * Fetch legal documents for this contract
+ */
+async function fetchLegalDocuments() {
+  if (!props.contractId) return
+
+  loadingLegalDocs.value = true
+  try {
+    const { data, error: fetchError } = await supabase
+      .from('contract_legal_documents')
+      .select('*')
+      .eq('contract_id', props.contractId)
+      .is('deleted_at', null)
+      .order('generated_at', { ascending: false })
+
+    if (fetchError) {
+      console.warn('Error fetching legal documents:', fetchError.message)
+      return
+    }
+
+    legalDocuments.value = (data ?? []) as ContractLegalDocument[]
+  } catch (e) {
+    console.warn('Error fetching legal documents:', e)
+  } finally {
+    loadingLegalDocs.value = false
+  }
+}
+
+/**
+ * Download a legal document using signed URL
+ */
+async function downloadLegalDocument(doc: ContractLegalDocument) {
+  try {
+    const { data, error: signError } = await supabase.storage
+      .from('contract-documents')
+      .createSignedUrl(doc.storage_path, 60)
+
+    if (signError) {
+      console.error('Error creating signed URL:', signError.message)
+      toast.error(t('errors.downloadError'))
+      return
+    }
+
+    if (!data?.signedUrl) {
+      toast.error(t('errors.downloadError'))
+      return
+    }
+
+    // Fetch and download as blob to preserve filename
+    const response = await fetch(data.signedUrl)
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = doc.file_name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(blobUrl)
+  } catch (e) {
+    console.error('Error downloading legal document:', e)
+    toast.error(t('errors.downloadError'))
+  }
+}
+
+/**
+ * Get badge variant for document type
+ */
+function getDocumentTypeBadgeVariant(type: string): 'default' | 'secondary' | 'outline' | 'destructive' {
+  switch (type) {
+    case 'contrato':
+      return 'default'
+    case 'rescision':
+      return 'destructive'
+    case 'prorroga':
+      return 'secondary'
+    case 'renovacion':
+      return 'outline'
+    default:
+      return 'secondary'
+  }
+}
+
+/**
+ * Format date for display
+ */
+function formatLegalDocDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // Watch for dialog open to load contract
 watch(() => props.open, (isOpen) => {
   if (isOpen && props.contractId) {
     loadContract()
+  } else {
+    // Reset legal documents when dialog closes
+    legalDocuments.value = []
   }
 }, { immediate: true })
+
+// Watch for reaching final step to load legal documents
+watch(currentStep, (step) => {
+  if (step === 4 && props.contractId) {
+    fetchLegalDocuments()
+  }
+})
 </script>

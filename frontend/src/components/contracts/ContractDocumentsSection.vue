@@ -289,7 +289,6 @@ const toast = useToast()
 
 const {
   documents,
-  loading,
   uploading,
   error,
   uploadProgress,

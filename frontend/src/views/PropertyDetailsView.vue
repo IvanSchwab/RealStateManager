@@ -281,7 +281,7 @@ import { useProperties } from '@/composables/useProperties'
 import { useDate } from '@/composables/useDate'
 import type { Property } from '@/types'
 
-const { t } = useI18n()
+useI18n()
 const route = useRoute()
 const router = useRouter()
 const { fetchPropertyById, loading, error } = useProperties()

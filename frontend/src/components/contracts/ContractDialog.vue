@@ -124,7 +124,7 @@ import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog
 import { useContracts } from '@/composables/useContracts'
 import { useToast } from '@/composables/useToast'
 import { useFormatCurrency } from '@/composables/useFormatCurrency'
-import type { Contract, ContractFormData, ContractWithRelations } from '@/types'
+import type { ContractFormData, ContractWithRelations } from '@/types'
 
 const { t } = useI18n()
 const toast = useToast()

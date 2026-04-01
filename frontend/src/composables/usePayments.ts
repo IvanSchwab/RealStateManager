@@ -5,7 +5,6 @@ import type {
   PaymentWithDetails,
   PaymentStatus,
   PaymentMethod,
-  PaymentConcept,
   Contract,
 } from '@/types'
 import { useAuth } from './useAuth'
@@ -49,7 +48,7 @@ export function usePayments() {
   const error = ref<string | null>(null)
   const { organizationId } = useAuth()
   const { formatCurrency } = useFormatCurrency()
-  const { formatDate: formatDateFromComposable, dateLocale } = useDate()
+  const { dateLocale } = useDate()
 
   /**
    * Format date using organization's date format preference

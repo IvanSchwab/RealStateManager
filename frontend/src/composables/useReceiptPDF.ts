@@ -6,11 +6,9 @@ import { useDate } from './useDate'
 const RECEIPT_WIDTH = 99
 const RECEIPT_HEIGHT = 99
 const PAGE_MARGIN = 3
-const A4_WIDTH = 210
-const A4_HEIGHT = 297
 
 export function useReceiptPDF() {
-  const { dateFormat } = useDate()
+  const { dateLocale } = useDate()
 
   /**
    * Format currency for PDF receipts.
@@ -42,7 +40,7 @@ export function useReceiptPDF() {
     const year = date.getFullYear()
 
     // Use organization's date format preference
-    if (dateFormat.value === 'MM/DD/YYYY') {
+    if (dateLocale.value === 'en-US') {
       return `${month}/${day}/${year}`
     }
     return `${day}/${month}/${year}`

@@ -257,7 +257,7 @@ import { useOwners } from '@/composables/useOwners'
 import { useDate } from '@/composables/useDate'
 import type { OwnerWithProperties } from '@/types'
 
-const { t } = useI18n()
+useI18n()
 const route = useRoute()
 const router = useRouter()
 const { fetchOwnerById, loading, error } = useOwners()

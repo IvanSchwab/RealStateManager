@@ -53,10 +53,44 @@
               <FileText class="w-4 h-4 mr-2" />
               {{ $t('contracts.generatePDF') }}
             </Button>
-            <Button variant="destructive" @click="openCancelDialog">
-              <XCircle class="w-4 h-4 mr-2" />
-              {{ $t('contracts.cancelContract') }}
-            </Button>
+            <!-- Lifecycle action buttons - hidden for draft contracts -->
+            <template v-if="displayStatus !== 'draft'">
+              <!-- Rescind button - disabled for rescinded contracts -->
+              <Button
+                variant="destructive"
+                :disabled="displayStatus === 'cancelled'"
+                @click="openRescindDialog"
+              >
+                <XCircle class="w-4 h-4 mr-2" />
+                {{ $t('contracts.rescindContract') }}
+              </Button>
+              <!-- Renew button with title for active contracts -->
+              <Button
+                v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
+                variant="outline"
+                :title="$t('contracts.contractCurrentlyActive')"
+                @click="handleRenew"
+              >
+                <RefreshCw class="w-4 h-4 mr-2" />
+                {{ $t('contracts.renewContract') }}
+              </Button>
+              <Button
+                v-else-if="displayStatus === 'expired' || displayStatus === 'renewed'"
+                variant="outline"
+                @click="handleRenew"
+              >
+                <RefreshCw class="w-4 h-4 mr-2" />
+                {{ $t('contracts.renewContract') }}
+              </Button>
+              <Button
+                v-else-if="displayStatus === 'cancelled'"
+                variant="outline"
+                disabled
+              >
+                <RefreshCw class="w-4 h-4 mr-2" />
+                {{ $t('contracts.renewContract') }}
+              </Button>
+            </template>
           </div>
         </div>
 
@@ -343,6 +377,13 @@
               :contract-id="contract.id"
             />
 
+            <!-- Legal Documents Section (Generated PDFs) -->
+            <ContractLegalDocumentsSection
+              v-if="contract"
+              :contract-id="contract.id"
+              :organization-id="contract.organization_id"
+            />
+
             <!-- Payments Section -->
             <Card>
               <CardHeader class="flex flex-row items-center justify-between">
@@ -549,10 +590,43 @@
                   <FileText class="w-4 h-4 mr-2" />
                   {{ $t('contracts.generatePDF') }}
                 </Button>
-                <Button variant="outline" class="w-full justify-start text-destructive hover:text-destructive" @click="openCancelDialog">
-                  <XCircle class="w-4 h-4 mr-2" />
-                  {{ $t('contracts.cancelContract') }}
-                </Button>
+                <!-- Lifecycle action buttons - hidden for draft contracts -->
+                <template v-if="displayStatus !== 'draft'">
+                  <!-- Rescind button -->
+                  <Button
+                    variant="outline"
+                    class="w-full justify-start text-destructive hover:text-destructive"
+                    :disabled="displayStatus === 'cancelled'"
+                    @click="openRescindDialog"
+                  >
+                    <XCircle class="w-4 h-4 mr-2" />
+                    {{ $t('contracts.rescindContract') }}
+                  </Button>
+                  <!-- Renew button -->
+                  <Button
+                    variant="outline"
+                    class="w-full justify-start"
+                    :disabled="displayStatus === 'cancelled'"
+                    @click="handleRenew"
+                  >
+                    <RefreshCw class="w-4 h-4 mr-2" />
+                    {{ $t('contracts.renewContract') }}
+                  </Button>
+                  <!-- Active contract info banner -->
+                  <p
+                    v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
+                    class="text-xs text-muted-foreground px-2"
+                  >
+                    {{ $t('contracts.contractCurrentlyActive') }}
+                  </p>
+                  <!-- Rescinded contract indicator -->
+                  <p
+                    v-if="displayStatus === 'cancelled'"
+                    class="text-xs text-muted-foreground px-2"
+                  >
+                    {{ $t('contracts.noActionsAvailable') }}
+                  </p>
+                </template>
               </CardContent>
             </Card>
           </div>
@@ -566,14 +640,14 @@
         @success="handleEditSuccess"
       />
 
-      <!-- Cancel Contract Confirmation Dialog -->
+      <!-- Rescind Contract Confirmation Dialog -->
       <CancelContractDialog
         v-if="contract"
         v-model:open="cancelDialogOpen"
         :contract-id="contract.id"
         :property-address="propertyAddress"
         :tenant-name="titularName"
-        @confirm="handleCancelSuccess"
+        @confirm="handleRescindSuccess"
       />
 
       <!-- PDF Editor Dialog -->
@@ -588,7 +662,8 @@
       <RentAdjustmentDialog
         v-if="contract"
         v-model:open="showAdjustmentDialog"
-        :contract="contract"
+        :contract-id="contract.id"
+        :current-amount="contract.current_rent_amount"
         @success="handleAdjustmentApplied"
       />
   </div>
@@ -606,6 +681,7 @@ import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
 import ContractPDFEditor from '@/components/contracts/ContractPDFEditor.vue'
 import ContractDocumentsSection from '@/components/contracts/ContractDocumentsSection.vue'
+import ContractLegalDocumentsSection from '@/components/contracts/ContractLegalDocumentsSection.vue'
 import {
   ArrowLeft,
   Pencil,
@@ -619,11 +695,13 @@ import {
   CreditCard,
   Plus,
   ChevronRight,
+  RefreshCw,
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import { usePayments } from '@/composables/usePayments'
 import { useDate } from '@/composables/useDate'
 import { useFormatCurrency } from '@/composables/useFormatCurrency'
+import { useToast } from '@/composables/useToast'
 import AdjustmentAlert from '@/components/payments/AdjustmentAlert.vue'
 import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
 import RentAdjustmentDialog from '@/components/payments/RentAdjustmentDialog.vue'
@@ -639,6 +717,7 @@ import type {
 } from '@/types'
 
 const { t } = useI18n()
+const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const {
@@ -740,6 +819,8 @@ function getStatusBadgeClass(status: ContractDisplayStatus): string {
     expiring_soon: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
     expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
     cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
+    renewed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+    draft: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800',
   }
   return classes[status] ?? classes.active
 }
@@ -752,8 +833,12 @@ function openEditDialog() {
   dialogOpen.value = true
 }
 
-function openCancelDialog() {
+function openRescindDialog() {
   cancelDialogOpen.value = true
+}
+
+function handleRenew() {
+  toast.info(t('contracts.featureComingSoon'))
 }
 
 async function loadContract() {
@@ -765,7 +850,7 @@ async function handleEditSuccess() {
   await loadContract()
 }
 
-function handleCancelSuccess() {
+function handleRescindSuccess() {
   router.push({ name: 'Contracts' })
 }
 
@@ -786,9 +871,9 @@ async function loadPaymentsData() {
     paymentsSummary.value = await getPaymentsSummary(contractId.value)
 
     // Get recent payments (last 3)
-    const payments = await fetchPayments({ contractId: contractId.value })
-    if (payments) {
-      recentPayments.value = payments.slice(0, 3)
+    const result = await fetchPayments({ contractId: contractId.value })
+    if (result?.data) {
+      recentPayments.value = result.data.slice(0, 3)
     }
   } catch (e) {
     console.error('Error loading payments:', e)

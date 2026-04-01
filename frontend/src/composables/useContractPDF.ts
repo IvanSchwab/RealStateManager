@@ -2,18 +2,30 @@ import { ref } from 'vue'
 import { jsPDF } from 'jspdf'
 import { supabase } from '@/lib/supabase'
 import { useDate } from './useDate'
+import { useAuth } from './useAuth'
 import type {
-  Contract,
   ContractWithRelations,
+  ContractLegalDocument,
+  ContractLegalDocumentType,
   CustomClause,
-  Guarantor,
   GuarantorPersonaFisica,
   GuarantorFinaer,
   GuarantorPropiedad,
   Tenant,
-  Owner,
   AdjustmentPeriod,
 } from '@/types'
+
+// Storage bucket for contract documents
+const BUCKET_NAME = 'contract-documents'
+
+// Interface for saveLegalDocument params
+export interface SaveLegalDocumentParams {
+  contractId: string
+  organizationId: string
+  documentType: ContractLegalDocumentType
+  blob: Blob
+  fileName: string
+}
 
 // Spanish ordinal numbers for clauses
 const CLAUSE_ORDINALS: Record<number, string> = {
@@ -88,6 +100,7 @@ export function useContractPDF() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const { dateLocale } = useDate()
+  const { user } = useAuth()
 
   /**
    * Format currency for PDF contracts.
@@ -267,7 +280,6 @@ export function useContractPDF() {
     const isPlural = isPluralContract(contract)
     const clauseKey = getClauseKey(clauseNumber)
     const titular = getTitular(contract)
-    const coTitulares = getCoTitulares(contract)
     const ownerInfo = getOwnerInfo(contract)
     const propertyAddress = getPropertyAddress(contract)
 
@@ -278,7 +290,6 @@ export function useContractPDF() {
     const se_obliga = isPlural ? 'se obligan' : 'se obliga'
     const debera = isPlural ? 'deberán' : 'deberá'
     const podra = isPlural ? 'podrán' : 'podrá'
-    const tendra = isPlural ? 'tendrán' : 'tendrá'
     const su = isPlural ? 'sus' : 'su'
 
     switch (clauseNumber) {
@@ -415,7 +426,6 @@ export function useContractPDF() {
     const titular = getTitular(contract)
     const coTitulares = getCoTitulares(contract)
     const ownerInfo = getOwnerInfo(contract)
-    const propertyAddress = getPropertyAddress(contract)
 
     // Header
     let contractText = 'CONTRATO DE LOCACIÓN DE INMUEBLE PARA VIVIENDA\n\n'
@@ -472,9 +482,6 @@ export function useContractPDF() {
     coTitulares.forEach(ct => {
       allTenantNames.push(`${ct.first_name} ${ct.last_name}`)
     })
-    const tenantDisplayName = allTenantNames.length <= 1
-      ? titularFullName
-      : allTenantNames.slice(0, -1).join(', ') + ' y ' + allTenantNames[allTenantNames.length - 1]
 
     contractText += '_'.repeat(28) + '              ' + '_'.repeat(28) + '\n'
     const locatarioLabel = isPlural ? 'LOS LOCATARIOS' : 'EL LOCATARIO'
@@ -545,8 +552,6 @@ export function useContractPDF() {
 
     try {
       const contractText = generateContractText(contract)
-      const titular = getTitular(contract)
-      const propertyAddress = getPropertyAddress(contract)
 
       // Create PDF
       const doc = new jsPDF({
@@ -660,6 +665,16 @@ export function useContractPDF() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+
+    // Save legal document in parallel (do NOT await - download should never be blocked)
+    // Fire and forget - errors are handled internally by saveLegalDocument
+    saveLegalDocument({
+      contractId: contract.id,
+      organizationId: contract.organization_id,
+      documentType: 'contrato',
+      blob,
+      fileName: filename,
+    })
   }
 
   /**
@@ -697,6 +712,73 @@ export function useContractPDF() {
     }
   }
 
+  /**
+   * Save a generated legal document to Storage and database
+   * Does NOT throw - handles all errors internally with console.warn
+   * Does NOT show toasts - caller decides whether to surface errors
+   */
+  async function saveLegalDocument(
+    params: SaveLegalDocumentParams
+  ): Promise<ContractLegalDocument | null> {
+    const { contractId, organizationId, documentType, blob, fileName } = params
+
+    // Validate user is authenticated
+    if (!user.value?.id) {
+      console.warn('[saveLegalDocument] User not authenticated, skipping save')
+      return null
+    }
+
+    try {
+      // Generate storage path: {organizationId}/{contractId}/legal/{uuid}-{fileName}
+      const uuid = crypto.randomUUID()
+      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_')
+      const storagePath = `${organizationId}/${contractId}/legal/${uuid}-${sanitizedFileName}`
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(storagePath, blob, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: 'application/pdf',
+        })
+
+      if (uploadError) {
+        console.warn('[saveLegalDocument] Storage upload failed:', uploadError.message)
+        return null
+      }
+
+      // Insert database record
+      const documentData = {
+        contract_id: contractId,
+        organization_id: organizationId,
+        document_type: documentType,
+        storage_path: storagePath,
+        file_name: fileName,
+        generated_by: user.value.id,
+        generated_at: new Date().toISOString(),
+      }
+
+      const { data: document, error: insertError } = await supabase
+        .from('contract_legal_documents')
+        .insert([documentData])
+        .select()
+        .single()
+
+      if (insertError) {
+        console.warn('[saveLegalDocument] Database insert failed:', insertError.message)
+        // Compensating action: delete the uploaded file if DB insert fails
+        await supabase.storage.from(BUCKET_NAME).remove([storagePath])
+        return null
+      }
+
+      return document as ContractLegalDocument
+    } catch (e) {
+      console.warn('[saveLegalDocument] Unexpected error:', e instanceof Error ? e.message : e)
+      return null
+    }
+  }
+
   return {
     loading,
     error,
@@ -722,5 +804,6 @@ export function useContractPDF() {
     downloadPDF,
     // Database
     saveContractPDFData,
+    saveLegalDocument,
   }
 }

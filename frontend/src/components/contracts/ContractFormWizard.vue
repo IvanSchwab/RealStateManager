@@ -312,7 +312,7 @@
 
           <div class="space-y-2">
             <Label>Tipo de Garante *</Label>
-            <Select v-model="guarantor.type" @update:modelValue="resetGuarantorFields(index, $event)">
+            <Select v-model="guarantor.type" @update:modelValue="$event && resetGuarantorFields(index, $event as GuarantorType)">
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar tipo" />
               </SelectTrigger>
@@ -677,10 +677,8 @@ import type {
   Contract,
   ContractFormData,
   ContractType,
-  AdjustmentType,
   AdjustmentPeriod,
   Property,
-  Tenant,
   Guarantor,
   GuarantorPersonaFisica,
   GuarantorFinaer,

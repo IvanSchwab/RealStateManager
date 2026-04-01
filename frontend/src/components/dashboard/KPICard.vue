@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   DollarSign,
@@ -54,7 +54,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  type LucideIcon,
 } from 'lucide-vue-next'
 
 type TrendType = 'up' | 'down' | 'neutral'
@@ -86,7 +85,7 @@ const showTrend = computed(() => {
 })
 
 // Icon configuration based on icon type
-const iconComponent = computed<LucideIcon>(() => {
+const iconComponent = computed<Component>(() => {
   switch (props.icon) {
     case 'income':
       return DollarSign

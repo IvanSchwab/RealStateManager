@@ -212,7 +212,7 @@ import { usePayments } from '@/composables/usePayments'
 import { useReceiptPDF } from '@/composables/useReceiptPDF'
 import type { PaymentWithDetails, PaymentMethod, Payment, PaymentConcept } from '@/types'
 
-const { t } = useI18n()
+useI18n()
 
 const props = defineProps<{
   open: boolean

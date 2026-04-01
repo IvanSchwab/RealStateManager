@@ -69,7 +69,7 @@ export function useDashboard() {
   const error = ref<string | null>(null)
   const { organizationId } = useAuth()
   const { formatCurrency } = useFormatCurrency()
-  const { formatDate: formatDateFromComposable, dateLocale, getMonthName: getMonthNameFromComposable } = useDate()
+  const { dateLocale, getMonthName: getMonthNameFromComposable } = useDate()
 
   // KPIs
   const incomeKPIs = ref<IncomeKPIs>({

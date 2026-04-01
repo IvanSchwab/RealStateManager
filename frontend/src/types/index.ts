@@ -206,7 +206,7 @@ export type AdjustmentFrequency = AdjustmentPeriod // Alias for clarity
 export type ContractStatus = 'borrador' | 'activo' | 'vencido' | 'rescindido' | 'renovado'
 
 // Calculated display status (used in UI)
-export type ContractDisplayStatus = 'active' | 'expiring_soon' | 'expired' | 'cancelled'
+export type ContractDisplayStatus = 'active' | 'expiring_soon' | 'expired' | 'cancelled' | 'renewed' | 'draft'
 
 export interface Contract {
   id: string
@@ -428,6 +428,24 @@ export interface ContractDocumentFormData {
   file: File
   document_type: ContractDocumentType
   custom_type_label?: string
+}
+
+// --- Contract Legal Document ---
+
+export type ContractLegalDocumentType = 'contrato' | 'rescision' | 'prorroga' | 'renovacion'
+
+export interface ContractLegalDocument {
+  id: string
+  contract_id: string
+  organization_id: string
+  document_type: ContractLegalDocumentType
+  storage_path: string
+  file_name: string
+  generated_by: string | null
+  generated_at: string
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 // --- Notification ---

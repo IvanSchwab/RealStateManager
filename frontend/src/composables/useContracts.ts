@@ -7,6 +7,7 @@ import type {
     ContractType,
     ContractStatus,
     ContractDisplayStatus,
+    ContractTenantRole,
     AdjustmentPeriod,
     Guarantor,
 } from '@/types'
@@ -29,6 +30,15 @@ export interface FetchContractsResult {
     totalCount: number
 }
 
+export interface CancelContractParams {
+    id: string
+    updatePropertyStatus: boolean
+    effectiveDate: string        // ISO date string
+    reason: 'incumplimiento_pago' | 'acuerdo_mutuo' | 'otro'
+    notes?: string
+    penaltyAmount?: number
+}
+
 export function useContracts() {
     const contracts = ref<ContractWithRelations[]>([])
     const loading = ref(false)
@@ -39,6 +49,11 @@ export function useContracts() {
      * Calculate the display status of a contract based on dates and deleted_at
      */
     function calculateDisplayStatus(contract: Contract): ContractDisplayStatus {
+        // Explicit status checks first
+        if (contract.status === 'vencido') return 'expired'
+        if (contract.status === 'renovado') return 'renewed'
+        if (contract.status === 'borrador') return 'draft'
+
         if (contract.deleted_at || contract.status === 'rescindido') {
             return 'cancelled'
         }
@@ -335,11 +350,11 @@ export function useContracts() {
             if (!contract) throw new Error('No se pudo crear el contrato')
 
             // 2. Insert contract_tenants (titular) - no organization_id needed for junction table
-            const tenantEntries = [
+            const tenantEntries: { contract_id: string; tenant_id: string; role: ContractTenantRole }[] = [
                 {
                     contract_id: contract.id,
                     tenant_id: formData.titular_id,
-                    role: 'titular' as const,
+                    role: 'titular',
                 },
             ]
 
@@ -348,7 +363,7 @@ export function useContracts() {
                 tenantEntries.push({
                     contract_id: contract.id,
                     tenant_id: coTitularId,
-                    role: 'co_titular' as const,
+                    role: 'co_titular',
                 })
             }
 
@@ -515,12 +530,11 @@ export function useContracts() {
     }
 
     /**
-     * Cancel a contract (soft delete and optionally update property status)
+     * Cancel a contract and record the cancellation event
      */
-    async function cancelContract(
-        id: string,
-        updatePropertyStatus: boolean = true
-    ): Promise<boolean> {
+    async function cancelContract(params: CancelContractParams): Promise<boolean> {
+        const { id, updatePropertyStatus, effectiveDate, reason, notes, penaltyAmount } = params
+
         loading.value = true
         error.value = null
 
@@ -529,18 +543,37 @@ export function useContracts() {
             const contract = contracts.value.find(c => c.id === id)
                 ?? await fetchContractById(id)
 
-            // 1. Update contract status to rescindido and set deleted_at
+            // 1. Update contract status to rescindido only (no deleted_at)
             const { error: cancelError } = await supabase
                 .from('contracts')
                 .update({
                     status: 'rescindido' as ContractStatus,
-                    deleted_at: new Date().toISOString(),
                 })
                 .eq('id', id)
 
             if (cancelError) throw cancelError
 
-            // 2. Optionally update property status to disponible
+            // 2. Insert contract_events record
+            const { error: eventError } = await supabase
+                .from('contract_events')
+                .insert({
+                    contract_id: id,
+                    organization_id: organizationId.value,
+                    event_type: 'cancelled',
+                    event_date: new Date().toISOString().split('T')[0],
+                    effective_date: effectiveDate,
+                    notes: notes,
+                    metadata: {
+                        reason,
+                        penalty_amount: penaltyAmount ?? 0,
+                    },
+                })
+
+            if (eventError) {
+                console.warn('Failed to insert contract event:', eventError)
+            }
+
+            // 3. Optionally update property status to disponible
             if (updatePropertyStatus && contract?.property_id) {
                 const { error: propertyError } = await supabase
                     .from('properties')
@@ -552,13 +585,43 @@ export function useContracts() {
                 }
             }
 
-            // Remove from local state
-            contracts.value = contracts.value.filter(c => c.id !== id)
+            // 4. Update the contract status in place in the reactive array
+            const index = contracts.value.findIndex(c => c.id === id)
+            if (index !== -1) {
+                contracts.value[index] = {
+                    ...contracts.value[index],
+                    status: 'rescindido' as ContractStatus,
+                }
+            }
 
             return true
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error al cancelar contrato'
             console.error('Error cancelling contract:', e)
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Expire overdue contracts by calling the database RPC function
+     * Returns the count of updated contracts
+     */
+    async function expireOverdueContracts(): Promise<number> {
+        loading.value = true
+        error.value = null
+
+        try {
+            const { data, error: rpcError } = await supabase
+                .rpc('expire_overdue_contracts')
+
+            if (rpcError) throw rpcError
+
+            return data ?? 0
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error al expirar contratos vencidos'
+            console.error('Error expiring overdue contracts:', e)
             throw e
         } finally {
             loading.value = false
@@ -605,6 +668,7 @@ export function useContracts() {
         createContract,
         updateContract,
         cancelContract,
+        expireOverdueContracts,
         calculateDisplayStatus,
         calculateEndDate,
         calculateNextAdjustmentDate,

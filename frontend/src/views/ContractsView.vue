@@ -169,14 +169,27 @@
                     >
                       <Pencil class="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      @click="openCancelDialog(contract)"
-                      :title="$t('contracts.cancelContract')"
-                    >
-                      <XCircle class="w-4 h-4 text-destructive" />
-                    </Button>
+                    <!-- Lifecycle actions - hidden for draft, disabled for rescinded -->
+                    <template v-if="calculateDisplayStatus(contract) !== 'draft'">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        :disabled="calculateDisplayStatus(contract) === 'cancelled'"
+                        @click="openRescindDialog(contract)"
+                        :title="$t('contracts.rescindContract')"
+                      >
+                        <XCircle class="w-4 h-4 text-destructive" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        :disabled="calculateDisplayStatus(contract) === 'cancelled'"
+                        @click="handleRenew"
+                        :title="$t('contracts.renewContract')"
+                      >
+                        <RefreshCw class="w-4 h-4" />
+                      </Button>
+                    </template>
                   </div>
                 </td>
               </tr>
@@ -247,7 +260,7 @@
               </p>
             </div>
 
-            <div class="flex items-center justify-end gap-1 pt-3 border-t" @click.stop>
+            <div class="flex flex-wrap items-center justify-end gap-1 pt-3 border-t" @click.stop>
               <Button
                 variant="ghost"
                 size="sm"
@@ -264,14 +277,27 @@
                 <Pencil class="w-4 h-4 mr-1" />
                 {{ $t('common.edit') }}
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="openCancelDialog(contract)"
-              >
-                <XCircle class="w-4 h-4 mr-1 text-destructive" />
-                {{ $t('common.cancel') }}
-              </Button>
+              <!-- Lifecycle actions - hidden for draft, disabled for rescinded -->
+              <template v-if="calculateDisplayStatus(contract) !== 'draft'">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="calculateDisplayStatus(contract) === 'cancelled'"
+                  @click="openRescindDialog(contract)"
+                >
+                  <XCircle class="w-4 h-4 mr-1 text-destructive" />
+                  {{ $t('contracts.rescindContract') }}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="calculateDisplayStatus(contract) === 'cancelled'"
+                  @click="handleRenew"
+                >
+                  <RefreshCw class="w-4 h-4 mr-1" />
+                  {{ $t('contracts.renewContract') }}
+                </Button>
+              </template>
             </div>
           </div>
 
@@ -312,13 +338,13 @@
         @success="handleDialogSuccess"
       />
 
-      <!-- Cancel Contract Confirmation Dialog -->
+      <!-- Rescind Contract Confirmation Dialog -->
       <CancelContractDialog
         v-model:open="cancelDialogOpen"
         :contract-id="cancellingContract?.id ?? ''"
         :property-address="cancellingContractPropertyAddress"
         :tenant-name="cancellingContractTenantName"
-        @confirm="handleCancelSuccess"
+        @confirm="handleRescindSuccess"
       />
   </div>
 </template>
@@ -349,9 +375,11 @@ import {
   XCircle,
   FileText,
   Loader2,
+  RefreshCw,
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import { useFormatCurrency } from '@/composables/useFormatCurrency'
+import { useToast } from '@/composables/useToast'
 import { useDebounce } from '@/composables/useDebounce'
 import { useContractsFilterStore } from '@/stores/filters/useContractsFilterStore'
 import { storeToRefs } from 'pinia'
@@ -361,6 +389,7 @@ import { useDate } from '@/composables/useDate'
 
 const router = useRouter()
 const { t } = useI18n()
+const toast = useToast()
 const { formatDate } = useDate()
 const { formatCurrency } = useFormatCurrency()
 const {
@@ -426,6 +455,8 @@ function getStatusBadgeClass(status: ContractDisplayStatus): string {
     expiring_soon: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
     expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
     cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
+    renewed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+    draft: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800',
   }
   return classes[status] ?? classes.active
 }
@@ -445,9 +476,13 @@ function openEditDialog(contractId: string) {
   dialogOpen.value = true
 }
 
-function openCancelDialog(contract: ContractWithRelations) {
+function openRescindDialog(contract: ContractWithRelations) {
   cancellingContract.value = contract
   cancelDialogOpen.value = true
+}
+
+function handleRenew() {
+  toast.info(t('contracts.featureComingSoon'))
 }
 
 function viewContract(contractId: string) {
@@ -486,7 +521,7 @@ async function handleDialogSuccess() {
   await loadContracts()
 }
 
-async function handleCancelSuccess() {
+async function handleRescindSuccess() {
   cancellingContract.value = null
   await loadContracts()
 }

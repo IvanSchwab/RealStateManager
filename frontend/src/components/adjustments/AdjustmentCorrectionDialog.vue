@@ -148,7 +148,7 @@ const emit = defineEmits<{
 
 const { formatCurrency } = useFormatCurrency()
 
-const manualPercentage = ref<number | null>(null)
+const manualPercentage = ref<number | undefined>(undefined)
 
 // Get property address from nested relation
 function getPropertyAddress(property: Property | undefined): string {
@@ -209,7 +209,7 @@ watch(
   () => props.open,
   (newVal) => {
     if (newVal) {
-      manualPercentage.value = null
+      manualPercentage.value = undefined
     }
   }
 )
