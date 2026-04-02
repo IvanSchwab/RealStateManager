@@ -46,7 +46,7 @@ export function useContracts() {
     const loading = ref(false)
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
-    const { generateRescisionPDF, saveLegalDocument } = useContractPDF()
+    const { generateRescisionPDF, generateExtensionPDF, saveLegalDocument } = useContractPDF()
 
     /**
      * Calculate the display status of a contract based on dates and deleted_at
@@ -651,6 +651,114 @@ export function useContracts() {
     }
 
     /**
+     * Extend (prórroga) a contract by updating its end date
+     * Optionally updates the monthly rent amount
+     */
+    async function extendContract(params: {
+        contractId: string
+        organizationId: string
+        newEndDate: string
+        newMonthlyAmount?: number
+        notes?: string
+        contract: ContractWithRelations
+    }): Promise<{ blob: Blob; fileName: string }> {
+        const { contractId, organizationId, newEndDate, newMonthlyAmount, notes, contract } = params
+
+        loading.value = true
+        error.value = null
+
+        try {
+            // 1. Generate and save extension PDF before updating DB
+            const extensionBlob = await generateExtensionPDF(
+                contract,
+                newEndDate,
+                newMonthlyAmount,
+                notes
+            )
+
+            const titular = contract.tenants?.find(ct => ct.role === 'titular')?.tenant
+            const titularName = titular
+                ? `${titular.first_name}_${titular.last_name}`.replace(/[^a-zA-Z0-9]/g, '_')
+                : 'Inquilino'
+            const dateStr = newEndDate.replace(/-/g, '')
+            const fileName = `Prorroga_${titularName}_${dateStr}.pdf`
+
+            const savedDocument = await saveLegalDocument({
+                contractId,
+                organizationId,
+                documentType: 'prorroga',
+                blob: extensionBlob,
+                fileName,
+            })
+
+            if (!savedDocument) {
+                throw new Error('Error al guardar el documento de prórroga')
+            }
+
+            // 2. Update contract end_date (and current_rent_amount if provided)
+            const updates: Record<string, unknown> = {
+                end_date: newEndDate,
+            }
+            if (newMonthlyAmount !== undefined && newMonthlyAmount > 0) {
+                updates.current_rent_amount = newMonthlyAmount
+            }
+
+            const { error: updateError } = await supabase
+                .from('contracts')
+                .update(updates)
+                .eq('id', contractId)
+
+            if (updateError) throw updateError
+
+            // 3. Insert contract_events record
+            const metadata: Record<string, unknown> = {
+                old_end_date: contract.end_date,
+                new_end_date: newEndDate,
+            }
+            if (newMonthlyAmount !== undefined && newMonthlyAmount > 0) {
+                metadata.new_monthly_amount = newMonthlyAmount
+            }
+            if (notes) {
+                metadata.notes = notes
+            }
+
+            const { error: eventError } = await supabase
+                .from('contract_events')
+                .insert({
+                    contract_id: contractId,
+                    organization_id: organizationId,
+                    event_type: 'extended',
+                    event_date: new Date().toISOString().split('T')[0],
+                    effective_date: newEndDate,
+                    notes: notes || null,
+                    metadata,
+                })
+
+            if (eventError) throw eventError
+
+            // 4. Update the contract reactively in the local contracts array
+            const index = contracts.value.findIndex(c => c.id === contractId)
+            if (index !== -1) {
+                contracts.value[index] = {
+                    ...contracts.value[index],
+                    end_date: newEndDate,
+                    ...(newMonthlyAmount !== undefined && newMonthlyAmount > 0
+                        ? { current_rent_amount: newMonthlyAmount }
+                        : {}),
+                }
+            }
+
+            return { blob: extensionBlob, fileName }
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error al prorrogar contrato'
+            console.error('Error extending contract:', e)
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
      * Expire overdue contracts by calling the database RPC function
      * Returns the count of updated contracts
      */
@@ -714,6 +822,7 @@ export function useContracts() {
         createContract,
         updateContract,
         cancelContract,
+        extendContract,
         expireOverdueContracts,
         calculateDisplayStatus,
         calculateEndDate,

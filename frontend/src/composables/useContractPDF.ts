@@ -564,6 +564,150 @@ export function useContractPDF() {
   }
 
   /**
+   * Generate extension (prórroga) document text
+   */
+  function generateExtensionText(
+    contract: ContractWithRelations,
+    newEndDate: string,
+    newMonthlyAmount?: number,
+    notes?: string
+  ): string {
+    const ownerInfo = getOwnerInfo(contract)
+    const propertyAddress = getPropertyAddress(contract)
+    const titular = getTitular(contract)
+    const titularName = titular ? `${titular.first_name} ${titular.last_name}` : '[NOMBRE DEL LOCATARIO]'
+    const titularDni = titular?.dni || '[DNI]'
+
+    let text = 'DOCUMENTO DE PRÓRROGA DE CONTRATO\n\n'
+    text += '═'.repeat(60) + '\n\n'
+
+    text += `En la Ciudad de ${contract.property?.address_city || 'Buenos Aires'}, a los ${formatDate(new Date().toISOString().split('T')[0])}, entre:\n\n`
+
+    text += `EL LOCADOR: ${ownerInfo.name}, CUIT ${ownerInfo.cuit}, con domicilio en ${ownerInfo.address}.\n\n`
+
+    text += `EL LOCATARIO: ${titularName}, DNI ${titularDni}, con domicilio en el inmueble objeto del contrato.\n\n`
+
+    text += '─'.repeat(60) + '\n\n'
+
+    text += 'Las partes de común acuerdo manifiestan:\n\n'
+
+    text += `PRIMERO: Que con fecha ${formatDate(contract.start_date)} celebraron un contrato de locación sobre el inmueble sito en ${propertyAddress}, con vigencia original hasta el día ${formatDate(contract.end_date)}.\n\n`
+
+    text += `SEGUNDO: Que por la presente acuerdan prorrogar el mencionado contrato de locación, estableciendo como nueva fecha de finalización el día ${formatDate(newEndDate)}.\n\n`
+
+    if (newMonthlyAmount !== undefined && newMonthlyAmount > 0) {
+      const amountInWords = numberToSpanishWords(newMonthlyAmount)
+      text += `TERCERO: Que el nuevo canon locativo mensual será de PESOS ${amountInWords} (${formatCurrency(newMonthlyAmount)}), a partir de la fecha de la presente prórroga.\n\n`
+    } else {
+      text += `TERCERO: Que el canon locativo mensual se mantendrá según las condiciones vigentes del contrato original.\n\n`
+    }
+
+    if (notes) {
+      text += `CUARTO: Observaciones adicionales: ${notes}\n\n`
+    }
+
+    text += `${notes ? 'QUINTO' : 'CUARTO'}: Que todas las demás cláusulas y condiciones del contrato original permanecen vigentes y en plena fuerza, no modificándose más que lo expresamente establecido en el presente documento.\n\n`
+
+    text += '─'.repeat(60) + '\n\n'
+
+    text += 'CLÁUSULA LEGAL: El presente documento de prórroga se celebra de conformidad con lo dispuesto por los artículos 1187 y concordantes del Código Civil y Comercial de la Nación Argentina, y produce plenos efectos legales entre las partes desde la fecha de su firma.\n\n'
+
+    text += '═'.repeat(60) + '\n\n'
+
+    text += 'En prueba de conformidad, las partes firman el presente documento en dos ejemplares de un mismo tenor y a un solo efecto.\n\n'
+
+    text += '\n\n'
+    text += '_'.repeat(28) + '              ' + '_'.repeat(28) + '\n'
+    text += '       EL LOCADOR                              EL LOCATARIO\n'
+    text += `  ${ownerInfo.name.padEnd(30)}      ${titularName.padEnd(30)}\n`
+    text += `  CUIT: ${ownerInfo.cuit.padEnd(22)}      DNI: ${titularDni.padEnd(24)}\n`
+
+    text += '\n\n' + '═'.repeat(60) + '\n'
+    text += 'Documento generado automáticamente por el Sistema de Gestión Inmobiliaria\n'
+
+    return text
+  }
+
+  /**
+   * Generate PDF from extension text
+   */
+  async function generateExtensionPDF(
+    contract: ContractWithRelations,
+    newEndDate: string,
+    newMonthlyAmount?: number,
+    notes?: string
+  ): Promise<Blob> {
+    const extensionText = generateExtensionText(contract, newEndDate, newMonthlyAmount, notes)
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    })
+
+    doc.setFont('times', 'normal')
+
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 25
+    const usableWidth = pageWidth - (margin * 2)
+    const lineHeight = 6
+
+    // Title
+    doc.setFontSize(14)
+    doc.setFont('times', 'bold')
+    const title = 'DOCUMENTO DE PRÓRROGA DE CONTRATO'
+    const titleWidth = doc.getTextWidth(title)
+    doc.text(title, (pageWidth - titleWidth) / 2, margin)
+
+    doc.setFontSize(11)
+    doc.setFont('times', 'normal')
+
+    const lines = extensionText.split('\n')
+    let y = margin + 15
+
+    for (const line of lines) {
+      if (y > pageHeight - margin) {
+        doc.addPage()
+        y = margin
+      }
+
+      if (line.startsWith('═') || line.startsWith('─')) {
+        doc.setDrawColor(100)
+        doc.line(margin, y - 2, pageWidth - margin, y - 2)
+        y += 3
+        continue
+      }
+
+      if (line.startsWith('_')) {
+        doc.line(margin, y, margin + 50, y)
+        y += lineHeight
+        continue
+      }
+
+      const clauseMatch = line.match(/^(PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|CLÁUSULA LEGAL)/)
+      if (clauseMatch || line.includes('DOCUMENTO DE PRÓRROGA')) {
+        doc.setFont('times', 'bold')
+      } else {
+        doc.setFont('times', 'normal')
+      }
+
+      const splitLines = doc.splitTextToSize(line, usableWidth)
+
+      for (const splitLine of splitLines) {
+        if (y > pageHeight - margin) {
+          doc.addPage()
+          y = margin
+        }
+        doc.text(splitLine, margin, y)
+        y += lineHeight
+      }
+    }
+
+    return doc.output('blob')
+  }
+
+  /**
    * Generate full contract text with all clauses
    */
   function generateContractText(contract: ContractWithRelations): string {
@@ -946,6 +1090,8 @@ export function useContractPDF() {
     generateContractText,
     generateRescisionText,
     generateRescisionPDF,
+    generateExtensionText,
+    generateExtensionPDF,
     // PDF generation
     generatePDF,
     downloadPDF,

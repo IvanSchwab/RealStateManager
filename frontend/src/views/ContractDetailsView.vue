@@ -90,6 +90,15 @@
                 <RefreshCw class="w-4 h-4 mr-2" />
                 {{ $t('contracts.renewContract') }}
               </Button>
+              <!-- Extend (Prórroga) button - only for active/expiring_soon contracts -->
+              <Button
+                v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
+                variant="outline"
+                @click="showExtensionDialog = true"
+              >
+                <CalendarPlus class="w-4 h-4 mr-2" />
+                {{ $t('contracts.extendContract') }}
+              </Button>
             </template>
           </div>
         </div>
@@ -612,6 +621,16 @@
                     <RefreshCw class="w-4 h-4 mr-2" />
                     {{ $t('contracts.renewContract') }}
                   </Button>
+                  <!-- Extend (Prórroga) button -->
+                  <Button
+                    variant="outline"
+                    class="w-full justify-start"
+                    :disabled="displayStatus === 'cancelled'"
+                    @click="showExtensionDialog = true"
+                  >
+                    <CalendarPlus class="w-4 h-4 mr-2" />
+                    {{ $t('contracts.extendContract') }}
+                  </Button>
                   <!-- Active contract info banner -->
                   <p
                     v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
@@ -666,6 +685,14 @@
         :current-amount="contract.current_rent_amount"
         @success="handleAdjustmentApplied"
       />
+
+      <!-- Extension Dialog -->
+      <ExtensionDialog
+        v-if="contract"
+        :contract="contract"
+        v-model:open="showExtensionDialog"
+        @success="handleExtensionSuccess"
+      />
   </div>
 </template>
 
@@ -679,6 +706,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
+import ExtensionDialog from '@/components/contracts/ExtensionDialog.vue'
 import ContractPDFEditor from '@/components/contracts/ContractPDFEditor.vue'
 import ContractDocumentsSection from '@/components/contracts/ContractDocumentsSection.vue'
 import ContractLegalDocumentsSection from '@/components/contracts/ContractLegalDocumentsSection.vue'
@@ -696,6 +724,7 @@ import {
   Plus,
   ChevronRight,
   RefreshCw,
+  CalendarPlus,
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import { usePayments } from '@/composables/usePayments'
@@ -739,6 +768,7 @@ const cancelDialogOpen = ref(false)
 const pdfEditorOpen = ref(false)
 const showGeneratePaymentsDialog = ref(false)
 const showAdjustmentDialog = ref(false)
+const showExtensionDialog = ref(false)
 
 // Payments
 const {
@@ -889,6 +919,10 @@ async function handlePaymentsGenerated() {
 async function handleAdjustmentApplied() {
   await loadContract()
   await loadPaymentsData()
+}
+
+function handleExtensionSuccess() {
+  showExtensionDialog.value = false
 }
 
 onMounted(async () => {
