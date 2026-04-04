@@ -425,6 +425,20 @@ export default {
     trimestral: 'Trimestral',
     semestral: 'Semestral',
     anual: 'Anual',
+    // Renewal dialog
+    renewal: {
+      title: 'Renovar Contrato',
+      description: 'Actualice el contrato con nuevas fechas y monto.',
+      newStartDate: 'Nueva fecha de inicio',
+      durationMonths: 'Duracion (meses)',
+      quickDuration12: '12 meses',
+      quickDuration24: '24 meses',
+      quickDuration36: '36 meses',
+      calculatedEndDate: 'Fecha fin: {date}',
+      notesPlaceholder: 'Notas adicionales sobre la renovacion...',
+      success: 'Contrato renovado correctamente',
+      error: 'Error al renovar el contrato. Intente nuevamente.',
+    },
     // Legal documents section
     legalDocuments: {
       title: 'Documentos Legales Generados',

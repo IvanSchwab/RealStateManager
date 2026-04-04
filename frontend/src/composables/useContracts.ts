@@ -46,7 +46,7 @@ export function useContracts() {
     const loading = ref(false)
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
-    const { generateRescisionPDF, generateExtensionPDF, saveLegalDocument } = useContractPDF()
+    const { generatePDF, generateRescisionPDF, generateExtensionPDF, saveLegalDocument } = useContractPDF()
 
     /**
      * Calculate the display status of a contract based on dates and deleted_at
@@ -759,6 +759,120 @@ export function useContracts() {
     }
 
     /**
+     * Renew a contract by updating it with new dates and amount
+     * Saves the previous PDF as historical record
+     */
+    async function renewContract(params: {
+        originalContractId: string
+        organizationId: string
+        newStartDate: string
+        newEndDate: string
+        newMonthlyAmount: number
+        notes?: string
+        originalContract: ContractWithRelations
+    }): Promise<{ blob: Blob; fileName: string }> {
+        const {
+            originalContractId,
+            organizationId,
+            newStartDate,
+            newEndDate,
+            newMonthlyAmount,
+            notes,
+            originalContract,
+        } = params
+
+        loading.value = true
+        error.value = null
+
+        try {
+            // 1. UPDATE existing contract with new dates and amount
+            const { error: updateError } = await supabase
+                .from('contracts')
+                .update({
+                    start_date: newStartDate,
+                    end_date: newEndDate,
+                    current_rent_amount: newMonthlyAmount,
+                    base_rent_amount: newMonthlyAmount,
+                })
+                .eq('id', originalContractId)
+
+            if (updateError) throw updateError
+
+            // 2. INSERT contract_events with renewal metadata
+            const { error: eventError } = await supabase
+                .from('contract_events')
+                .insert({
+                    contract_id: originalContractId,
+                    organization_id: organizationId,
+                    event_type: 'renewed',
+                    event_date: new Date().toISOString().split('T')[0],
+                    effective_date: newStartDate,
+                    notes: notes || null,
+                    metadata: {
+                        old_start_date: originalContract.start_date,
+                        old_end_date: originalContract.end_date,
+                        old_amount: originalContract.current_rent_amount,
+                        new_start_date: newStartDate,
+                        new_end_date: newEndDate,
+                        new_amount: newMonthlyAmount,
+                        ...(notes ? { notes } : {}),
+                    },
+                })
+
+            if (eventError) {
+                console.warn('Failed to insert renewal event:', eventError)
+            }
+
+            // 3. Generate PDF for the updated contract and save as legal document
+            const updatedContract = await fetchContractById(originalContractId)
+            if (!updatedContract) {
+                throw new Error('No se pudo obtener el contrato actualizado')
+            }
+
+            const pdfBlob = await generatePDF(updatedContract)
+
+            const titular = updatedContract.tenants?.find(ct => ct.role === 'titular')?.tenant
+            const titularName = titular
+                ? `${titular.first_name}_${titular.last_name}`.replace(/[^a-zA-Z0-9]/g, '_')
+                : 'Inquilino'
+            const dateStr = newStartDate.replace(/-/g, '')
+            const fileName = `Renovacion_${titularName}_${dateStr}.pdf`
+
+            const savedDocument = await saveLegalDocument({
+                contractId: originalContractId,
+                organizationId,
+                documentType: 'renovacion',
+                blob: pdfBlob,
+                fileName,
+            })
+
+            if (!savedDocument) {
+                throw new Error('Error al guardar el documento de renovación')
+            }
+
+            // 4. Update local state with new values
+            const index = contracts.value.findIndex(c => c.id === originalContractId)
+            if (index !== -1) {
+                contracts.value[index] = {
+                    ...contracts.value[index],
+                    start_date: newStartDate,
+                    end_date: newEndDate,
+                    current_rent_amount: newMonthlyAmount,
+                    base_rent_amount: newMonthlyAmount,
+                }
+            }
+
+            return { blob: pdfBlob, fileName }
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error al renovar contrato'
+            console.error('Error renewing contract:', e)
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
      * Expire overdue contracts by calling the database RPC function
      * Returns the count of updated contracts
      */
@@ -823,6 +937,7 @@ export function useContracts() {
         updateContract,
         cancelContract,
         extendContract,
+        renewContract,
         expireOverdueContracts,
         calculateDisplayStatus,
         calculateEndDate,

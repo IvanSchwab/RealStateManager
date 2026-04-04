@@ -246,6 +246,7 @@ export interface Contract {
   daily_interest_rate?: number
   payment_location?: string
   payment_hours?: string
+  renewed_from_id?: string | null
   // Relations
   property?: Property
   tenants?: ContractTenant[]

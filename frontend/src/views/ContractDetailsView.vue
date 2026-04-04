@@ -693,6 +693,14 @@
         v-model:open="showExtensionDialog"
         @success="handleExtensionSuccess"
       />
+
+      <!-- Renewal Dialog -->
+      <RenewalDialog
+        v-if="contract"
+        :contract="contract"
+        v-model:open="showRenewalDialog"
+        @success="handleRenewalSuccess"
+      />
   </div>
 </template>
 
@@ -707,6 +715,7 @@ import { Separator } from '@/components/ui/separator'
 import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
 import ExtensionDialog from '@/components/contracts/ExtensionDialog.vue'
+import RenewalDialog from '@/components/contracts/RenewalDialog.vue'
 import ContractPDFEditor from '@/components/contracts/ContractPDFEditor.vue'
 import ContractDocumentsSection from '@/components/contracts/ContractDocumentsSection.vue'
 import ContractLegalDocumentsSection from '@/components/contracts/ContractLegalDocumentsSection.vue'
@@ -769,6 +778,7 @@ const pdfEditorOpen = ref(false)
 const showGeneratePaymentsDialog = ref(false)
 const showAdjustmentDialog = ref(false)
 const showExtensionDialog = ref(false)
+const showRenewalDialog = ref(false)
 
 // Payments
 const {
@@ -868,7 +878,7 @@ function openRescindDialog() {
 }
 
 function handleRenew() {
-  toast.info(t('contracts.featureComingSoon'))
+  showRenewalDialog.value = true
 }
 
 async function loadContract() {
@@ -923,6 +933,11 @@ async function handleAdjustmentApplied() {
 
 function handleExtensionSuccess() {
   showExtensionDialog.value = false
+}
+
+async function handleRenewalSuccess() {
+  showRenewalDialog.value = false
+  await loadContract()
 }
 
 onMounted(async () => {
