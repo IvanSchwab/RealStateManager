@@ -58,6 +58,7 @@ import {
   UserCircle,
   FileText,
   CreditCard,
+  ScrollText,
   Settings,
   Sun,
   Moon
@@ -74,7 +75,8 @@ const navItems = computed(() => [
   { path: '/owners', label: t('nav.owners'), icon: UserCircle },
   { path: '/tenants', label: t('nav.tenants'), icon: Users },
   { path: '/contracts', label: t('nav.contracts'), icon: FileText },
-  { path: '/payments', label: t('nav.payments'), icon: CreditCard }
+  { path: '/payments', label: t('nav.payments'), icon: CreditCard },
+  { path: '/documents', label: 'Documentos', icon: ScrollText }
 ])
 
 const isActive = (path: string) => {

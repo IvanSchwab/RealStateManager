@@ -94,7 +94,7 @@ export type PropertyType =
   | 'local'
   | 'galpon'
 
-export type PropertyStatus = 'disponible' | 'alquilada' | 'mantenimiento' | 'reservada'
+export type PropertyStatus = 'disponible' | 'alquilada' | 'mantenimiento' | 'reservada' | 'vendida'
 
 export type PropertyPurpose = 'alquiler' | 'venta'
 
