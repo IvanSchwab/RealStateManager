@@ -60,7 +60,7 @@ const router = createRouter({
     },
     {
       path: '/properties/:id',
-      name: 'property-details',
+      name: 'property-detail',
       component: () => import('@/views/PropertyDetailsView.vue'),
       meta: { requiresAuth: true },
     },

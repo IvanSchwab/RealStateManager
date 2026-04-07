@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
-import type { Owner, OwnerFormData, OwnerWithProperties } from '@/types'
+import type { Owner, OwnerFormData, OwnerWithProperties, Property } from '@/types'
 import { useAuth } from './useAuth'
 
 export interface OwnerFilters {
@@ -293,6 +293,32 @@ export function useOwners() {
         }
     }
 
+    // Fetch properties for a specific owner
+    async function getOwnerProperties(ownerId: string): Promise<Property[]> {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return []
+        }
+
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('properties')
+                .select('*')
+                .eq('owner_id', ownerId)
+                .eq('organization_id', organizationId.value)
+                .is('deleted_at', null)
+                .order('created_at', { ascending: false })
+
+            if (fetchError) throw fetchError
+
+            return (data ?? []) as Property[]
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error al cargar propiedades del propietario'
+            console.error('Error fetching owner properties:', e)
+            return []
+        }
+    }
+
     return {
         owners,
         loading,
@@ -300,6 +326,7 @@ export function useOwners() {
         fetchOwners,
         fetchOwnerById,
         getOwnerPropertyCount,
+        getOwnerProperties,
         createOwner,
         updateOwner,
         deleteOwner,

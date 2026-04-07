@@ -121,7 +121,27 @@ export interface Property {
   created_at: string
   updated_at: string
   // Relations
-  owner?: Owner
+  owner?: Pick<Owner, 'id' | 'full_name' | 'email' | 'phone' | 'address' | 'cuit_cuil'>
+}
+
+export interface PropertyContract {
+  id: string
+  property_id: string
+  status: ContractStatus
+  start_date: string
+  end_date: string
+  monthly_rent: number
+  currency: string
+  tenants: { first_name: string; last_name: string; role: ContractTenantRole }[]
+}
+
+export interface PropertyLegalDocument {
+  id: string
+  property_id: string
+  document_type: string
+  pdf_url: string
+  created_at: string
+  metadata: Record<string, unknown>
 }
 
 // --- Tenant ---

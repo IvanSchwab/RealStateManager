@@ -298,7 +298,7 @@ function openDeleteDialog() {
 }
 
 function navigateToProperty(propertyId: string) {
-  router.push({ name: 'property-details', params: { id: propertyId } })
+  router.push({ name: 'property-detail', params: { id: propertyId } })
 }
 
 function navigateToNewProperty() {

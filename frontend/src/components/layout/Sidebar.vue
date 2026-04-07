@@ -71,10 +71,10 @@ const { isDark, toggleTheme } = useTheme()
 
 const navItems = computed(() => [
   { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
-  { path: '/properties', label: t('nav.properties'), icon: Building2 },
   { path: '/owners', label: t('nav.owners'), icon: UserCircle },
   { path: '/tenants', label: t('nav.tenants'), icon: Users },
   { path: '/contracts', label: t('nav.contracts'), icon: FileText },
+  { path: '/properties', label: t('nav.properties'), icon: Building2 },
   { path: '/payments', label: t('nav.payments'), icon: CreditCard },
   { path: '/documents', label: 'Documentos', icon: ScrollText }
 ])

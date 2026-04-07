@@ -17,7 +17,8 @@
       "Bash(npx eslint:*)",
       "Bash(npx tsc:*)",
       "Bash(supabase db push:*)",
-      "Bash(supabase functions deploy:*)"
+      "Bash(supabase functions deploy:*)",
+      "Bash(npx supabase db dump:*)"
     ]
   }
 }

@@ -25,12 +25,21 @@ export function useDate() {
    * Uses organization's date format preference:
    * - DD/MM/YYYY (default) uses es-AR locale
    * - MM/DD/YYYY uses en-US locale
+   * Handles both date-only strings (YYYY-MM-DD) and ISO 8601 timestamps with timezone
    */
   function formatDate(date: string | Date | null | undefined): string {
     if (!date) return '-'
 
     try {
-      const dateObj = typeof date === 'string' ? new Date(date + 'T00:00:00') : date
+      let dateObj: Date
+      if (typeof date === 'string') {
+        // If the string already contains 'T' (ISO timestamp), parse directly
+        // Otherwise it's a date-only string, append time to avoid timezone issues
+        dateObj = date.includes('T') ? new Date(date) : new Date(date + 'T00:00:00')
+      } else {
+        dateObj = date
+      }
+      if (isNaN(dateObj.getTime())) return '-'
       return dateObj.toLocaleDateString(dateLocale.value, {
         day: '2-digit',
         month: '2-digit',
@@ -45,12 +54,19 @@ export function useDate() {
    * Format a date string or Date object to a short localized date string
    * Spanish: DD/MM
    * English: MM/DD
+   * Handles both date-only strings (YYYY-MM-DD) and ISO 8601 timestamps with timezone
    */
   function formatDateShort(date: string | Date | null | undefined): string {
     if (!date) return '-'
 
     try {
-      const dateObj = typeof date === 'string' ? new Date(date + 'T00:00:00') : date
+      let dateObj: Date
+      if (typeof date === 'string') {
+        dateObj = date.includes('T') ? new Date(date) : new Date(date + 'T00:00:00')
+      } else {
+        dateObj = date
+      }
+      if (isNaN(dateObj.getTime())) return '-'
       return dateObj.toLocaleDateString(dateLocale.value, {
         day: '2-digit',
         month: '2-digit',

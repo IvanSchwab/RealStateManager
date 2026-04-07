@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
-import type { Property, PropertyType, PropertyStatus, PropertyPurpose } from '@/types'
+import type { Property, PropertyType, PropertyStatus, PropertyPurpose, PropertyContract, PropertyLegalDocument, ContractTenantRole } from '@/types'
 import { useAuth } from './useAuth'
 
 export interface PropertiesFilters {
@@ -22,6 +22,7 @@ export interface FetchPropertiesResult {
 
 export function useProperties() {
     const properties = ref<Property[]>([])
+    const currentProperty = ref<Property | null>(null)
     const loading = ref(false)
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
@@ -45,7 +46,7 @@ export function useProperties() {
                 .from('properties')
                 .select(`
                     *,
-                    owner:owners(id, full_name, email)
+                    owner:owners(id, full_name, email, phone, address, cuit_cuil)
                 `, { count: 'exact' })
                 .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
@@ -111,7 +112,7 @@ export function useProperties() {
                 .from('properties')
                 .select(`
                     *,
-                    owner:owners(id, full_name, email)
+                    owner:owners(id, full_name, email, phone, address, cuit_cuil)
                 `)
                 .eq('id', id)
                 .eq('organization_id', organizationId.value)
@@ -120,7 +121,8 @@ export function useProperties() {
 
             if (fetchError) throw fetchError
 
-            return data
+            currentProperty.value = data as Property
+            return data as Property
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Failed to fetch property'
             console.error('Error fetching property:', e)
@@ -185,17 +187,21 @@ export function useProperties() {
                 .eq('id', id)
                 .select(`
                     *,
-                    owner:owners(id, full_name, email)
+                    owner:owners(id, full_name, email, phone, address, cuit_cuil)
                 `)
                 .single()
 
             if (updateError) throw updateError
 
-            // Optimistic update
+            // Update local state
             if (data) {
                 const index = properties.value.findIndex(p => p.id === id)
                 if (index !== -1) {
                     properties.value[index] = data
+                }
+                // Update currentProperty if this is the one being viewed
+                if (currentProperty.value?.id === id) {
+                    currentProperty.value = data as Property
                 }
             }
 
@@ -235,8 +241,101 @@ export function useProperties() {
         }
     }
 
+    // Fetch contracts for a specific property
+    async function getPropertyContracts(propertyId: string): Promise<PropertyContract[]> {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return []
+        }
+
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('contracts')
+                .select(`
+                    id,
+                    property_id,
+                    status,
+                    start_date,
+                    end_date,
+                    current_rent_amount,
+                    tenants:contract_tenants(
+                        role,
+                        tenant:tenants(first_name, last_name)
+                    )
+                `)
+                .eq('property_id', propertyId)
+                .eq('organization_id', organizationId.value)
+                .is('deleted_at', null)
+                .order('start_date', { ascending: false })
+
+            if (fetchError) throw fetchError
+
+            // Transform the data to match PropertyContract interface
+            interface ContractTenantRow {
+                role: string
+                tenant: { first_name: string; last_name: string } | null
+            }
+            const contracts: PropertyContract[] = (data ?? []).map(contract => ({
+                id: contract.id,
+                property_id: contract.property_id,
+                status: contract.status,
+                start_date: contract.start_date,
+                end_date: contract.end_date,
+                monthly_rent: contract.current_rent_amount,
+                currency: 'ARS',
+                tenants: ((contract.tenants ?? []) as unknown as ContractTenantRow[]).map(ct => ({
+                    first_name: ct.tenant?.first_name ?? '',
+                    last_name: ct.tenant?.last_name ?? '',
+                    role: ct.role as ContractTenantRole,
+                })),
+            }))
+
+            return contracts
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error al cargar contratos de la propiedad'
+            console.error('Error fetching property contracts:', e)
+            return []
+        }
+    }
+
+    // Fetch legal documents for a specific property
+    async function getPropertyLegalDocuments(propertyId: string): Promise<PropertyLegalDocument[]> {
+        if (!organizationId.value) {
+            console.warn('No organization_id available, skipping fetch')
+            return []
+        }
+
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('legal_documents')
+                .select('*')
+                .eq('property_id', propertyId)
+                .eq('organization_id', organizationId.value)
+                .order('created_at', { ascending: false })
+
+            if (fetchError) throw fetchError
+
+            // Transform to PropertyLegalDocument interface
+            const documents: PropertyLegalDocument[] = (data ?? []).map(doc => ({
+                id: doc.id,
+                property_id: doc.property_id,
+                document_type: doc.document_type,
+                pdf_url: doc.storage_path ?? doc.pdf_url ?? '',
+                created_at: doc.created_at,
+                metadata: doc.metadata ?? {},
+            }))
+
+            return documents
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error al cargar documentos legales de la propiedad'
+            console.error('Error fetching property legal documents:', e)
+            return []
+        }
+    }
+
     return {
         properties,
+        currentProperty,
         loading,
         error,
         fetchProperties,
@@ -244,5 +343,7 @@ export function useProperties() {
         createProperty,
         updateProperty,
         deleteProperty,
+        getPropertyContracts,
+        getPropertyLegalDocuments,
     }
 }

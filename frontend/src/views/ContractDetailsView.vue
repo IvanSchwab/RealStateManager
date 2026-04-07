@@ -125,7 +125,7 @@
                     <dt class="text-sm text-muted-foreground">{{ $t('contracts.property') }}</dt>
                     <dd class="font-medium">
                       <RouterLink
-                        :to="{ name: 'property-details', params: { id: contract.property_id } }"
+                        :to="{ name: 'property-detail', params: { id: contract.property_id } }"
                         class="text-primary hover:underline"
                       >
                         {{ propertyAddress }}
