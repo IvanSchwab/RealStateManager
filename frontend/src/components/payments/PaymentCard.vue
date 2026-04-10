@@ -132,6 +132,29 @@
               Imprimir Recibo
             </Button>
 
+            <!-- Email Notification Button -->
+            <Button
+              v-if="canNotifyByEmail(payment)"
+              variant="ghost"
+              size="sm"
+              :disabled="sendingNotification"
+              @click="sendEmailNotification(payment)"
+              title="Notificar por email"
+            >
+              <Mail class="w-4 h-4" />
+            </Button>
+
+            <!-- WhatsApp Notification Button -->
+            <Button
+              v-if="canNotifyByWhatsApp(payment)"
+              variant="ghost"
+              size="sm"
+              @click="openWhatsApp(payment)"
+              title="Notificar por WhatsApp"
+            >
+              <MessageCircle class="w-4 h-4" />
+            </Button>
+
             <!-- History Button -->
             <Button
               variant="ghost"
@@ -203,8 +226,11 @@ import {
   History,
   ReceiptText,
   FileText,
+  Mail,
+  MessageCircle,
 } from 'lucide-vue-next'
 import { usePayments } from '@/composables/usePayments'
+import { usePaymentNotification } from '@/composables/usePaymentNotification'
 import type { PaymentWithDetails, PaymentStatus } from '@/types'
 
 const props = defineProps<{
@@ -232,6 +258,14 @@ const {
   getDaysOverdue,
   getContractProgress,
 } = usePayments()
+
+const {
+  sending: sendingNotification,
+  canNotifyByEmail,
+  canNotifyByWhatsApp,
+  openWhatsApp,
+  sendEmailNotification,
+} = usePaymentNotification()
 
 // Local state
 const showBreakdown = ref(false)

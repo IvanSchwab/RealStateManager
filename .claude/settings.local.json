@@ -18,7 +18,8 @@
       "Bash(npx tsc:*)",
       "Bash(supabase db push:*)",
       "Bash(supabase functions deploy:*)",
-      "Bash(npx supabase db dump:*)"
+      "Bash(npx supabase db dump:*)",
+      "Bash(supabase functions list:*)"
     ]
   }
 }

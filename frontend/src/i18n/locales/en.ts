@@ -512,6 +512,16 @@ export default {
     pagado: 'Paid',
     vencido: 'Overdue',
     pago_parcial: 'Partial Payment',
+    // Notifications
+    notifications: {
+      notifyByEmail: 'Notify by email',
+      notifyByWhatsApp: 'Notify by WhatsApp',
+      emailSent: 'Notification sent successfully',
+      noEmail: 'Tenant has no email registered',
+      noPhone: 'Tenant has no phone registered',
+      alreadyPaid: 'This payment is already registered',
+      sendingNotification: 'Sending notification...',
+    },
     // Months
     enero: 'January',
     febrero: 'February',

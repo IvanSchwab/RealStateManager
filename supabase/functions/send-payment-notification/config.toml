@@ -1,0 +1,7 @@
+# After creating or modifying this file, redeploy the function:
+# supabase functions deploy send-payment-notification
+
+# JWT verification is disabled at the gateway level because the function
+# validates the JWT manually in the code. This allows us to return proper
+# error messages instead of generic 401 errors.
+verify_jwt = false

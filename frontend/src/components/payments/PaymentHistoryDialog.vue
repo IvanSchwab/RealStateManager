@@ -6,11 +6,16 @@
           <History class="w-5 h-5" />
           {{ $t('contracts.paymentHistory') }}
         </DialogTitle>
-        <DialogDescription v-if="contract">
-          {{ tenantName }} - {{ propertyAddress }}
-          <span class="ml-2 text-xs">
-            ({{ paidCount }}/{{ payments.length }} {{ $t('contracts.paid') }})
-          </span>
+        <DialogDescription>
+          <template v-if="contract">
+            {{ tenantName }} - {{ propertyAddress }}
+            <span class="ml-2 text-xs">
+              ({{ paidCount }}/{{ payments.length }} {{ $t('contracts.paid') }})
+            </span>
+          </template>
+          <template v-else>
+            {{ $t('common.loading') }}
+          </template>
         </DialogDescription>
       </DialogHeader>
 

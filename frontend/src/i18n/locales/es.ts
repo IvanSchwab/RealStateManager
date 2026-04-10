@@ -512,6 +512,16 @@ export default {
     pagado: 'Pagado',
     vencido: 'Vencido',
     pago_parcial: 'Pago Parcial',
+    // Notifications
+    notifications: {
+      notifyByEmail: 'Notificar por email',
+      notifyByWhatsApp: 'Notificar por WhatsApp',
+      emailSent: 'Notificacion enviada correctamente',
+      noEmail: 'El inquilino no tiene email registrado',
+      noPhone: 'El inquilino no tiene telefono registrado',
+      alreadyPaid: 'Este pago ya fue registrado',
+      sendingNotification: 'Enviando notificacion...',
+    },
     // Months
     enero: 'Enero',
     febrero: 'Febrero',

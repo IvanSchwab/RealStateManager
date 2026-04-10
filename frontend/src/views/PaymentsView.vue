@@ -291,6 +291,27 @@
                     <DollarSign class="w-4 h-4" />
                   </Button>
                   <Button
+                    v-if="canNotifyByEmail(payment)"
+                    variant="ghost"
+                    size="icon"
+                    class="h-8 w-8"
+                    :disabled="sendingNotification"
+                    @click="sendEmailNotification(payment)"
+                    :title="$t('payments.notifications.notifyByEmail')"
+                  >
+                    <Mail class="w-4 h-4" />
+                  </Button>
+                  <Button
+                    v-if="canNotifyByWhatsApp(payment)"
+                    variant="ghost"
+                    size="icon"
+                    class="h-8 w-8"
+                    @click="openWhatsApp(payment)"
+                    :title="$t('payments.notifications.notifyByWhatsApp')"
+                  >
+                    <MessageCircle class="w-4 h-4" />
+                  </Button>
+                  <Button
                     v-if="payment.status === 'pagado'"
                     variant="ghost"
                     size="icon"
@@ -522,8 +543,11 @@ import {
   History,
   ReceiptText,
   FileSpreadsheet,
+  Mail,
+  MessageCircle,
 } from 'lucide-vue-next'
 import { usePayments } from '@/composables/usePayments'
+import { usePaymentNotification } from '@/composables/usePaymentNotification'
 import { useReceiptPDF } from '@/composables/useReceiptPDF'
 import { useDate } from '@/composables/useDate'
 import { useDebounce } from '@/composables/useDebounce'
@@ -551,6 +575,14 @@ const {
 const { formatDate, getMonthName } = useDate()
 
 const { printReceiptPDF } = useReceiptPDF()
+
+const {
+  sending: sendingNotification,
+  canNotifyByEmail,
+  canNotifyByWhatsApp,
+  openWhatsApp,
+  sendEmailNotification,
+} = usePaymentNotification()
 
 const filterStore = usePaymentsFilterStore()
 
