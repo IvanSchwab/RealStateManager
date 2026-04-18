@@ -4,8 +4,16 @@ import type { User, Subscription } from '@supabase/supabase-js'
 import type { Profile } from '@/types'
 import { useNotifications } from './useNotifications'
 
+interface Organization {
+  id: string
+  name: string
+  slug: string
+  settings: Record<string, unknown>
+}
+
 const user = ref<User | null>(null)
 const profile = ref<Profile | null>(null)
+const organization = ref<Organization | null>(null)
 const loading = ref(true)
 const isInitialized = ref(false)
 let authSubscription: Subscription | null = null
@@ -18,6 +26,7 @@ export function useAuth() {
   const isOwnerRole = computed(() => profile.value?.role === 'owner') // for future use
   const userRole = computed(() => profile.value?.role ?? null)
   const organizationId = computed(() => profile.value?.organization_id ?? null)
+  const organizationName = computed(() => organization.value?.name ?? null)
 
   async function signIn(email: string, password: string) {
     loading.value = true
@@ -74,6 +83,7 @@ export function useAuth() {
 
       user.value = null
       profile.value = null
+      organization.value = null
     } catch (error) {
       console.error('Sign out error:', error)
       throw error
@@ -85,6 +95,7 @@ export function useAuth() {
   async function loadProfile() {
     if (!user.value) {
       profile.value = null
+      organization.value = null
       return
     }
 
@@ -100,13 +111,33 @@ export function useAuth() {
         // Log but don't throw - profile might not exist during password recovery
         console.warn('Error loading profile:', error.message)
         profile.value = null
+        organization.value = null
         return
       }
 
       profile.value = data
+
+      // Fetch organization data if profile has organization_id
+      if (data?.organization_id) {
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('id, name, slug, settings')
+          .eq('id', data.organization_id)
+          .maybeSingle()
+
+        if (orgError) {
+          console.warn('Error loading organization:', orgError.message)
+          organization.value = null
+        } else {
+          organization.value = orgData
+        }
+      } else {
+        organization.value = null
+      }
     } catch (error) {
       console.error('Unexpected error loading profile:', error)
       profile.value = null
+      organization.value = null
     }
   }
 
@@ -141,6 +172,7 @@ export function useAuth() {
         // Explicitly clear state when no session
         user.value = null
         profile.value = null
+        organization.value = null
       }
 
       // Clean up previous subscription if exists
@@ -165,6 +197,7 @@ export function useAuth() {
             await loadProfile()
           } else {
             profile.value = null
+            organization.value = null
             if (event === 'SIGNED_OUT') {
               const { unsubscribeFromRealtime } = useNotifications()
               unsubscribeFromRealtime()
@@ -186,6 +219,7 @@ export function useAuth() {
   return {
     user,
     profile,
+    organization,
     loading,
     isInitialized,
     isAuthenticated,
@@ -194,6 +228,7 @@ export function useAuth() {
     isOwnerRole,
     userRole,
     organizationId,
+    organizationName,
     signIn,
     signUp,
     signOut,

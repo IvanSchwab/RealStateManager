@@ -14,7 +14,7 @@
         <Checkbox
           v-if="showCheckbox"
           :checked="selected"
-          @update:checked="$emit('toggle-select')"
+          @update:model-value="$emit('toggle-select')"
           class="mt-1"
         />
 

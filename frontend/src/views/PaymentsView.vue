@@ -16,6 +16,14 @@
             <Printer class="w-4 h-4 mr-2" />
             {{ $t('payments.printSelected', { count: selectedPayments.length }) }}
           </Button>
+          <Button
+            variant="outline"
+            :disabled="bulkNotificationLoading"
+            @click="handleNotifyAll"
+          >
+            <Send class="w-4 h-4 mr-2" />
+            {{ $t('payments.bulkNotifications.notifyAll') }}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -212,8 +220,59 @@
         </Button>
       </div>
 
+      <!-- Selection Toolbar -->
+      <div
+        v-if="selectedPayments.length > 0 && !loading && !error && payments.length > 0"
+        class="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <span class="text-sm font-medium">
+            {{ $t('payments.bulkNotifications.selectedCount', selectedPayments.length) }}
+          </span>
+          <button
+            class="text-sm text-muted-foreground hover:text-foreground underline"
+            @click="selectedPayments = []"
+          >
+            {{ $t('payments.bulkNotifications.deselectAll') }}
+          </button>
+        </div>
+        <Button
+          size="sm"
+          :disabled="bulkNotificationLoading"
+          @click="handleNotifySelected"
+        >
+          <Send class="w-4 h-4 mr-2" />
+          {{ $t('payments.bulkNotifications.notifySelected') }}
+        </Button>
+      </div>
+
+      <!-- Bulk Notification Progress -->
+      <div
+        v-if="bulkNotificationLoading && !loading && !error"
+        class="mb-4 p-4 bg-muted border rounded-lg"
+      >
+        <div class="flex items-center gap-3 mb-2">
+          <Loader2 class="w-5 h-5 animate-spin text-primary" />
+          <span class="font-medium">{{ $t('payments.bulkNotifications.sending') }}</span>
+        </div>
+        <div class="text-sm text-muted-foreground mb-2">
+          {{ $t('payments.bulkNotifications.progress', { current: bulkNotificationProgress.current, total: bulkNotificationProgress.total }) }}
+        </div>
+        <div class="w-full bg-muted-foreground/20 rounded-full h-2 mb-2">
+          <div
+            class="bg-primary h-2 rounded-full transition-all duration-300"
+            :style="{ width: `${(bulkNotificationProgress.current / bulkNotificationProgress.total) * 100}%` }"
+          ></div>
+        </div>
+        <div class="flex gap-4 text-xs">
+          <span class="text-green-600">Enviados: {{ bulkNotificationProgress.sent }}</span>
+          <span class="text-yellow-600">Omitidos: {{ bulkNotificationProgress.skipped }}</span>
+          <span class="text-red-600">Fallidos: {{ bulkNotificationProgress.failed }}</span>
+        </div>
+      </div>
+
       <!-- Desktop Table -->
-      <Card v-else class="hidden lg:block">
+      <Card v-if="!loading && !error && payments.length > 0" class="hidden lg:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -221,7 +280,7 @@
                 <Checkbox
                   :checked="isAllSelected"
                   :indeterminate="isPartiallySelected"
-                  @update:checked="toggleSelectAll"
+                  @update:model-value="toggleSelectAll"
                 />
               </TableHead>
               <TableHead>{{ $t('payments.tenant') }}</TableHead>
@@ -246,7 +305,7 @@
               <TableCell @click.stop>
                 <Checkbox
                   :checked="selectedPayments.includes(payment.id)"
-                  @update:checked="togglePaymentSelection(payment.id)"
+                  @update:model-value="togglePaymentSelection(payment.id)"
                 />
               </TableCell>
               <TableCell>
@@ -383,27 +442,37 @@
       </Card>
 
       <!-- Mobile/Tablet Cards -->
-      <div class="lg:hidden space-y-4">
+      <div v-if="!loading && !error && payments.length > 0" class="lg:hidden space-y-4">
         <!-- Bulk Selection Toggle -->
         <div class="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
           <div class="flex items-center gap-2">
             <Checkbox
               :checked="isAllSelected"
               :indeterminate="isPartiallySelected"
-              @update:checked="toggleSelectAll"
+              @update:model-value="toggleSelectAll"
             />
             <span class="text-sm text-muted-foreground">
               {{ selectedPayments.length > 0 ? `${selectedPayments.length} ${$t('common.selected')}` : $t('common.selectAll') }}
             </span>
           </div>
-          <Button
-            v-if="selectedPayments.length > 0"
-            size="sm"
-            @click="handlePrintSelected"
-          >
-            <Printer class="w-4 h-4 mr-1" />
-            {{ $t('common.print') }}
-          </Button>
+          <div class="flex items-center gap-2">
+            <Button
+              v-if="selectedPayments.length > 0"
+              size="sm"
+              variant="outline"
+              :disabled="bulkNotificationLoading"
+              @click="handleNotifySelected"
+            >
+              <Send class="w-4 h-4 mr-1" />
+            </Button>
+            <Button
+              v-if="selectedPayments.length > 0"
+              size="sm"
+              @click="handlePrintSelected"
+            >
+              <Printer class="w-4 h-4 mr-1" />
+            </Button>
+          </div>
         </div>
 
         <!-- Payment Cards -->
@@ -444,7 +513,7 @@
         </div>
       </div>
 
-      <p v-if="totalPages <= 1 && payments.length > 0" class="mt-4 text-sm text-muted-foreground">
+      <p v-if="!loading && !error && totalPages <= 1 && payments.length > 0" class="mt-4 text-sm text-muted-foreground">
         {{ $t('common.showing') }} {{ payments.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
         {{ $t('payments.title').toLowerCase() }}
       </p>
@@ -485,6 +554,13 @@
           </div>
         </DialogContent>
       </Dialog>
+
+      <!-- Bulk Notification Result Modal -->
+      <BulkNotificationResultModal
+        :open="bulkResultModalOpen"
+        :result="bulkNotificationResult"
+        @close="bulkResultModalOpen = false"
+      />
   </div>
 </template>
 
@@ -528,6 +604,7 @@ import PaymentCard from '@/components/payments/PaymentCard.vue'
 import PaymentDialog from '@/components/payments/PaymentDialog.vue'
 import PaymentHistoryDialog from '@/components/payments/PaymentHistoryDialog.vue'
 import PaymentConceptsManager from '@/components/payments/PaymentConceptsManager.vue'
+import BulkNotificationResultModal from '@/components/payments/BulkNotificationResultModal.vue'
 import {
   Loader2,
   Search,
@@ -545,9 +622,11 @@ import {
   FileSpreadsheet,
   Mail,
   MessageCircle,
+  Send,
 } from 'lucide-vue-next'
 import { usePayments } from '@/composables/usePayments'
 import { usePaymentNotification } from '@/composables/usePaymentNotification'
+import { useBulkNotification, type BulkNotificationResult } from '@/composables/useBulkNotification'
 import { useReceiptPDF } from '@/composables/useReceiptPDF'
 import { useDate } from '@/composables/useDate'
 import { useDebounce } from '@/composables/useDebounce'
@@ -584,6 +663,13 @@ const {
   sendEmailNotification,
 } = usePaymentNotification()
 
+const {
+  loading: bulkNotificationLoading,
+  progress: bulkNotificationProgress,
+  notifySelected: bulkNotifySelected,
+  notifyAll: bulkNotifyAll,
+} = useBulkNotification()
+
 const filterStore = usePaymentsFilterStore()
 
 // Create debounced search value
@@ -600,6 +686,16 @@ const historyDialogOpen = ref(false)
 const selectedContractId = ref('')
 const conceptsDialogOpen = ref(false)
 const selectedPayment = ref<PaymentWithDetails | null>(null)
+
+// Bulk notification result modal
+const bulkResultModalOpen = ref(false)
+const bulkNotificationResult = ref<BulkNotificationResult>({
+  sent: 0,
+  skipped: 0,
+  failed: 0,
+  total: 0,
+  whatsappPending: [],
+})
 
 // Computed
 const hasActiveFilters = computed(() => {
@@ -753,6 +849,35 @@ function handlePrintAllPaid() {
   if (paidPayments.length > 0) {
     printReceiptPDF(paidPayments)
   }
+}
+
+async function handleNotifySelected() {
+  if (selectedPayments.value.length === 0) return
+
+  const result = await bulkNotifySelected(selectedPayments.value)
+  bulkNotificationResult.value = result
+  bulkResultModalOpen.value = true
+  selectedPayments.value = []
+  // Reload to update last_notified_at
+  await loadPayments()
+}
+
+async function handleNotifyAll() {
+  // Filter to only pending/overdue payments
+  const eligiblePayments = payments.value.filter(
+    p => p.status === 'pendiente' || p.status === 'vencido'
+  )
+
+  if (eligiblePayments.length === 0) {
+    return
+  }
+
+  const result = await bulkNotifyAll(eligiblePayments)
+  bulkNotificationResult.value = result
+  bulkResultModalOpen.value = true
+  selectedPayments.value = []
+  // Reload to update last_notified_at
+  await loadPayments()
 }
 
 function handleExportToExcel() {

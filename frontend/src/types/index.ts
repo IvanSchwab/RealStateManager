@@ -352,6 +352,7 @@ export interface Payment {
   paid_by_tenant_id: string | null
   notes: string | null
   notification_sent_at: string | null
+  last_notified_at: string | null
   created_at: string
   updated_at: string
   // Relations

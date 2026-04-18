@@ -135,18 +135,28 @@ Saludos.`
   }
 
   /**
-   * Open WhatsApp with pre-filled message
+   * Build WhatsApp URL for a payment
    */
-  function openWhatsApp(payment: PaymentWithDetails): void {
+  function buildWhatsAppUrl(payment: PaymentWithDetails): string | null {
     const { phone } = getTenantContact(payment)
     if (!phone) {
-      toast.error(t('payments.notifications.noPhone'))
-      return
+      return null
     }
 
     const formattedPhone = formatPhoneForWhatsApp(phone)
     const message = buildWhatsAppMessage(payment)
-    const url = `https://wa.me/${formattedPhone}?text=${message}`
+    return `https://wa.me/${formattedPhone}?text=${message}`
+  }
+
+  /**
+   * Open WhatsApp with pre-filled message
+   */
+  function openWhatsApp(payment: PaymentWithDetails): void {
+    const url = buildWhatsAppUrl(payment)
+    if (!url) {
+      toast.error(t('payments.notifications.noPhone'))
+      return
+    }
 
     window.open(url, '_blank')
   }
@@ -279,6 +289,7 @@ Saludos.`
     getTenantContact,
     canNotifyByEmail,
     canNotifyByWhatsApp,
+    buildWhatsAppUrl,
     openWhatsApp,
     sendEmailNotification,
   }
