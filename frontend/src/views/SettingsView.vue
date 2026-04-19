@@ -415,14 +415,14 @@
               <!-- Theme -->
               <div class="space-y-2">
                 <Label>{{ $t('settings.theme') }}</Label>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                   <Button
                     v-for="option in themeOptions"
                     :key="option.value"
                     :variant="theme === option.value ? 'default' : 'outline'"
                     size="sm"
                     @click="setTheme(option.value)"
-                    class="flex-1"
+                    class="w-full sm:w-auto sm:flex-1"
                   >
                     <component :is="option.icon" class="w-4 h-4 mr-2" />
                     {{ option.label }}
@@ -436,12 +436,12 @@
               <!-- Language -->
               <div class="space-y-2">
                 <Label>{{ $t('settings.language') }}</Label>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                   <Button
                     :variant="currentLocale === 'es' ? 'default' : 'outline'"
                     size="sm"
                     @click="handleSetLocale('es')"
-                    class="flex-1"
+                    class="w-full sm:w-auto sm:flex-1"
                   >
                     🇦🇷 Español
                   </Button>
@@ -449,7 +449,7 @@
                     :variant="currentLocale === 'en' ? 'default' : 'outline'"
                     size="sm"
                     @click="handleSetLocale('en')"
-                    class="flex-1"
+                    class="w-full sm:w-auto sm:flex-1"
                   >
                     🇺🇸 English
                   </Button>
@@ -524,7 +524,7 @@
           <Card>
             <CardContent class="pt-6 space-y-6">
               <!-- Date Format -->
-              <div class="flex items-center justify-between">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="space-y-1">
                   <Label>{{ $t('settings.dateFormat') }}</Label>
                   <p class="text-xs text-muted-foreground">
@@ -532,7 +532,7 @@
                   </p>
                 </div>
                 <!-- Segmented Control -->
-                <div class="inline-flex rounded-lg border border-border p-1 bg-muted/50">
+                <div class="inline-flex flex-wrap rounded-lg border border-border p-1 bg-muted/50">
                   <button
                     @click="selectedDateFormat = 'DD/MM/YYYY'"
                     :disabled="savingPreferences"
@@ -560,7 +560,7 @@
               <div class="border-t border-border"></div>
 
               <!-- Currency -->
-              <div class="flex items-center justify-between">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="space-y-1">
                   <Label>{{ $t('settings.currency') }}</Label>
                   <p class="text-xs text-muted-foreground">
@@ -568,7 +568,7 @@
                   </p>
                 </div>
                 <!-- Segmented Control -->
-                <div class="inline-flex rounded-lg border border-border p-1 bg-muted/50">
+                <div class="inline-flex flex-wrap rounded-lg border border-border p-1 bg-muted/50">
                   <button
                     @click="selectedCurrency = 'ARS'"
                     :disabled="savingPreferences"

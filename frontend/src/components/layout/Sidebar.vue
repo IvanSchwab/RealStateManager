@@ -1,5 +1,41 @@
 <template>
-  <aside class="w-64 bg-card border-r border-border flex flex-col fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto">
+  <!-- Mobile overlay -->
+  <div
+    v-if="sidebarStore.isOpen"
+    class="fixed inset-0 bg-black/50 z-50 lg:hidden"
+    @click="sidebarStore.close()"
+    @touchstart="handleTouchStart"
+    @touchend="handleTouchEnd"
+  />
+
+  <!-- Sidebar -->
+  <aside
+    :class="[
+      'w-64 bg-card border-r border-border flex flex-col fixed left-0 overflow-y-auto transition-transform duration-300',
+      'top-0 h-screen z-50',
+      'lg:top-16 lg:h-[calc(100vh-4rem)] lg:z-30',
+      'lg:translate-x-0',
+      sidebarStore.isOpen ? 'translate-x-0' : '-translate-x-full'
+    ]"
+    @touchstart="handleTouchStart"
+    @touchend="handleTouchEnd"
+  >
+    <!-- Mobile header with close button and logo -->
+    <div class="lg:hidden flex items-center justify-between h-16 px-4 border-b border-border shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
+          <Building2 class="w-5 h-5 text-primary-foreground" />
+        </div>
+        <span class="font-semibold text-foreground">PropManager</span>
+      </div>
+      <button
+        class="p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        @click="sidebarStore.close()"
+      >
+        <X class="w-5 h-5" />
+      </button>
+    </div>
+
     <nav class="flex-1 p-4">
       <ul class="space-y-2">
         <li v-for="item in navItems" :key="item.path">
@@ -11,6 +47,7 @@
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             ]"
+            @click="handleNavClick"
           >
             <component :is="item.icon" class="w-5 h-5" />
             {{ item.label }}
@@ -28,6 +65,7 @@
             ? 'bg-primary text-primary-foreground'
             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
         ]"
+        @click="handleNavClick"
       >
         <Settings class="w-5 h-5" />
         {{ $t('nav.settings') }}
@@ -61,13 +99,40 @@ import {
   ScrollText,
   Settings,
   Sun,
-  Moon
+  Moon,
+  X
 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
+import { useSidebarStore } from '@/stores/useSidebarStore'
 
 const { t } = useI18n()
 const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
+const sidebarStore = useSidebarStore()
+
+// Swipe gesture handling
+let touchStartX = 0
+let touchStartY = 0
+
+function handleTouchStart(e: TouchEvent) {
+  touchStartX = e.touches[0].clientX
+  touchStartY = e.touches[0].clientY
+}
+
+function handleTouchEnd(e: TouchEvent) {
+  const touchEndX = e.changedTouches[0].clientX
+  const touchEndY = e.changedTouches[0].clientY
+  const deltaX = touchEndX - touchStartX
+  const deltaY = touchEndY - touchStartY
+
+  // Only trigger if horizontal swipe is dominant (not scrolling)
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+    if (deltaX < 0) {
+      // Swipe left - close sidebar
+      sidebarStore.close()
+    }
+  }
+}
 
 const navItems = computed(() => [
   { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
@@ -84,5 +149,12 @@ const isActive = (path: string) => {
     return route.path === '/'
   }
   return route.path.startsWith(path)
+}
+
+function handleNavClick() {
+  // Close sidebar on mobile after navigation
+  if (window.innerWidth < 1024) {
+    sidebarStore.close()
+  }
 }
 </script>

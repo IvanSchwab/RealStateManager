@@ -108,7 +108,7 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center gap-2 pt-3 border-t">
+          <div class="flex flex-wrap items-center gap-2 pt-3 border-t w-full">
             <!-- Register Payment Button -->
             <Button
               v-if="payment.status !== 'pagado'"

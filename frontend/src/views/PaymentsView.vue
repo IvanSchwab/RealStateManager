@@ -47,68 +47,52 @@
 
       <!-- Summary Cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card>
+        <Card class="relative overflow-hidden">
           <CardContent class="p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">{{ $t('payments.totalToCollect') }}</p>
-                <p class="text-2xl font-bold">{{ formatCurrency(summary.totalToCollect) }}</p>
-              </div>
-              <div class="p-2 bg-muted rounded-full">
-                <Wallet class="w-5 h-5 text-muted-foreground" />
-              </div>
+            <div class="absolute top-2 right-2 p-2 bg-muted rounded-full">
+              <Wallet class="w-4 h-4 md:w-6 md:h-6 text-muted-foreground" />
             </div>
+            <p class="text-sm text-muted-foreground">{{ $t('payments.totalToCollect') }}</p>
+            <p class="text-2xl font-bold">{{ formatCurrency(summary.totalToCollect) }}</p>
             <p class="text-xs text-muted-foreground mt-2">
               {{ $t('payments.paymentsCount', { count: summary.totalCount }) }}
             </p>
           </CardContent>
         </Card>
 
-        <Card class="border-green-200 dark:border-green-800">
+        <Card class="relative overflow-hidden border-green-200 dark:border-green-800">
           <CardContent class="p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">{{ $t('payments.collected') }}</p>
-                <p class="text-2xl font-bold text-green-600">{{ formatCurrency(summary.collected) }}</p>
-              </div>
-              <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <CheckCircle2 class="w-5 h-5 text-green-600" />
-              </div>
+            <div class="absolute top-2 right-2 p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <CheckCircle2 class="w-4 h-4 md:w-6 md:h-6 text-green-600" />
             </div>
+            <p class="text-sm text-muted-foreground">{{ $t('payments.collected') }}</p>
+            <p class="text-2xl font-bold text-green-600">{{ formatCurrency(summary.collected) }}</p>
             <p class="text-xs text-muted-foreground mt-2">
               {{ $t('payments.paidCount', { count: summary.paidCount }) }}
             </p>
           </CardContent>
         </Card>
 
-        <Card class="border-blue-200 dark:border-blue-800">
+        <Card class="relative overflow-hidden border-blue-200 dark:border-blue-800">
           <CardContent class="p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">{{ $t('payments.pending') }}</p>
-                <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(summary.pending) }}</p>
-              </div>
-              <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <Clock class="w-5 h-5 text-blue-600" />
-              </div>
+            <div class="absolute top-2 right-2 p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+              <Clock class="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
             </div>
+            <p class="text-sm text-muted-foreground">{{ $t('payments.pending') }}</p>
+            <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(summary.pending) }}</p>
             <p class="text-xs text-muted-foreground mt-2">
               {{ $t('payments.pendingCount', { count: summary.pendingCount }) }}
             </p>
           </CardContent>
         </Card>
 
-        <Card class="border-red-200 dark:border-red-800">
+        <Card class="relative overflow-hidden border-red-200 dark:border-red-800">
           <CardContent class="p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">{{ $t('payments.overdue') }}</p>
-                <p class="text-2xl font-bold text-red-600">{{ formatCurrency(summary.overdue) }}</p>
-              </div>
-              <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                <AlertCircle class="w-5 h-5 text-red-600" />
-              </div>
+            <div class="absolute top-2 right-2 p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <AlertCircle class="w-4 h-4 md:w-6 md:h-6 text-red-600" />
             </div>
+            <p class="text-sm text-muted-foreground">{{ $t('payments.overdue') }}</p>
+            <p class="text-2xl font-bold text-red-600">{{ formatCurrency(summary.overdue) }}</p>
             <p class="text-xs text-muted-foreground mt-2">
               {{ $t('payments.overdueCount', { count: summary.overdueCount }) }}
             </p>
@@ -134,7 +118,7 @@
 
             <!-- Status Filter -->
             <Select v-model="filterStore.status">
-              <SelectTrigger class="w-[150px]">
+              <SelectTrigger class="w-full sm:w-auto">
                 <SelectValue :placeholder="$t('common.status')" />
               </SelectTrigger>
               <SelectContent>
@@ -148,7 +132,7 @@
             <!-- Month/Year Filter -->
             <div class="flex gap-2">
               <Select v-model="filterStore.month">
-                <SelectTrigger class="w-[130px]">
+                <SelectTrigger class="w-full sm:w-auto">
                   <SelectValue :placeholder="$t('payments.month')" />
                 </SelectTrigger>
                 <SelectContent>
@@ -162,7 +146,7 @@
                 </SelectContent>
               </Select>
               <Select v-model="filterStore.year">
-                <SelectTrigger class="w-[90px]">
+                <SelectTrigger class="w-full sm:w-auto">
                   <SelectValue :placeholder="$t('payments.year')" />
                 </SelectTrigger>
                 <SelectContent>

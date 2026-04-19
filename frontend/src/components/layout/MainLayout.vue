@@ -5,7 +5,7 @@
     <!-- Sidebar starts below header -->
     <Sidebar />
     <!-- Content area with proper offsets -->
-    <div class="ml-64 pt-16 min-h-screen">
+    <div class="lg:ml-64 pt-16 min-h-screen">
       <main>
         <slot />
       </main>

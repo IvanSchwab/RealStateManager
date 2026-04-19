@@ -1,9 +1,17 @@
 <template>
   <header class="h-16 bg-card border-b border-border flex items-center justify-between shrink-0">
+    <!-- Mobile hamburger button -->
+    <button
+      class="lg:hidden p-3 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      @click="sidebarStore.toggle()"
+    >
+      <Menu class="w-6 h-6" />
+    </button>
+
     <!-- Organization Branding (left side, same width as sidebar) -->
     <RouterLink
       to="/settings#organization"
-      class="w-64 h-full px-4 flex items-center gap-3 hover:bg-accent/50 transition-colors cursor-pointer border-r border-border shrink-0"
+      class="hidden lg:flex w-64 h-full px-4 items-center gap-3 hover:bg-accent/50 transition-colors cursor-pointer border-r border-border shrink-0"
     >
       <Avatar size="default">
         <AvatarImage
@@ -102,8 +110,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { LogOut, ChevronDown, Settings } from 'lucide-vue-next'
+import { LogOut, ChevronDown, Settings, Menu } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useSidebarStore } from '@/stores/useSidebarStore'
 import { useProfile } from '@/composables/useProfile'
 import { useOrganization } from '@/composables/useOrganization'
 import { Badge } from '@/components/ui/badge'
@@ -120,6 +129,7 @@ import NotificationBell from '@/components/notifications/NotificationBell.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const sidebarStore = useSidebarStore()
 const { getInitials, getAvatarColor } = useProfile()
 const {
   organization,

@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-6">
         <h1 class="text-2xl font-bold">{{ $t('owners.title') }}</h1>
         <Button @click="openCreateDialog">
           <Plus class="w-4 h-4 mr-2" />
@@ -23,7 +23,7 @@
           </Input>
         </div>
 
-        <Select v-model="propertiesFilter" class="w-[200px]">
+        <Select v-model="propertiesFilter" class="w-full sm:w-auto">
           <SelectTrigger>
             <SelectValue :placeholder="$t('nav.properties')" />
           </SelectTrigger>

@@ -58,11 +58,11 @@
 
       <!-- Tabs -->
       <Tabs v-model="activeTab" class="w-full">
-        <TabsList class="mb-6">
-          <TabsTrigger value="datos">Datos</TabsTrigger>
-          <TabsTrigger value="contratos" @click="loadContractsIfNeeded">Contratos</TabsTrigger>
-          <TabsTrigger value="documentos" @click="loadLegalDocumentsIfNeeded">Documentos Legales</TabsTrigger>
-          <TabsTrigger value="fotos" @click="loadImagesIfNeeded">Fotos</TabsTrigger>
+        <TabsList class="mb-6 w-full overflow-x-auto justify-start">
+          <TabsTrigger value="datos" class="shrink-0">Datos</TabsTrigger>
+          <TabsTrigger value="contratos" class="shrink-0" @click="loadContractsIfNeeded">Contratos</TabsTrigger>
+          <TabsTrigger value="documentos" class="shrink-0" @click="loadLegalDocumentsIfNeeded">Documentos Legales</TabsTrigger>
+          <TabsTrigger value="fotos" class="shrink-0" @click="loadImagesIfNeeded">Fotos</TabsTrigger>
         </TabsList>
 
         <!-- Tab 1: Datos -->

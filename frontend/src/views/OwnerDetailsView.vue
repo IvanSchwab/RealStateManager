@@ -28,7 +28,7 @@
       <!-- Owner details -->
       <template v-else>
         <!-- Header -->
-        <div class="flex items-start justify-between mb-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <Button variant="ghost" size="sm" class="mb-2" @click="goBack">
               <ArrowLeft class="w-4 h-4 mr-2" />
@@ -63,7 +63,7 @@
                 <CardTitle class="text-lg">{{ $t('owners.personalInfo') }}</CardTitle>
               </CardHeader>
               <CardContent>
-                <dl class="grid grid-cols-2 gap-4">
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <dt class="text-sm text-muted-foreground">{{ $t('owners.fullName') }}</dt>
                     <dd class="font-medium">{{ owner.full_name }}</dd>

@@ -44,62 +44,67 @@
               </Badge>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <Button variant="outline" @click="openEditDialog">
-              <Pencil class="w-4 h-4 mr-2" />
-              {{ $t('common.edit') }}
+          <div class="grid grid-cols-3 md:flex md:items-center gap-2 w-full md:w-auto">
+            <Button variant="outline" size="sm" @click="openEditDialog">
+              <Pencil class="w-4 h-4 md:mr-2" />
+              <span class="hidden md:inline">{{ $t('common.edit') }}</span>
             </Button>
-            <Button variant="outline" @click="openPDFEditor">
-              <FileText class="w-4 h-4 mr-2" />
-              {{ $t('contracts.generatePDF') }}
+            <Button variant="outline" size="sm" @click="openPDFEditor">
+              <FileText class="w-4 h-4 md:mr-2" />
+              <span class="hidden md:inline">{{ $t('contracts.generatePDF') }}</span>
             </Button>
-            <!-- Lifecycle action buttons - hidden for draft contracts -->
-            <template v-if="displayStatus !== 'draft'">
-              <!-- Rescind button - disabled for rescinded contracts -->
-              <Button
-                variant="destructive"
-                :disabled="displayStatus === 'cancelled'"
-                @click="openRescindDialog"
-              >
-                <XCircle class="w-4 h-4 mr-2" />
-                {{ $t('contracts.rescindContract') }}
-              </Button>
-              <!-- Renew button with title for active contracts -->
-              <Button
-                v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
-                variant="outline"
-                :title="$t('contracts.contractCurrentlyActive')"
-                @click="handleRenew"
-              >
-                <RefreshCw class="w-4 h-4 mr-2" />
-                {{ $t('contracts.renewContract') }}
-              </Button>
-              <Button
-                v-else-if="displayStatus === 'expired' || displayStatus === 'renewed'"
-                variant="outline"
-                @click="handleRenew"
-              >
-                <RefreshCw class="w-4 h-4 mr-2" />
-                {{ $t('contracts.renewContract') }}
-              </Button>
-              <Button
-                v-else-if="displayStatus === 'cancelled'"
-                variant="outline"
-                disabled
-              >
-                <RefreshCw class="w-4 h-4 mr-2" />
-                {{ $t('contracts.renewContract') }}
-              </Button>
-              <!-- Extend (Prórroga) button - only for active/expiring_soon contracts -->
-              <Button
-                v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
-                variant="outline"
-                @click="showExtensionDialog = true"
-              >
-                <CalendarPlus class="w-4 h-4 mr-2" />
-                {{ $t('contracts.extendContract') }}
-              </Button>
-            </template>
+            <!-- Lifecycle actions dropdown - hidden for draft contracts -->
+            <DropdownMenu v-if="displayStatus !== 'draft'">
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" class="w-full">
+                  <MoreHorizontal class="w-4 h-4 md:mr-2" />
+                  <span class="hidden md:inline">{{ $t('common.actions') }}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-48">
+                <!-- Extend (Prórroga) - only for active/expiring_soon contracts -->
+                <DropdownMenuItem
+                  v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
+                  @click="showExtensionDialog = true"
+                >
+                  <CalendarPlus class="w-4 h-4 mr-2" />
+                  {{ $t('contracts.extendContract') }}
+                </DropdownMenuItem>
+                <!-- Renew button -->
+                <DropdownMenuItem
+                  v-if="displayStatus === 'active' || displayStatus === 'expiring_soon'"
+                  :title="$t('contracts.contractCurrentlyActive')"
+                  @click="handleRenew"
+                >
+                  <RefreshCw class="w-4 h-4 mr-2" />
+                  {{ $t('contracts.renewContract') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  v-else-if="displayStatus === 'expired' || displayStatus === 'renewed'"
+                  @click="handleRenew"
+                >
+                  <RefreshCw class="w-4 h-4 mr-2" />
+                  {{ $t('contracts.renewContract') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  v-else-if="displayStatus === 'cancelled'"
+                  disabled
+                >
+                  <RefreshCw class="w-4 h-4 mr-2" />
+                  {{ $t('contracts.renewContract') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <!-- Rescind button -->
+                <DropdownMenuItem
+                  class="text-destructive focus:text-destructive"
+                  :disabled="displayStatus === 'cancelled'"
+                  @click="openRescindDialog"
+                >
+                  <XCircle class="w-4 h-4 mr-2" />
+                  {{ $t('contracts.rescindContract') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -712,6 +717,13 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
 import ExtensionDialog from '@/components/contracts/ExtensionDialog.vue'
@@ -734,6 +746,7 @@ import {
   ChevronRight,
   RefreshCw,
   CalendarPlus,
+  MoreHorizontal,
 } from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import { usePayments } from '@/composables/usePayments'
