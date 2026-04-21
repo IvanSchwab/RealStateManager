@@ -2,7 +2,7 @@
 -- MULTI-TENANT SCHEMA MIGRATION
 -- ============================================
 -- Migration: 20260304120000_multi_tenant_schema.sql
--- Description: Converts the single-company Real Estate Manager to a true
+-- Description: Converts the single-company PIA Gestión to a true
 --              multi-tenant architecture where multiple organizations can
 --              coexist with completely isolated data.
 --

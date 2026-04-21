@@ -1,219 +1,96 @@
 <template>
-  <div class="p-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-6">
-      <h1 class="text-2xl font-bold">Documentos Legales</h1>
-      <Button @click="openTypeSelectorDialog">
-        <Plus class="w-4 h-4 mr-2" />
-        Nuevo Documento
-      </Button>
-    </div>
-
-    <!-- Filters -->
-    <div class="flex flex-wrap gap-4 mb-6">
-      <div class="flex-1 min-w-[200px]">
-        <Input
-          v-model="search"
-          placeholder="Buscar por propiedad..."
-          class="w-full"
-        >
-          <template #prefix>
-            <Search class="w-4 h-4 text-muted-foreground" />
-          </template>
-        </Input>
+  <div>
+    <div class="pia-page-header">
+      <div class="pia-page-title-block">
+        <h1>Documentos Legales</h1>
+        <div class="pia-page-subtitle">
+          <span>{{ documents.length }} documentos</span>
+        </div>
       </div>
-
-      <Select v-model="documentTypeFilter" class="w-full sm:w-auto">
-        <SelectTrigger>
-          <SelectValue placeholder="Tipo de documento" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            <SelectItem value="corretaje">Autorización de Corretaje</SelectItem>
-            <SelectItem value="boleto_compraventa">Boleto de Compraventa</SelectItem>
-            <SelectItem value="entrega_llaves">Entrega de Llaves</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      <Button
-        v-if="hasActiveFilters"
-        variant="ghost"
-        size="sm"
-        @click="clearFilters"
-      >
-        <X class="w-4 h-4 mr-1" />
-        Limpiar filtros
-      </Button>
-    </div>
-
-    <!-- Loading state -->
-    <div v-if="loading" class="py-12 text-center text-muted-foreground">
-      <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-      <p class="mt-2">Cargando documentos...</p>
-    </div>
-
-    <!-- Error state -->
-    <div v-else-if="error" class="py-12 text-center">
-      <p class="text-destructive font-medium mb-2">Error al cargar documentos</p>
-      <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-      <Button variant="outline" @click="loadDocuments">
-        Reintentar
-      </Button>
-    </div>
-
-    <!-- Data loaded -->
-    <template v-else>
-      <!-- Empty state -->
-      <div v-if="filteredDocuments.length === 0" class="py-12 text-center">
-        <ScrollText class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <p class="text-lg font-medium text-muted-foreground mb-2">
-          {{ hasActiveFilters ? 'No se encontraron documentos' : 'No hay documentos' }}
-        </p>
-        <p class="text-sm text-muted-foreground mb-4">
-          {{ hasActiveFilters
-            ? 'Intenta ajustar los filtros de búsqueda'
-            : 'Comienza generando tu primer documento legal'
-          }}
-        </p>
-        <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-          Limpiar filtros
-        </Button>
-        <Button v-else @click="openTypeSelectorDialog">
-          <Plus class="w-4 h-4 mr-2" />
-          Nuevo Documento
-        </Button>
+      <div class="pia-page-actions">
+        <button class="pia-btn pia-btn-primary" @click="openTypeSelectorDialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nuevo documento
+        </button>
       </div>
+    </div>
 
-      <!-- Documents table (desktop) -->
-      <div v-else class="hidden md:block bg-card border border-border rounded-lg overflow-hidden">
-        <table class="w-full">
-          <thead class="bg-muted/50">
+    <!-- Filter bar -->
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:var(--gap)">
+      <div class="pia-search-bar" style="width:260px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input v-model="search" placeholder="Buscar por propiedad…" />
+      </div>
+      <select v-model="documentTypeFilter" class="pia-btn pia-btn-ghost" style="font-size:13px;cursor:pointer">
+        <option value="all">Todos los tipos</option>
+        <option value="corretaje">Autorización de Corretaje</option>
+        <option value="boleto_compraventa">Boleto de Compraventa</option>
+        <option value="entrega_llaves">Entrega de Llaves</option>
+      </select>
+      <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar</button>
+    </div>
+
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando documentos…</div>
+    <div v-else-if="error" style="padding:40px;text-align:center;color:var(--terra)">{{ error }}</div>
+
+    <div v-else class="pia-card" style="padding:0;overflow:hidden">
+      <div class="pia-scroll-x">
+        <table class="pia-tbl">
+          <thead>
             <tr>
-              <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipo</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Propiedad</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Fecha de creación</th>
-              <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Acciones</th>
+              <th>Tipo</th>
+              <th>Propiedad</th>
+              <th>Fecha de creación</th>
+              <th style="text-align:right">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="doc in filteredDocuments"
-              :key="doc.id"
-              class="border-t border-border hover:bg-muted/30 transition-colors"
-            >
-              <td class="px-4 py-3">
-                <Badge :class="getDocumentTypeBadgeClass(doc.document_type)">
+            <tr v-for="doc in filteredDocuments" :key="doc.id">
+              <td>
+                <span class="pia-chip" :class="getDocumentTypeChipClass(doc.document_type)" style="font-size:11px">
                   {{ getDocumentTypeLabel(doc.document_type) }}
-                </Badge>
-              </td>
-              <td class="px-4 py-3">
-                <span class="text-sm font-medium text-foreground">
-                  {{ doc.property_name || 'Propiedad desconocida' }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-muted-foreground">
+              <td>
+                <strong>{{ doc.property_name || 'Propiedad desconocida' }}</strong>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--pia-text-3)">
                 {{ formatDate(doc.created_at) }}
               </td>
-              <td class="px-4 py-3 text-right">
-                <div class="flex items-center justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
+              <td style="text-align:right">
+                <div style="display:inline-flex;gap:2px">
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Descargar PDF"
                     :disabled="!doc.pdf_url || downloadingId === doc.id"
-                    @click="downloadDocument(doc)"
-                    title="Descargar PDF"
-                  >
-                    <Loader2 v-if="downloadingId === doc.id" class="w-4 h-4 animate-spin" />
-                    <Download v-else class="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    @click="confirmDelete(doc)"
-                    title="Eliminar"
-                  >
-                    <Trash2 class="w-4 h-4 text-destructive" />
-                  </Button>
+                    @click="downloadDocument(doc)">
+                    <svg v-if="downloadingId !== doc.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" class="pia-loader-anim"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  </button>
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Eliminar" @click="confirmDelete(doc)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <!-- Documents cards (mobile) -->
-      <div v-if="filteredDocuments.length > 0" class="md:hidden space-y-4">
-        <div
-          v-for="doc in filteredDocuments"
-          :key="doc.id"
-          class="bg-card border border-border rounded-lg p-4"
-        >
-          <div class="flex items-start justify-between mb-3">
-            <div>
-              <Badge :class="getDocumentTypeBadgeClass(doc.document_type)" class="mb-2">
-                {{ getDocumentTypeLabel(doc.document_type) }}
-              </Badge>
-              <h3 class="font-medium">{{ doc.property_name || 'Propiedad desconocida' }}</h3>
-            </div>
+        <div v-if="filteredDocuments.length === 0" class="pia-empty">
+          <div class="pia-empty-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/></svg>
           </div>
-
-          <p class="text-sm text-muted-foreground mb-3">
-            Creado: {{ formatDate(doc.created_at) }}
-          </p>
-
-          <div class="flex items-center justify-end gap-2 pt-3 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="!doc.pdf_url || downloadingId === doc.id"
-              @click="downloadDocument(doc)"
-            >
-              <Loader2 v-if="downloadingId === doc.id" class="w-4 h-4 mr-1 animate-spin" />
-              <Download v-else class="w-4 h-4 mr-1" />
-              Descargar
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              @click="confirmDelete(doc)"
-            >
-              <Trash2 class="w-4 h-4 mr-1 text-destructive" />
-              Eliminar
-            </Button>
-          </div>
+          <div>{{ hasActiveFilters ? 'Sin documentos con estos filtros' : 'No hay documentos generados' }}</div>
+          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+          <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openTypeSelectorDialog">Nuevo documento</button>
         </div>
       </div>
+      <div v-if="filteredDocuments.length > 0" class="pia-tbl-footer">
+        <span>{{ filteredDocuments.length }} de {{ documents.length }} documentos</span>
+      </div>
+    </div>
 
-      <p v-if="filteredDocuments.length > 0" class="mt-4 text-sm text-muted-foreground">
-        Mostrando {{ filteredDocuments.length }} de {{ documents.length }} documentos
-      </p>
-    </template>
-
-    <!-- Document Type Selector Dialog -->
-    <DocumentTypeSelectorDialog
-      v-model:open="typeSelectorDialogOpen"
-      @select="handleTypeSelect"
-    />
-
-    <!-- Corretaje Dialog -->
-    <CorretajeDialog
-      v-model:open="corretajeDialogOpen"
-      @success="handleDialogSuccess"
-    />
-
-    <!-- Boleto Dialog -->
-    <BoletoDialog
-      v-model:open="boletoDialogOpen"
-      @success="handleDialogSuccess"
-    />
-
-    <!-- Entrega Llaves Dialog -->
-    <EntregaLlavesDialog
-      v-model:open="entregaLlavesDialogOpen"
-      @success="handleDialogSuccess"
-    />
+    <DocumentTypeSelectorDialog v-model:open="typeSelectorDialogOpen" @select="handleTypeSelect" />
+    <CorretajeDialog v-model:open="corretajeDialogOpen" @success="handleDialogSuccess" />
+    <BoletoDialog v-model:open="boletoDialogOpen" @success="handleDialogSuccess" />
+    <EntregaLlavesDialog v-model:open="entregaLlavesDialogOpen" @success="handleDialogSuccess" />
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:open="deleteDialogOpen">
@@ -224,7 +101,6 @@
             ¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.
           </DialogDescription>
         </DialogHeader>
-
         <div v-if="documentToDelete" class="p-4 bg-muted/50 rounded-lg space-y-2">
           <div class="flex justify-between text-sm">
             <span class="text-muted-foreground">Tipo:</span>
@@ -235,11 +111,8 @@
             <span class="font-medium">{{ documentToDelete.property_name || 'Desconocida' }}</span>
           </div>
         </div>
-
         <div class="flex justify-end gap-3 pt-4">
-          <Button variant="outline" @click="deleteDialogOpen = false" :disabled="deleting">
-            Cancelar
-          </Button>
+          <Button variant="outline" @click="deleteDialogOpen = false" :disabled="deleting">Cancelar</Button>
           <Button variant="destructive" @click="executeDelete" :disabled="deleting">
             <Loader2 v-if="deleting" class="w-4 h-4 mr-2 animate-spin" />
             Eliminar
@@ -253,16 +126,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -274,15 +137,7 @@ import DocumentTypeSelectorDialog from '@/components/documents/DocumentTypeSelec
 import CorretajeDialog from '@/components/documents/CorretajeDialog.vue'
 import BoletoDialog from '@/components/documents/BoletoDialog.vue'
 import EntregaLlavesDialog from '@/components/documents/EntregaLlavesDialog.vue'
-import {
-  Plus,
-  Search,
-  X,
-  Download,
-  Trash2,
-  ScrollText,
-  Loader2,
-} from 'lucide-vue-next'
+import { Loader2 } from 'lucide-vue-next'
 import { useLegalDocuments, type LegalDocumentType, type LegalDocument } from '@/composables/useLegalDocuments'
 import { useDate } from '@/composables/useDate'
 import { useDebounce } from '@/composables/useDebounce'
@@ -338,6 +193,15 @@ const filteredDocuments = computed(() => {
 })
 
 // Document type helpers
+function getDocumentTypeChipClass(type: LegalDocumentType): string {
+  const map: Record<LegalDocumentType, string> = {
+    corretaje: 'neutral',
+    boleto_compraventa: 'up',
+    entrega_llaves: 'warn',
+  }
+  return map[type] || 'neutral'
+}
+
 function getDocumentTypeLabel(type: LegalDocumentType): string {
   const labels: Record<LegalDocumentType, string> = {
     corretaje: 'Autorización de Corretaje',
@@ -347,14 +211,6 @@ function getDocumentTypeLabel(type: LegalDocumentType): string {
   return labels[type] || type
 }
 
-function getDocumentTypeBadgeClass(type: LegalDocumentType): string {
-  const classes: Record<LegalDocumentType, string> = {
-    corretaje: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-    boleto_compraventa: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
-    entrega_llaves: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800',
-  }
-  return classes[type] || ''
-}
 
 // Actions
 function clearFilters() {

@@ -1,5 +1,5 @@
 -- ============================================
--- REAL ESTATE MANAGEMENT SYSTEM - COMPLETE SCHEMA
+-- PIA Gestión SYSTEM - COMPLETE SCHEMA
 -- ============================================
 -- Migration: 20240102000000_complete_schema.sql
 -- Description: Creates all business tables, indexes, triggers, and RLS policies.

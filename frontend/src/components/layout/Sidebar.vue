@@ -2,152 +2,205 @@
   <!-- Mobile overlay -->
   <div
     v-if="sidebarStore.isOpen"
-    class="fixed inset-0 bg-black/50 z-50 lg:hidden"
+    class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
     @click="sidebarStore.close()"
-    @touchstart="handleTouchStart"
-    @touchend="handleTouchEnd"
   />
 
-  <!-- Sidebar -->
   <aside
-    :class="[
-      'w-64 bg-card border-r border-border flex flex-col fixed left-0 overflow-y-auto transition-transform duration-300',
-      'top-0 h-screen z-50',
-      'lg:top-16 lg:h-[calc(100vh-4rem)] lg:z-30',
-      'lg:translate-x-0',
-      sidebarStore.isOpen ? 'translate-x-0' : '-translate-x-full'
-    ]"
+    class="pia-sidebar"
+    :class="[sidebarStore.isOpen ? 'translate-x-0' : '-translate-x-full', 'lg:translate-x-0']"
     @touchstart="handleTouchStart"
     @touchend="handleTouchEnd"
   >
-    <!-- Mobile header with close button and logo -->
-    <div class="lg:hidden flex items-center justify-between h-16 px-4 border-b border-border shrink-0">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-          <Building2 class="w-5 h-5 text-primary-foreground" />
-        </div>
-        <span class="font-semibold text-foreground">PropManager</span>
+    <!-- Mobile close button -->
+    <button
+      class="absolute top-4 right-4 p-1 rounded-md text-white/60 hover:text-white hover:bg-white/10 lg:hidden"
+      @click="sidebarStore.close()"
+    >
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <!-- Brand -->
+    <div class="pia-brand">
+      <div class="pia-brand-mark">
+       <img
+  v-if="organization?.logo_url"
+  :src="organization.logo_url"
+  alt="Logo"
+  style="width: 100%; height: 100%; object-fit: cover;"
+/>
+        <svg v-else viewBox="0 0 40 40" width="24" height="24" fill="none">
+          <ellipse cx="20" cy="20" rx="13" ry="10.5" stroke="white" stroke-width="2" fill="none" opacity="0.45" />
+          <ellipse cx="22.5" cy="18" rx="5.5" ry="4.3" fill="white" />
+          <path d="M16.5 15.5 Q 14.8 21.5, 17.2 25" stroke="white" stroke-width="1.9" fill="none" stroke-linecap="round" />
+        </svg>
       </div>
-      <button
-        class="p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-        @click="sidebarStore.close()"
-      >
-        <X class="w-5 h-5" />
-      </button>
+      <div class="pia-brand-text">
+        <span class="pia-brand-name">{{ organization?.name || 'Pia' }}</span>
+        <span class="pia-brand-sub">PIA Gestión</span>
+      </div>
     </div>
 
-    <nav class="flex-1 p-4">
-      <ul class="space-y-2">
-        <li v-for="item in navItems" :key="item.path">
-          <RouterLink
-            :to="item.path"
-            class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            :class="[
-              isActive(item.path)
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            ]"
-            @click="handleNavClick"
-          >
-            <component :is="item.icon" class="w-5 h-5" />
-            {{ item.label }}
-          </RouterLink>
-        </li>
-      </ul>
-    </nav>
-
-    <div class="p-4 border-t border-border space-y-2">
+    <!-- General -->
+    <div class="pia-nav-section">
+      <span class="pia-nav-label">General</span>
       <RouterLink
-        to="/settings"
-        class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-        :class="[
-          isActive('/settings')
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-        ]"
+        to="/"
+        class="pia-nav-item"
+        :class="{ active: isActive('/') }"
         @click="handleNavClick"
       >
-        <Settings class="w-5 h-5" />
-        {{ $t('nav.settings') }}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+          <rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
+        </svg>
+        <span>Dashboard</span>
       </RouterLink>
-      <div class="flex items-center justify-between">
-        <p class="text-xs text-muted-foreground">v0.1.0 - Development</p>
-        <button
-          @click="toggleTheme"
-          class="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          :title="isDark ? $t('settings.themeLight') : $t('settings.themeDark')"
-        >
-          <Sun v-if="isDark" class="h-4 w-4" />
-          <Moon v-else class="h-4 w-4" />
-        </button>
+    </div>
+
+    <!-- Gestión -->
+    <div class="pia-nav-section">
+      <span class="pia-nav-label">Gestión</span>
+      <RouterLink
+        to="/properties"
+        class="pia-nav-item"
+        :class="{ active: isActive('/properties') }"
+        @click="handleNavClick"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>
+        </svg>
+        <span>Propiedades</span>
+      </RouterLink>
+      <RouterLink
+        to="/owners"
+        class="pia-nav-item"
+        :class="{ active: isActive('/owners') }"
+        @click="handleNavClick"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/>
+          <circle cx="17" cy="6" r="2.5"/><path d="M16 13.5c2.5 0 4.5 1.5 5.5 4"/>
+        </svg>
+        <span>Propietarios</span>
+      </RouterLink>
+      <RouterLink
+        to="/tenants"
+        class="pia-nav-item"
+        :class="{ active: isActive('/tenants') }"
+        @click="handleNavClick"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/>
+        </svg>
+        <span>Inquilinos</span>
+      </RouterLink>
+      <RouterLink
+        to="/contracts"
+        class="pia-nav-item"
+        :class="{ active: isActive('/contracts') }"
+        @click="handleNavClick"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+          <path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/>
+        </svg>
+        <span>Contratos</span>
+      </RouterLink>
+      <RouterLink
+        to="/payments"
+        class="pia-nav-item"
+        :class="{ active: isActive('/payments') }"
+        @click="handleNavClick"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h3"/>
+        </svg>
+        <span>Pagos</span>
+      </RouterLink>
+    </div>
+
+    <!-- Archivos -->
+    <div class="pia-nav-section">
+      <span class="pia-nav-label">Archivos</span>
+      <RouterLink
+        to="/documents"
+        class="pia-nav-item"
+        :class="{ active: isActive('/documents') }"
+        @click="handleNavClick"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+          <path d="M14 3v5h5"/><circle cx="12" cy="14" r="3"/>
+        </svg>
+        <span>Documentos</span>
+      </RouterLink>
+    </div>
+
+    <!-- Watermark spacer -->
+    <div class="pia-sidebar-spacer" aria-hidden="true">
+      <svg viewBox="0 0 1368 809.65" width="140" style="height:auto;display:block">
+        <path d="M1206.65,567.47c-102.71,97.65-289.55,180.13-508.61,219.97C345.35,851.58,34.3,765.35,3.29,594.86-27.7,424.36,260.11,172.67,612.79,108.54c29.71-5.4,58.98-9.2,87.72-11.48-249.23,79.26-389.63,216.84-363.91,358.29,31.01,170.51,323.41,282.06,670.82,199.41,73.45-17.48,140.18-48.2,199.22-87.3Z" fill="currentColor"/>
+        <path d="M832.88,582.14c-39.8,4.8-79.03,6.92-117.19,6.78,222.91-75.83,339.25-248.61,317.52-374.28C1007.93,68.45,716.46,4.72,437.35,96.65c81.88-37.43,184.67-63.56,302.12-81.14,312.19-46.71,599.53,21.52,625.61,172.39,26.08,150.87-216.11,356.1-532.19,394.23Z" fill="currentColor"/>
+        <ellipse cx="690.5" cy="344.93" rx="194.82" ry="158.56" fill="currentColor"/>
+      </svg>
+    </div>
+
+    <!-- Footer -->
+    <div class="pia-sidebar-footer">
+      <RouterLink
+        to="/settings"
+        class="pia-nav-item"
+        :class="{ active: isActive('/settings') }"
+        @click="handleNavClick"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+        </svg>
+        <span>Configuración</span>
+      </RouterLink>
+      <div class="pia-version">
+        <span>v3.1.0 · Development</span>
+        
       </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import {
-  LayoutDashboard,
-  Building2,
-  Users,
-  UserCircle,
-  FileText,
-  CreditCard,
-  ScrollText,
-  Settings,
-  Sun,
-  Moon,
-  X
-} from 'lucide-vue-next'
-import { useTheme } from '@/composables/useTheme'
 import { useSidebarStore } from '@/stores/useSidebarStore'
+import { useOrganization } from '@/composables/useOrganization'
 
-const { t } = useI18n()
 const route = useRoute()
-const { isDark, toggleTheme } = useTheme()
 const sidebarStore = useSidebarStore()
+const { organization, fetchOrganization } = useOrganization()
 
-// Swipe gesture handling
-let touchStartX = 0
-let touchStartY = 0
+onMounted(() => {
+  fetchOrganization()
+})
+
+// Touch handling for swipe-to-close
+const touchStartX = ref(0)
 
 function handleTouchStart(e: TouchEvent) {
-  touchStartX = e.touches[0].clientX
-  touchStartY = e.touches[0].clientY
+  touchStartX.value = e.touches[0].clientX
 }
 
 function handleTouchEnd(e: TouchEvent) {
   const touchEndX = e.changedTouches[0].clientX
-  const touchEndY = e.changedTouches[0].clientY
-  const deltaX = touchEndX - touchStartX
-  const deltaY = touchEndY - touchStartY
-
-  // Only trigger if horizontal swipe is dominant (not scrolling)
-  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-    if (deltaX < 0) {
-      // Swipe left - close sidebar
-      sidebarStore.close()
-    }
+  const diff = touchStartX.value - touchEndX
+  // Swipe left to close (threshold: 50px)
+  if (diff > 50) {
+    sidebarStore.close()
   }
 }
 
-const navItems = computed(() => [
-  { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
-  { path: '/owners', label: t('nav.owners'), icon: UserCircle },
-  { path: '/tenants', label: t('nav.tenants'), icon: Users },
-  { path: '/contracts', label: t('nav.contracts'), icon: FileText },
-  { path: '/properties', label: t('nav.properties'), icon: Building2 },
-  { path: '/payments', label: t('nav.payments'), icon: CreditCard },
-  { path: '/documents', label: 'Documentos', icon: ScrollText }
-])
-
 const isActive = (path: string) => {
-  if (path === '/') {
-    return route.path === '/'
-  }
+  if (path === '/') return route.path === '/'
   return route.path.startsWith(path)
 }
 

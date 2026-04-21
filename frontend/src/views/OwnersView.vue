@@ -1,333 +1,241 @@
 <template>
-  <div class="p-6">
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 class="text-2xl font-bold">{{ $t('owners.title') }}</h1>
-        <Button @click="openCreateDialog">
-          <Plus class="w-4 h-4 mr-2" />
-          {{ $t('owners.newOwner') }}
-        </Button>
-      </div>
-
-      <!-- Filters -->
-      <div class="flex flex-wrap gap-4 mb-6">
-        <div class="flex-1 min-w-[200px]">
-          <Input
-            v-model="filterStore.search"
-            :placeholder="$t('owners.searchPlaceholder')"
-            class="w-full"
-          >
-            <template #prefix>
-              <Search class="w-4 h-4 text-muted-foreground" />
-            </template>
-          </Input>
+  <div>
+    <div class="pia-page-header">
+      <div class="pia-page-title-block">
+        <h1>Propietarios</h1>
+        <div class="pia-page-subtitle">
+          <span>{{ filterStore.totalCount }} propietarios</span>
+          <span class="pia-dot-sep" />
+          <span>{{ totalProperties }} propiedades administradas</span>
+          <span class="pia-dot-sep" />
+          <span>{{ formatCurrency(totalMonthlyRent) }}/mes total</span>
         </div>
-
-        <Select v-model="propertiesFilter" class="w-full sm:w-auto">
-          <SelectTrigger>
-            <SelectValue :placeholder="$t('nav.properties')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">{{ $t('common.all') }}</SelectItem>
-              <SelectItem value="with">{{ $t('owners.withProperties') }}</SelectItem>
-              <SelectItem value="without">{{ $t('owners.withoutProperties') }}</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Button
-          v-if="hasActiveFilters"
-          variant="ghost"
-          size="sm"
-          @click="clearFilters"
-        >
-          <X class="w-4 h-4 mr-1" />
-          {{ $t('common.clearFilters') }}
-        </Button>
       </div>
-
-      <!-- Loading state -->
-      <div v-if="loading" class="py-12 text-center text-muted-foreground">
-        <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">{{ $t('owners.loadingOwners') }}</p>
+      <div class="pia-page-actions">
+        <button class="pia-btn pia-btn-ghost" @click="openLiquidaciones">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Liquidaciones
+        </button>
+        <button class="pia-btn pia-btn-primary" @click="openCreateDialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nuevo propietario
+        </button>
       </div>
+    </div>
 
-      <!-- Error state -->
-      <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">{{ $t('owners.errorLoading') }}</p>
-        <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-        <Button variant="outline" @click="loadOwners">
-          {{ $t('common.retry') }}
-        </Button>
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="pia-search-bar filter-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input v-model="filterStore.search" placeholder="Buscar por nombre, email, teléfono o CUIT..." />
       </div>
+      <select v-model="propertiesFilter" class="pia-btn pia-btn-ghost filter-select">
+        <option value="all">Todas</option>
+        <option value="with">Con propiedades</option>
+        <option value="without">Sin propiedades</option>
+      </select>
+      <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm filter-clear" @click="clearFilters">Limpiar</button>
+      <div class="filter-spacer" />
+      <div class="pia-segmented filter-toggle">
+        <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="Vista lista">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <span class="toggle-label">Lista</span>
+        </button>
+        <button :class="{ active: viewMode === 'cards' }" @click="viewMode = 'cards'" title="Vista tarjetas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span class="toggle-label">Tarjetas</span>
+        </button>
+      </div>
+    </div>
 
-      <!-- Data loaded -->
-      <template v-else>
-        <!-- Empty state -->
-        <div v-if="owners.length === 0" class="py-12 text-center">
-          <UserCircle class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p class="text-lg font-medium text-muted-foreground mb-2">
-            {{ hasActiveFilters ? $t('owners.noOwnersFiltered') : $t('owners.noOwners') }}
-          </p>
-          <p class="text-sm text-muted-foreground mb-4">
-            {{ hasActiveFilters
-              ? $t('properties.adjustFilters')
-              : $t('owners.startAddingOwner')
-            }}
-          </p>
-          <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-            {{ $t('common.clearFilters') }}
-          </Button>
-          <Button v-else @click="openCreateDialog">
-            <Plus class="w-4 h-4 mr-2" />
-            {{ $t('owners.newOwner') }}
-          </Button>
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando propietarios...</div>
+
+    <!-- Empty state -->
+    <div v-else-if="owners.length === 0" class="pia-card" style="padding:0;overflow:hidden">
+      <div class="pia-empty">
+        <div class="pia-empty-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/></svg>
         </div>
+        <div>{{ hasActiveFilters ? 'Sin propietarios con estos filtros' : 'No hay propietarios registrados' }}</div>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+        <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">Agregar propietario</button>
+      </div>
+    </div>
 
-        <!-- Owners table (desktop) -->
-        <div v-else class="hidden md:block bg-card border border-border rounded-lg overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-muted/50">
+    <!-- Content -->
+    <template v-else>
+      <!-- List View (Table) -->
+      <div v-if="viewMode === 'list'" class="pia-card" style="padding:0;overflow:hidden">
+        <div class="pia-scroll-x">
+          <table class="pia-tbl owners-tbl">
+            <thead>
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.name') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.email') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.phone') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('owners.cuitCuil') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('nav.properties') }}</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">{{ $t('common.actions') }}</th>
+                <th>Propietario</th>
+                <th>Contacto</th>
+                <th>CUIT</th>
+                <th class="num">Propiedades</th>
+                <th class="num">Canon mensual</th>
+                <th>Cliente desde</th>
+                <th style="text-align:right">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="owner in owners"
-                :key="owner.id"
-                class="border-t border-border hover:bg-muted/30 transition-colors cursor-pointer"
-                @click="viewOwner(owner.id)"
-              >
-                <td class="px-4 py-3">
-                  <span class="text-sm font-medium text-foreground hover:text-primary">
-                    {{ owner.full_name }}
+              <tr v-for="owner in owners" :key="owner.id" style="cursor:pointer" @click="viewOwner(owner.id)">
+                <td>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <div class="owner-avatar">
+                      {{ getInitials(owner.full_name) }}
+                    </div>
+                    <strong>{{ owner.full_name }}</strong>
+                  </div>
+                </td>
+                <td>
+                  <div v-if="owner.email" class="owner-email">{{ owner.email }}</div>
+                  <div v-else style="color:var(--pia-text-4)">—</div>
+                  <div class="owner-phone">{{ formatPhone(owner.phone) }}</div>
+                </td>
+                <td style="font-family:var(--font-mono);color:var(--pia-text-3);font-size:12px">
+                  {{ owner.cuit_cuil || '—' }}
+                </td>
+                <td class="num">
+                  <span class="pia-chip" :class="getPropertyCount(owner.id) > 0 ? 'up' : 'neutral'">
+                    {{ getPropertyCount(owner.id) }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground">
-                  {{ owner.email ?? '-' }}
+                <td class="num" style="font-weight:550">
+                  <span v-if="getOwnerMonthlyRent(owner.id) > 0">{{ formatCurrency(getOwnerMonthlyRent(owner.id)) }}</span>
+                  <span v-else style="color:var(--pia-text-4)">—</span>
                 </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground">
-                  {{ owner.phone ?? '-' }}
-                </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground">
-                  {{ owner.cuit_cuil ?? '-' }}
-                </td>
-                <td class="px-4 py-3">
-                  <Badge
-                    :variant="getPropertyCount(owner.id) > 0 ? 'default' : 'secondary'"
-                  >
-                    {{ getPropertyCount(owner.id) }}
-                  </Badge>
-                </td>
-                <td class="px-4 py-3 text-right" @click.stop>
-                  <div class="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      @click="viewOwner(owner.id)"
-                      :title="$t('common.view')"
-                    >
-                      <Eye class="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      @click="openEditDialog(owner.id)"
-                      :title="$t('common.edit')"
-                    >
-                      <Pencil class="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      @click="openDeleteDialog(owner)"
-                      :title="$t('common.delete')"
-                    >
-                      <Trash2 class="w-4 h-4 text-destructive" />
-                    </Button>
+                <td style="color:var(--pia-text-3)">{{ getClientSince(owner.created_at) }}</td>
+                <td style="text-align:right" @click.stop>
+                  <div style="display:inline-flex;gap:2px">
+                    <button class="pia-icon-btn" style="width:28px;height:28px" title="Ver detalle" @click="viewOwner(owner.id)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    </button>
+                    <button class="pia-icon-btn" style="width:28px;height:28px" title="Editar" @click="openEditDialog(owner.id)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="pia-icon-btn" style="width:28px;height:28px" title="Más opciones" @click="openMoreMenu(owner, $event)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                    </button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
-
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="flex items-center justify-between p-4 border-t">
-            <p class="text-sm text-muted-foreground">
-              {{ $t('common.showing') }} {{ paginationStart }}-{{ paginationEnd }} {{ $t('common.of') }} {{ filterStore.totalCount }}
-            </p>
-            <div class="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="filterStore.currentPage === 1"
-                @click="goToPreviousPage"
-              >
-                {{ $t('common.previous') }}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="filterStore.currentPage >= totalPages"
-                @click="goToNextPage"
-              >
-                {{ $t('common.next') }}
-              </Button>
-            </div>
+        </div>
+        <div class="pia-tbl-footer">
+          <span>Mostrando {{ paginationStart }}-{{ paginationEnd }} de {{ filterStore.totalCount }} propietarios</span>
+          <div style="display:flex;gap:4px">
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
           </div>
         </div>
+      </div>
 
-        <!-- Owners cards (mobile) -->
-        <div v-if="owners.length > 0" class="md:hidden space-y-4">
-          <div
-            v-for="owner in owners"
-            :key="owner.id"
-            class="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-            @click="viewOwner(owner.id)"
-          >
-            <div class="flex items-start justify-between mb-3">
-              <div>
-                <h3 class="font-medium">{{ owner.full_name }}</h3>
-                <p class="text-sm text-muted-foreground">{{ owner.email ?? $t('owners.noEmail') }}</p>
+      <!-- Cards View -->
+      <template v-else>
+        <div class="owners-grid">
+          <div v-for="owner in owners" :key="owner.id" class="owner-card" @click="viewOwner(owner.id)">
+            <div class="owner-card-header">
+              <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+                <div class="owner-avatar">
+                  {{ getInitials(owner.full_name) }}
+                </div>
+                <div style="min-width:0">
+                  <strong style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ owner.full_name }}</strong>
+                  <span style="font-size:11.5px;color:var(--pia-text-4);font-family:var(--font-mono)">{{ owner.cuit_cuil || '' }}</span>
+                </div>
               </div>
-              <Badge
-                :variant="getPropertyCount(owner.id) > 0 ? 'default' : 'secondary'"
-              >
-                {{ $t('owners.propertiesCount', { count: getPropertyCount(owner.id) }, getPropertyCount(owner.id)) }}
-              </Badge>
+              <button class="pia-icon-btn" style="width:28px;height:28px;flex-shrink:0" title="Más opciones" @click.stop="openMoreMenu(owner, $event)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
             </div>
-
-            <div class="space-y-1 text-sm mb-3">
-              <p><span class="text-muted-foreground">{{ $t('common.phone') }}:</span> {{ owner.phone ?? '-' }}</p>
-              <p><span class="text-muted-foreground">{{ $t('owners.cuitCuil') }}:</span> {{ owner.cuit_cuil ?? '-' }}</p>
+            <div class="owner-card-contact">
+              <a v-if="owner.email" :href="'mailto:' + owner.email" class="owner-email" @click.stop>{{ owner.email }}</a>
+              <span v-else style="color:var(--pia-text-4)">Sin email</span>
+              <div class="owner-phone">{{ formatPhone(owner.phone) }}</div>
             </div>
-
-            <div class="flex items-center justify-end gap-1 pt-3 border-t" @click.stop>
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="viewOwner(owner.id)"
-              >
-                <Eye class="w-4 h-4 mr-1" />
-                {{ $t('common.view') }}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="openEditDialog(owner.id)"
-              >
-                <Pencil class="w-4 h-4 mr-1" />
-                {{ $t('common.edit') }}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="openDeleteDialog(owner)"
-              >
-                <Trash2 class="w-4 h-4 mr-1 text-destructive" />
-                {{ $t('common.delete') }}
-              </Button>
+            <div class="owner-card-stats">
+              <div class="owner-stat">
+                <span class="owner-stat-label">Propiedades</span>
+                <span class="owner-stat-value">{{ getPropertyCount(owner.id) }}</span>
+              </div>
+              <div class="owner-stat">
+                <span class="owner-stat-label">Canon / mes</span>
+                <span class="owner-stat-value">
+                  <span v-if="getOwnerMonthlyRent(owner.id) > 0" style="font-size:11px;color:var(--pia-text-3)">$</span>{{ formatNumber(getOwnerMonthlyRent(owner.id)) }}
+                </span>
+              </div>
             </div>
-          </div>
-
-          <!-- Mobile Pagination -->
-          <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="filterStore.currentPage === 1"
-              @click="goToPreviousPage"
-            >
-              {{ $t('common.previous') }}
-            </Button>
-            <span class="flex items-center text-sm text-muted-foreground px-2">
-              {{ filterStore.currentPage }} / {{ totalPages }}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="filterStore.currentPage >= totalPages"
-              @click="goToNextPage"
-            >
-              {{ $t('common.next') }}
-            </Button>
           </div>
         </div>
-
-        <p v-if="totalPages <= 1" class="mt-4 text-sm text-muted-foreground">
-          {{ $t('common.showing') }} {{ owners.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
-          {{ filterStore.totalCount === 1 ? $t('properties.owner').toLowerCase() : $t('owners.title').toLowerCase() }}
-        </p>
+        <div class="pia-tbl-footer" style="background:var(--pia-surface);border:1px solid var(--pia-border);border-radius:var(--pia-radius);padding:12px 16px;margin-top:16px">
+          <span>Mostrando {{ paginationStart }}-{{ paginationEnd }} de {{ filterStore.totalCount }} propietarios</span>
+          <div style="display:flex;gap:4px">
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+          </div>
+        </div>
       </template>
+    </template>
 
-      <!-- Owner Dialog (Create/Edit) -->
-      <OwnerDialog
-        v-model:open="dialogOpen"
-        :owner-id="editingOwnerId"
-        @success="handleDialogSuccess"
-      />
+    <!-- Context Menu -->
+    <Teleport to="body">
+      <div v-if="menuOpen" class="context-menu" :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }" @click.stop>
+        <button @click="handleMenuAction('view')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          Ver detalle
+        </button>
+        <button @click="handleMenuAction('edit')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
+        <button @click="handleMenuAction('delete')" style="color:var(--terra)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Eliminar
+        </button>
+      </div>
+      <div v-if="menuOpen" class="context-menu-overlay" @click="closeMenu" />
+    </Teleport>
 
-      <!-- Delete Confirmation Dialog -->
-      <DeleteOwnerDialog
-        v-model:open="deleteDialogOpen"
-        :owner-id="deletingOwner?.id ?? ''"
-        :owner-name="deletingOwner?.full_name ?? ''"
-        :property-count="deletingOwnerPropertyCount"
-        @confirm="handleDeleteSuccess"
-      />
+    <OwnerDialog v-model:open="dialogOpen" :owner-id="editingOwnerId" @success="handleDialogSuccess" />
+    <DeleteOwnerDialog v-model:open="deleteDialogOpen" :owner-id="deletingOwner?.id ?? ''" :owner-name="deletingOwner?.full_name ?? ''" :property-count="deletingOwnerPropertyCount" @confirm="handleDeleteSuccess" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import OwnerDialog from '@/components/owners/OwnerDialog.vue'
 import DeleteOwnerDialog from '@/components/owners/DeleteOwnerDialog.vue'
-import {
-  Plus,
-  Search,
-  X,
-  Eye,
-  Pencil,
-  Trash2,
-  UserCircle,
-  Loader2
-} from 'lucide-vue-next'
 import { useOwners } from '@/composables/useOwners'
 import { useDebounce } from '@/composables/useDebounce'
+import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import { useOwnersFilterStore } from '@/stores/filters/useOwnersFilterStore'
 import { storeToRefs } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import type { Owner } from '@/types'
 
 const router = useRouter()
-const { owners, loading, error, fetchOwners, getOwnerPropertyCount } = useOwners()
+const { owners, loading, fetchOwners, getOwnerPropertyCount } = useOwners()
+const { formatCurrency } = useFormatCurrency()
 const filterStore = useOwnersFilterStore()
+
+// View mode - default to cards on mobile, list on desktop
+const viewMode = ref<'list' | 'cards'>(window.innerWidth <= 768 ? 'cards' : 'list')
 
 // Create debounced search value
 const { search } = storeToRefs(filterStore)
 const debouncedSearch = useDebounce(search, 300)
 
-// Property counts for each owner (for display in table)
+// Property counts and rents for each owner
 const propertyCounts = ref<Map<string, number>>(new Map())
+const ownerRents = ref<Map<string, number>>(new Map())
+
+// Aggregated stats
+const totalProperties = ref(0)
+const totalMonthlyRent = ref(0)
 
 // Local properties filter that maps to store's hasProperties
 const propertiesFilter = ref<'all' | 'with' | 'without'>('all')
@@ -338,6 +246,11 @@ const editingOwnerId = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const deletingOwner = ref<Owner | null>(null)
 const deletingOwnerPropertyCount = ref(0)
+
+// Context menu state
+const menuOpen = ref(false)
+const menuPosition = ref({ x: 0, y: 0 })
+const menuOwner = ref<Owner | null>(null)
 
 // Computed
 const hasActiveFilters = computed(() =>
@@ -356,32 +269,105 @@ const paginationEnd = computed(() => {
   return Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount)
 })
 
-// Methods
+// Helper functions
+function getInitials(fullName: string): string {
+  const parts = fullName.split(' ')
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+  return fullName.substring(0, 2).toUpperCase()
+}
+
+function formatPhone(phone: string | null): string {
+  if (!phone) return '—'
+  // Format Argentine phone numbers nicely
+  const cleaned = phone.replace(/\D/g, '')
+  if (cleaned.startsWith('54') && cleaned.length >= 12) {
+    const area = cleaned.slice(2, 4)
+    const first = cleaned.slice(4, 8)
+    const second = cleaned.slice(8, 12)
+    return `+54 ${area} ${first}-${second}`
+  }
+  return phone
+}
+
+function formatNumber(num: number): string {
+  return new Intl.NumberFormat('es-AR').format(num)
+}
+
 function getPropertyCount(ownerId: string): number {
   return propertyCounts.value.get(ownerId) ?? 0
 }
 
-async function loadPropertyCounts() {
+function getOwnerMonthlyRent(ownerId: string): number {
+  return ownerRents.value.get(ownerId) ?? 0
+}
+
+function getClientSince(createdAt: string): string {
+  const date = new Date(createdAt)
+  return date.getFullYear().toString()
+}
+
+async function loadPropertyCountsAndRents() {
   if (owners.value.length === 0) return
 
   const ownerIds = owners.value.map(o => o.id)
 
   try {
-    const { data } = await supabase
+    // Get property counts and their active contract rents
+    const { data: properties } = await supabase
       .from('properties')
-      .select('owner_id')
+      .select(`
+        id,
+        owner_id,
+        contracts!inner (
+          id,
+          rent_amount,
+          status
+        )
+      `)
+      .in('owner_id', ownerIds)
+      .is('deleted_at', null)
+
+    // Also get properties without contracts
+    const { data: allProperties } = await supabase
+      .from('properties')
+      .select('id, owner_id')
       .in('owner_id', ownerIds)
       .is('deleted_at', null)
 
     const counts = new Map<string, number>()
-    data?.forEach(p => {
+    const rents = new Map<string, number>()
+    let totalProps = 0
+    let totalRent = 0
+
+    // Count all properties per owner
+    allProperties?.forEach(p => {
       if (p.owner_id) {
         const count = counts.get(p.owner_id) || 0
         counts.set(p.owner_id, count + 1)
+        totalProps++
+      }
+    })
+
+    // Sum rents from active contracts
+    properties?.forEach(p => {
+      if (p.owner_id && p.contracts) {
+        const contracts = Array.isArray(p.contracts) ? p.contracts : [p.contracts]
+        contracts.forEach((c: { status: string; rent_amount: number }) => {
+          if (c.status === 'activo') {
+            const currentRent = rents.get(p.owner_id) || 0
+            rents.set(p.owner_id, currentRent + (c.rent_amount || 0))
+            totalRent += c.rent_amount || 0
+          }
+        })
       }
     })
 
     propertyCounts.value = counts
+    ownerRents.value = rents
+    totalProperties.value = totalProps
+    totalMonthlyRent.value = totalRent
   } catch (e) {
     console.error('Error loading property counts:', e)
   }
@@ -401,7 +387,7 @@ async function loadOwners() {
 
   if (result) {
     filterStore.setTotalCount(result.totalCount)
-    await loadPropertyCounts()
+    await loadPropertyCountsAndRents()
   }
 }
 
@@ -451,6 +437,41 @@ async function handleDeleteSuccess() {
   await loadOwners()
 }
 
+function openLiquidaciones() {
+  // TODO: Navigate to liquidaciones view
+  router.push({ name: 'payments' })
+}
+
+// Context menu
+function openMoreMenu(owner: Owner, event: MouseEvent) {
+  menuOwner.value = owner
+  menuPosition.value = { x: event.clientX, y: event.clientY }
+  menuOpen.value = true
+}
+
+function closeMenu() {
+  menuOpen.value = false
+  menuOwner.value = null
+}
+
+function handleMenuAction(action: 'view' | 'edit' | 'delete') {
+  if (!menuOwner.value) return
+  if (action === 'view') {
+    viewOwner(menuOwner.value.id)
+  } else if (action === 'edit') {
+    openEditDialog(menuOwner.value.id)
+  } else if (action === 'delete') {
+    openDeleteDialog(menuOwner.value)
+  }
+  closeMenu()
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && menuOpen.value) {
+    closeMenu()
+  }
+}
+
 // Sync properties filter with store
 watch(propertiesFilter, (newValue) => {
   if (newValue === 'all') {
@@ -487,5 +508,204 @@ onMounted(() => {
     propertiesFilter.value = 'all'
   }
   loadOwners()
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
+
+<style scoped>
+.owners-tbl th {
+  white-space: nowrap;
+}
+
+.owner-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.owner-email {
+  font-size: 12.5px;
+  color: var(--brand-700);
+}
+
+.owner-phone {
+  font-size: 11.5px;
+  color: var(--pia-text-3);
+  font-family: var(--font-mono);
+}
+
+/* Cards grid */
+.owners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.owner-card {
+  background: var(--pia-bg-card);
+  border: 1px solid var(--pia-border);
+  border-radius: var(--pia-radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.owner-card:hover {
+  border-color: var(--brand-300);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.owner-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.owner-card-contact {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pia-border);
+  margin-bottom: 12px;
+}
+
+.owner-card-contact .owner-email {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.owner-card-contact .owner-email:hover {
+  text-decoration: underline;
+}
+
+.owner-card-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.owner-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.owner-stat-label {
+  font-size: 11px;
+  color: var(--pia-text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.owner-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pia-text);
+}
+
+/* Context menu */
+.context-menu {
+  position: fixed;
+  background: var(--pia-bg-card);
+  border: 1px solid var(--pia-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  min-width: 140px;
+  z-index: 1000;
+}
+
+.context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--pia-text);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.context-menu button:hover {
+  background: var(--pia-bg-hover);
+}
+
+.context-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+/* Filter bar */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: var(--gap);
+}
+
+.filter-search {
+  width: 320px;
+}
+
+.filter-select {
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.filter-spacer {
+  flex: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .owners-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-bar {
+    gap: 8px;
+  }
+
+  .filter-search {
+    width: 100%;
+    order: 1;
+  }
+
+  .filter-select {
+    order: 3;
+    flex: 1;
+  }
+
+  .filter-clear {
+    order: 4;
+  }
+
+  .filter-spacer {
+    display: none;
+  }
+
+  .filter-toggle {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .filter-toggle .toggle-label {
+    display: none;
+  }
+}
+</style>

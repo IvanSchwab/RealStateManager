@@ -2,9 +2,13 @@
   <div class="min-h-screen flex items-center justify-center bg-background px-4">
     <Card class="w-full max-w-md">
       <CardHeader class="text-center space-y-1">
-        <div class="mx-auto mb-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-          <Building2 class="w-6 h-6 text-primary-foreground" />
-        </div>
+       <div class="flex items-center justify-center w-full py-6">
+  <img 
+    src="/logo.svg" 
+    alt="Logo" 
+    class="h-16 w-auto max-w-[80%] object-contain transition-all duration-300" 
+  />
+</div>
         <CardTitle class="text-2xl">{{ $t('onboarding.title') }}</CardTitle>
         <CardDescription>
           {{ $t('onboarding.description') }}

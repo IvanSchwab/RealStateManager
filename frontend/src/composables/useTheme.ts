@@ -9,14 +9,17 @@ function applyTheme(value: Theme) {
   const root = document.documentElement
   if (value === 'dark') {
     root.classList.add('dark')
+    root.setAttribute('data-theme', 'dark')
     isDarkMode.value = true
   } else if (value === 'light') {
     root.classList.remove('dark')
+    root.setAttribute('data-theme', 'light')
     isDarkMode.value = false
   } else {
     // system
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     prefersDark ? root.classList.add('dark') : root.classList.remove('dark')
+    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light')
     isDarkMode.value = prefersDark
   }
 }

@@ -1,6 +1,6 @@
-# Real Estate Management System
+# PIA Gestión System
 
-A full-stack Real Estate Management System built with Vue 3 and Supabase. This application helps property managers and landlords track properties, tenants, contracts, and payments.
+A full-stack PIA Gestión System built with Vue 3 and Supabase. This application helps property managers and landlords track properties, tenants, contracts, and payments.
 
 ## Tech Stack
 

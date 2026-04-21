@@ -1,105 +1,68 @@
 <template>
-  <div class="flex flex-col md:flex-row h-full min-h-[calc(100vh-4rem)]">
-    <!-- Desktop Sidebar -->
-    <aside class="hidden md:flex w-52 flex-shrink-0 flex-col border-r border-border bg-muted/30 p-4">
-      <nav class="space-y-1">
-        <button
-          v-if="isAdmin"
-          @click="activeSection = 'organization'"
-          class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-          :class="activeSection === 'organization'
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-        >
-          <Building2 class="w-4 h-4" />
-          {{ $t('settings.organization') }}
-        </button>
-        <button
-          @click="activeSection = 'profile'"
-          class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-          :class="activeSection === 'profile'
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-        >
-          <UserCircle class="w-4 h-4" />
-          {{ $t('settings.profile') }}
-        </button>
-        <button
-          v-if="isAdmin"
-          @click="activeSection = 'team'"
-          class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-          :class="activeSection === 'team'
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-        >
-          <Users class="w-4 h-4" />
-          {{ $t('settings.team') }}
-        </button>
-        <button
-          v-if="isAdmin"
-          @click="activeSection = 'regional'"
-          class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-          :class="activeSection === 'regional'
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-        >
-          <Globe class="w-4 h-4" />
-          {{ $t('settings.regionalPreferences') }}
-        </button>
-      </nav>
-    </aside>
-
+  <div class="flex flex-col md:flex-row" style="gap:0;align-items:flex-start">
     <!-- Mobile Tab Bar -->
-    <div class="md:hidden sticky top-0 z-10 bg-background border-b border-border flex-shrink-0">
-      <div class="flex overflow-x-auto px-2 py-2 gap-1">
-        <button
-          v-if="isAdmin"
-          @click="activeSection = 'organization'"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
-          :class="activeSection === 'organization'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground'"
-        >
-          <Building2 class="w-4 h-4" />
+    <div class="md:hidden sticky top-0 z-10 flex-shrink-0" style="background:var(--pia-bg);border-bottom:1px solid var(--pia-border)">
+      <div style="display:flex;overflow-x:auto;padding:8px;gap:6px">
+        <button v-if="isAdmin" @click="activeSection = 'organization'"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:13px;font-weight:500;white-space:nowrap;border:none;cursor:pointer;transition:background .15s,color .15s"
+          :style="activeSection === 'organization' ? 'background:var(--brand-700);color:white' : 'background:var(--pia-muted);color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           {{ $t('settings.organization') }}
         </button>
-        <button
-          @click="activeSection = 'profile'"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
-          :class="activeSection === 'profile'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground'"
-        >
-          <UserCircle class="w-4 h-4" />
+        <button @click="activeSection = 'profile'"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:13px;font-weight:500;white-space:nowrap;border:none;cursor:pointer;transition:background .15s,color .15s"
+          :style="activeSection === 'profile' ? 'background:var(--brand-700);color:white' : 'background:var(--pia-muted);color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/></svg>
           {{ $t('settings.profile') }}
         </button>
-        <button
-          v-if="isAdmin"
-          @click="activeSection = 'team'"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
-          :class="activeSection === 'team'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground'"
-        >
-          <Users class="w-4 h-4" />
+        <button v-if="isAdmin" @click="activeSection = 'team'"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:13px;font-weight:500;white-space:nowrap;border:none;cursor:pointer;transition:background .15s,color .15s"
+          :style="activeSection === 'team' ? 'background:var(--brand-700);color:white' : 'background:var(--pia-muted);color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           {{ $t('settings.team') }}
         </button>
-        <button
-          v-if="isAdmin"
-          @click="activeSection = 'regional'"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
-          :class="activeSection === 'regional'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground'"
-        >
-          <Globe class="w-4 h-4" />
+        <button v-if="isAdmin" @click="activeSection = 'regional'"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:13px;font-weight:500;white-space:nowrap;border:none;cursor:pointer;transition:background .15s,color .15s"
+          :style="activeSection === 'regional' ? 'background:var(--brand-700);color:white' : 'background:var(--pia-muted);color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           {{ $t('settings.regionalPreferences') }}
         </button>
       </div>
     </div>
 
+    <!-- Desktop Settings nav -->
+    <aside class="hidden md:block" style="width:200px;flex-shrink:0;border-right:1px solid var(--pia-border);min-height:calc(100vh - 56px);padding:20px 12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--pia-text-4);padding:0 8px;margin-bottom:8px">Configuración</div>
+      <nav style="display:flex;flex-direction:column;gap:2px">
+        <button v-if="isAdmin" @click="activeSection = 'organization'"
+          style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:6px;font-size:13px;font-weight:500;border:none;cursor:pointer;transition:background .15s,color .15s;text-align:left"
+          :style="activeSection === 'organization' ? 'background:var(--brand-50);color:var(--brand-700)' : 'background:transparent;color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          {{ $t('settings.organization') }}
+        </button>
+        <button @click="activeSection = 'profile'"
+          style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:6px;font-size:13px;font-weight:500;border:none;cursor:pointer;transition:background .15s,color .15s;text-align:left"
+          :style="activeSection === 'profile' ? 'background:var(--brand-50);color:var(--brand-700)' : 'background:transparent;color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/></svg>
+          {{ $t('settings.profile') }}
+        </button>
+        <button v-if="isAdmin" @click="activeSection = 'team'"
+          style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:6px;font-size:13px;font-weight:500;border:none;cursor:pointer;transition:background .15s,color .15s;text-align:left"
+          :style="activeSection === 'team' ? 'background:var(--brand-50);color:var(--brand-700)' : 'background:transparent;color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          {{ $t('settings.team') }}
+        </button>
+        <button v-if="isAdmin" @click="activeSection = 'regional'"
+          style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:6px;font-size:13px;font-weight:500;border:none;cursor:pointer;transition:background .15s,color .15s;text-align:left"
+          :style="activeSection === 'regional' ? 'background:var(--brand-50);color:var(--brand-700)' : 'background:transparent;color:var(--pia-text-2)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          {{ $t('settings.regionalPreferences') }}
+        </button>
+      </nav>
+    </aside>
+
     <!-- Content Pane -->
-    <main class="flex-1 overflow-y-auto">
+    <main style="flex:1;overflow-y:auto">
       <div class="max-w-3xl p-6 space-y-6">
 
         <!-- Organization Section -->
@@ -630,16 +593,12 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  Building2,
   Upload,
   Trash2,
   Save,
   Sun,
   Moon,
   Monitor,
-  UserCircle,
-  Globe,
-  Users
 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

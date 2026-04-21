@@ -1,13 +1,29 @@
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
-import type { Tenant, TenantFormData, TenantStatus } from '@/types'
+import type { Tenant, TenantFormData, TenantStatus, Property, ContractStatus } from '@/types'
 import { useAuth } from './useAuth'
+
+// Extended tenant with contract and property info
+export type TenantDisplayStatus = 'activo' | 'moroso' | 'sin_contrato'
+
+export interface TenantWithContract extends Tenant {
+    active_contract?: {
+        id: string
+        status: ContractStatus
+        start_date: string
+        property?: Pick<Property, 'id' | 'address_street' | 'address_number'>
+    } | null
+    has_overdue_payments?: boolean
+    display_status: TenantDisplayStatus
+    score: number
+}
 
 export interface TenantFilters {
     search?: string
     hasEmployer?: boolean | 'all'
     minIncome?: number
     status?: TenantStatus | 'all'
+    displayStatus?: TenantDisplayStatus | 'all'
 }
 
 export interface PaginationParams {
@@ -16,17 +32,35 @@ export interface PaginationParams {
 }
 
 export interface FetchTenantsResult {
-    data: Tenant[]
+    data: TenantWithContract[]
     totalCount: number
+    counts: {
+        all: number
+        activo: number
+        moroso: number
+        sin_contrato: number
+    }
+}
+
+// Calculate tenant score based on profile completeness
+function calculateScore(tenant: Tenant): number {
+    let score = 0
+    if (tenant.dni) score += 20
+    if (tenant.email) score += 15
+    if (tenant.phone) score += 15
+    if (tenant.employer) score += 20
+    if (tenant.monthly_income && tenant.monthly_income > 0) score += 20
+    if (tenant.cuit_cuil) score += 10
+    return score
 }
 
 export function useTenants() {
-    const tenants = ref<Tenant[]>([])
+    const tenants = ref<TenantWithContract[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
     const { organizationId } = useAuth()
 
-    // Fetch all tenants (non-deleted) with server-side filters and pagination
+    // Fetch all tenants with contract info, filters and pagination
     async function fetchTenants(
         filters?: TenantFilters,
         pagination?: PaginationParams
@@ -40,18 +74,19 @@ export function useTenants() {
         error.value = null
 
         try {
+            // First, get all tenants with basic filters (without displayStatus filter)
             let query = supabase
                 .from('tenants')
                 .select('*', { count: 'exact' })
                 .eq('organization_id', organizationId.value)
                 .is('deleted_at', null)
-                .order('created_at', { ascending: false })
+                .order('last_name', { ascending: true })
 
-            // Apply server-side filters
+            // Apply search filter
             if (filters?.search) {
                 const searchTerm = `%${filters.search}%`
                 query = query.or(
-                    `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm}`
+                    `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm},dni.ilike.${searchTerm}`
                 )
             }
 
@@ -65,25 +100,123 @@ export function useTenants() {
                 query = query.gte('monthly_income', filters.minIncome)
             }
 
-            if (filters?.status && filters.status !== 'all') {
-                query = query.eq('status', filters.status)
-            }
-
-            // Apply pagination using .range()
-            if (pagination) {
-                const from = (pagination.page - 1) * pagination.pageSize
-                const to = from + pagination.pageSize - 1
-                query = query.range(from, to)
-            }
-
-            const { data, error: fetchError, count } = await query
+            const { data: tenantsData, error: fetchError } = await query
 
             if (fetchError) throw fetchError
 
-            tenants.value = data ?? []
+            if (!tenantsData || tenantsData.length === 0) {
+                tenants.value = []
+                return { data: [], totalCount: 0, counts: { all: 0, activo: 0, moroso: 0, sin_contrato: 0 } }
+            }
+
+            const tenantIds = tenantsData.map(t => t.id)
+
+            // Get active contracts for these tenants
+            const { data: contractTenants } = await supabase
+                .from('contract_tenants')
+                .select(`
+                    tenant_id,
+                    contract:contracts!inner(
+                        id,
+                        status,
+                        start_date,
+                        property:properties(id, address_street, address_number)
+                    )
+                `)
+                .in('tenant_id', tenantIds)
+                .eq('contracts.status', 'activo')
+
+            // Get overdue payments for these tenants
+            const { data: overduePayments } = await supabase
+                .from('payments')
+                .select('contract:contracts!inner(tenants:contract_tenants(tenant_id))')
+                .eq('status', 'vencido')
+                .in('contracts.tenants.tenant_id', tenantIds)
+
+            // Build a map of tenant_id -> active contract
+            const contractMap = new Map<string, TenantWithContract['active_contract']>()
+            if (contractTenants) {
+                for (const ct of contractTenants) {
+                    const contract = ct.contract as unknown as {
+                        id: string
+                        status: ContractStatus
+                        start_date: string
+                        property: { id: string; address_street: string; address_number: string } | null
+                    }
+                    if (contract) {
+                        contractMap.set(ct.tenant_id, {
+                            id: contract.id,
+                            status: contract.status,
+                            start_date: contract.start_date,
+                            property: contract.property || undefined,
+                        })
+                    }
+                }
+            }
+
+            // Build a set of tenant_ids with overdue payments
+            const overdueSet = new Set<string>()
+            if (overduePayments) {
+                for (const p of overduePayments) {
+                    const contract = p.contract as unknown as { tenants: { tenant_id: string }[] }
+                    if (contract?.tenants) {
+                        for (const t of contract.tenants) {
+                            overdueSet.add(t.tenant_id)
+                        }
+                    }
+                }
+            }
+
+            // Transform tenants with contract info and calculate display status
+            const enrichedTenants: TenantWithContract[] = tenantsData.map(tenant => {
+                const activeContract = contractMap.get(tenant.id) || null
+                const hasOverdue = overdueSet.has(tenant.id)
+
+                let displayStatus: TenantDisplayStatus
+                if (hasOverdue) {
+                    displayStatus = 'moroso'
+                } else if (!activeContract) {
+                    displayStatus = 'sin_contrato'
+                } else {
+                    displayStatus = 'activo'
+                }
+
+                return {
+                    ...tenant,
+                    active_contract: activeContract,
+                    has_overdue_payments: hasOverdue,
+                    display_status: displayStatus,
+                    score: calculateScore(tenant),
+                }
+            })
+
+            // Calculate counts before filtering by displayStatus
+            const counts = {
+                all: enrichedTenants.length,
+                activo: enrichedTenants.filter(t => t.display_status === 'activo').length,
+                moroso: enrichedTenants.filter(t => t.display_status === 'moroso').length,
+                sin_contrato: enrichedTenants.filter(t => t.display_status === 'sin_contrato').length,
+            }
+
+            // Apply displayStatus filter
+            let filtered = enrichedTenants
+            if (filters?.displayStatus && filters.displayStatus !== 'all') {
+                filtered = enrichedTenants.filter(t => t.display_status === filters.displayStatus)
+            }
+
+            // Apply pagination
+            let paginated = filtered
+            if (pagination) {
+                const from = (pagination.page - 1) * pagination.pageSize
+                const to = from + pagination.pageSize
+                paginated = filtered.slice(from, to)
+            }
+
+            tenants.value = paginated
             return {
-                data: data ?? [],
-                totalCount: count ?? 0,
+                data: paginated,
+                totalCount: filtered.length,
+                counts,
             }
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Failed to fetch tenants'

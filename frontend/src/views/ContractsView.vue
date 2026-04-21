@@ -1,351 +1,209 @@
 <template>
-  <div class="p-6">
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 class="text-2xl font-bold">{{ $t('contracts.title') }}</h1>
-        <Button @click="openCreateDialog">
-          <Plus class="w-4 h-4 mr-2" />
-          {{ $t('contracts.newContract') }}
-        </Button>
-      </div>
-
-      <!-- Filters -->
-      <div class="flex flex-wrap gap-4 mb-6">
-        <div class="flex-1 min-w-[200px]">
-          <Input
-            v-model="filterStore.search"
-            :placeholder="$t('contracts.searchPlaceholder')"
-            class="w-full"
-          >
-            <template #prefix>
-              <Search class="w-4 h-4 text-muted-foreground" />
-            </template>
-          </Input>
+  <div>
+    <div class="pia-page-header">
+      <div class="pia-page-title-block">
+        <h1>Contratos</h1>
+        <div class="pia-page-subtitle">
+          <span>{{ filterStore.totalCount }} contratos gestionados</span>
+          <span class="pia-dot-sep" />
+          <span>{{ activeCount }} activos · {{ expiringCount }} por vencer</span>
+          <span class="pia-dot-sep" />
+          <span>Ingresos totales <strong>{{ formatCurrency(totalMonthlyIncome) }}/mes</strong></span>
         </div>
-
-        <Select v-model="filterStore.status" class="w-full sm:w-auto">
-          <SelectTrigger>
-            <SelectValue :placeholder="$t('common.status')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">{{ $t('contracts.allStatus') }}</SelectItem>
-              <SelectItem value="active">{{ $t('contracts.active') }}</SelectItem>
-              <SelectItem value="expiring_soon">{{ $t('contracts.expiring_soon') }}</SelectItem>
-              <SelectItem value="expired">{{ $t('contracts.expired') }}</SelectItem>
-              <SelectItem value="cancelled">{{ $t('contracts.cancelled') }}</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Select v-model="filterStore.contractType" class="w-full sm:w-auto">
-          <SelectTrigger>
-            <SelectValue :placeholder="$t('common.type')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">{{ $t('contracts.allTypes') }}</SelectItem>
-              <SelectItem value="vivienda">{{ $t('contracts.vivienda') }}</SelectItem>
-              <SelectItem value="comercial">{{ $t('contracts.comercial') }}</SelectItem>
-              <SelectItem value="cochera">{{ $t('contracts.cochera') }}</SelectItem>
-              <SelectItem value="oficina">{{ $t('contracts.oficina') }}</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Button
-          v-if="hasActiveFilters"
-          variant="ghost"
-          size="sm"
-          @click="clearFilters"
-        >
-          <X class="w-4 h-4 mr-1" />
-          {{ $t('common.clearFilters') }}
-        </Button>
       </div>
-
-      <!-- Loading state -->
-      <div v-if="loading" class="py-12 text-center text-muted-foreground">
-        <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-        <p class="mt-2">{{ $t('contracts.loadingContracts') }}</p>
+      <div class="pia-page-actions">
+        <button class="pia-btn pia-btn-ghost" @click="exportContracts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar
+        </button>
+        <button class="pia-btn pia-btn-primary" @click="openCreateDialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nuevo contrato
+        </button>
       </div>
+    </div>
 
-      <!-- Error state -->
-      <div v-else-if="error" class="py-12 text-center">
-        <p class="text-destructive font-medium mb-2">{{ $t('contracts.errorLoading') }}</p>
-        <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-        <Button variant="outline" @click="loadContracts">
-          {{ $t('common.retry') }}
-        </Button>
+    <!-- Filter bar -->
+    <div class="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:gap-2.5" style="margin-bottom:var(--gap)">
+      <!-- Search bar - full width on mobile, fixed width on desktop -->
+      <div class="pia-search-bar w-full md:w-[280px] md:order-last">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input v-model="filterStore.search" placeholder="Buscar por dirección o inquilino…" />
       </div>
-
-      <!-- Data loaded -->
-      <template v-else>
-        <!-- Empty state -->
-        <div v-if="contracts.length === 0" class="py-12 text-center">
-          <FileText class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p class="text-lg font-medium text-muted-foreground mb-2">
-            {{ hasActiveFilters ? $t('contracts.noContractsFiltered') : $t('contracts.noContracts') }}
-          </p>
-          <p class="text-sm text-muted-foreground mb-4">
-            {{ hasActiveFilters
-              ? $t('properties.adjustFilters')
-              : $t('contracts.startAddingContract')
-            }}
-          </p>
-          <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-            {{ $t('common.clearFilters') }}
-          </Button>
-          <Button v-else @click="openCreateDialog">
-            <Plus class="w-4 h-4 mr-2" />
-            {{ $t('contracts.newContract') }}
-          </Button>
+      <!-- Status tabs + Type select row -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 md:flex-1">
+        <div class="flex gap-1.5 flex-shrink-0">
+          <button v-for="t in statusTabs" :key="t.id"
+            class="pia-filter-tab whitespace-nowrap" :class="{ active: filterStore.status === t.id }"
+            @click="setStatusFilter(t.id)">
+            {{ t.label }}
+            <span class="pia-tab-count">{{ t.count }}</span>
+          </button>
         </div>
+        <div class="flex-1 hidden md:block" />
+        <select v-model="filterStore.contractType" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
+          <option value="all">Todos los tipos</option>
+          <option value="vivienda">Vivienda</option>
+          <option value="comercial">Comercial</option>
+          <option value="cochera">Cochera</option>
+          <option value="oficina">Oficina</option>
+        </select>
+      </div>
+    </div>
 
-        <!-- Contracts table (desktop) -->
-        <div v-else class="hidden md:block bg-card border border-border rounded-lg overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-muted/50">
-              <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.property') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.tenant') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.type') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.startDate') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.endDate') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('contracts.baseRent') }}</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">{{ $t('common.status') }}</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-muted-foreground">{{ $t('common.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="contract in contracts"
-                :key="contract.id"
-                class="border-t border-border hover:bg-muted/30 transition-colors cursor-pointer"
-                @click="viewContract(contract.id)"
-              >
-                <td class="px-4 py-3">
-                  <span class="text-sm font-medium text-foreground">
-                    {{ formatPropertyAddress(contract) }}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground">
-                  {{ getTitularName(contract) }}
-                </td>
-                <td class="px-4 py-3">
-                  <Badge variant="outline">
-                    {{ $t(`contracts.${contract.contract_type}`) }}
-                  </Badge>
-                </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground">
-                  {{ formatDate(contract.start_date) }}
-                </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground">
-                  {{ formatDate(contract.end_date) }}
-                </td>
-                <td class="px-4 py-3 text-sm font-medium">
-                  {{ formatCurrency(contract.current_rent_amount) }}
-                </td>
-                <td class="px-4 py-3">
-                  <Badge :class="getStatusBadgeClass(calculateDisplayStatus(contract))">
-                    {{ $t(`contracts.${calculateDisplayStatus(contract)}`) }}
-                  </Badge>
-                </td>
-                <td class="px-4 py-3 text-right" @click.stop>
-                  <div class="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      @click="viewContract(contract.id)"
-                      :title="$t('common.view')"
-                    >
-                      <Eye class="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      @click="openEditDialog(contract.id)"
-                      :title="$t('common.edit')"
-                    >
-                      <Pencil class="w-4 h-4" />
-                    </Button>
-                    <!-- Lifecycle actions - hidden for draft, disabled for rescinded -->
-                    <template v-if="calculateDisplayStatus(contract) !== 'draft'">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        :disabled="calculateDisplayStatus(contract) === 'cancelled'"
-                        @click="openRescindDialog(contract)"
-                        :title="$t('contracts.rescindContract')"
-                      >
-                        <XCircle class="w-4 h-4 text-destructive" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        :disabled="calculateDisplayStatus(contract) === 'cancelled'"
-                        @click="handleRenew"
-                        :title="$t('contracts.renewContract')"
-                      >
-                        <RefreshCw class="w-4 h-4" />
-                      </Button>
-                    </template>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+    <!-- Loading -->
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando contratos…</div>
 
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="flex items-center justify-between p-4 border-t">
-            <p class="text-sm text-muted-foreground">
-              {{ $t('common.showing') }} {{ paginationStart }}-{{ paginationEnd }} {{ $t('common.of') }} {{ filterStore.totalCount }}
-            </p>
-            <div class="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="filterStore.currentPage === 1"
-                @click="goToPreviousPage"
-              >
-                {{ $t('common.previous') }}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="filterStore.currentPage >= totalPages"
-                @click="goToNextPage"
-              >
-                {{ $t('common.next') }}
-              </Button>
-            </div>
-          </div>
+    <!-- Error -->
+    <div v-else-if="error" style="padding:40px;text-align:center;color:var(--terra)">{{ error }}</div>
+
+    <!-- Table (desktop) -->
+    <div v-else-if="contracts.length === 0" class="pia-card" style="padding:0;overflow:hidden">
+      <div class="pia-empty">
+        <div class="pia-empty-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/></svg>
         </div>
+        <div>No se encontraron contratos con estos filtros</div>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+      </div>
+    </div>
 
-        <!-- Contracts cards (mobile) -->
-        <div v-if="contracts.length > 0" class="md:hidden space-y-4">
-          <div
-            v-for="contract in contracts"
-            :key="contract.id"
-            class="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-            @click="viewContract(contract.id)"
-          >
-            <div class="flex items-start justify-between mb-3">
-              <div>
-                <h3 class="font-medium">{{ formatPropertyAddress(contract) }}</h3>
-                <p class="text-sm text-muted-foreground">{{ getTitularName(contract) }}</p>
-              </div>
-              <Badge :class="getStatusBadgeClass(calculateDisplayStatus(contract))">
-                {{ $t(`contracts.${calculateDisplayStatus(contract)}`) }}
-              </Badge>
+    <!-- Content (mobile cards + desktop table) -->
+    <template v-else>
+    <!-- Mobile cards -->
+    <div class="contracts-mobile-list">
+      <div v-for="contract in contracts" :key="contract.id"
+        class="contract-mobile-card"
+        @click="viewContract(contract.id)">
+        <div class="contract-color-bar-mobile" :style="{ background: getContractColor(contract.id) }"></div>
+        <div class="contract-mobile-content">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div style="flex:1;min-width:0">
+              <strong style="display:block;font-size:14px;margin-bottom:2px">{{ formatPropertyAddress(contract) }}</strong>
+              <span style="font-size:12px;color:var(--brand-700)">{{ getTitularName(contract) }}</span>
             </div>
-
-            <div class="flex items-center gap-2 mb-3">
-              <Badge variant="outline">
-                {{ $t(`contracts.${contract.contract_type}`) }}
-              </Badge>
-              <span class="text-lg font-bold text-primary">
-                {{ formatCurrency(contract.current_rent_amount) }}
-              </span>
-            </div>
-
-            <div class="space-y-1 text-sm mb-3">
-              <p>
-                <span class="text-muted-foreground">{{ $t('contracts.startDate') }}:</span>
-                {{ formatDate(contract.start_date) }}
-              </p>
-              <p>
-                <span class="text-muted-foreground">{{ $t('contracts.endDate') }}:</span>
-                {{ formatDate(contract.end_date) }}
-              </p>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-end gap-1 pt-3 border-t" @click.stop>
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="viewContract(contract.id)"
-              >
-                <Eye class="w-4 h-4 mr-1" />
-                {{ $t('common.view') }}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="openEditDialog(contract.id)"
-              >
-                <Pencil class="w-4 h-4 mr-1" />
-                {{ $t('common.edit') }}
-              </Button>
-              <!-- Lifecycle actions - hidden for draft, disabled for rescinded -->
-              <template v-if="calculateDisplayStatus(contract) !== 'draft'">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  :disabled="calculateDisplayStatus(contract) === 'cancelled'"
-                  @click="openRescindDialog(contract)"
-                >
-                  <XCircle class="w-4 h-4 mr-1 text-destructive" />
-                  {{ $t('contracts.rescindContract') }}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  :disabled="calculateDisplayStatus(contract) === 'cancelled'"
-                  @click="handleRenew"
-                >
-                  <RefreshCw class="w-4 h-4 mr-1" />
-                  {{ $t('contracts.renewContract') }}
-                </Button>
-              </template>
-            </div>
-          </div>
-
-          <!-- Mobile Pagination -->
-          <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="filterStore.currentPage === 1"
-              @click="goToPreviousPage"
-            >
-              {{ $t('common.previous') }}
-            </Button>
-            <span class="flex items-center text-sm text-muted-foreground px-2">
-              {{ filterStore.currentPage }} / {{ totalPages }}
+            <span class="pia-status" :class="getStatusClass(calculateDisplayStatus(contract))" style="flex-shrink:0">
+              <span class="dot" />{{ getStatusLabel(calculateDisplayStatus(contract)) }}
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="filterStore.currentPage >= totalPages"
-              @click="goToNextPage"
-            >
-              {{ $t('common.next') }}
-            </Button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px">
+            <span class="pia-chip" :class="getTypeChipClass(contract.contract_type)">{{ formatContractType(contract.contract_type) }}</span>
+            <span style="font-size:14px;font-weight:600;color:var(--pia-text)">{{ formatCurrency(contract.current_rent_amount) }}</span>
+            <span style="font-size:11px;color:var(--pia-text-3)">{{ formatAdjustment(contract) }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--pia-border)">
+            <div style="font-size:11px;color:var(--pia-text-3)">
+              <span class="pia-mono">{{ formatDate(contract.start_date) }} → {{ formatDate(contract.end_date) }}</span>
+              <span :style="getRemainingTimeClass(contract)" style="margin-left:8px">{{ getRemainingTime(contract) }}</span>
+            </div>
           </div>
         </div>
+      </div>
+      <div class="pia-tbl-footer" style="background:var(--pia-surface);border:1px solid var(--pia-border);border-radius:var(--pia-radius);padding:12px 16px">
+        <span>Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ filterStore.totalCount }}</span>
+        <div style="display:flex;gap:4px">
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+        </div>
+      </div>
+    </div>
 
-        <p v-if="totalPages <= 1" class="mt-4 text-sm text-muted-foreground">
-          {{ $t('common.showing') }} {{ contracts.length }} {{ $t('common.of') }} {{ filterStore.totalCount }}
-          {{ filterStore.totalCount === 1 ? $t('contracts.contract').toLowerCase() : $t('contracts.title').toLowerCase() }}
-        </p>
-      </template>
+    <!-- Table (desktop) -->
+    <div class="pia-card contracts-desktop-table" style="padding:0;overflow:hidden">
+      <div class="pia-scroll-x">
+        <table class="pia-tbl">
+          <thead>
+            <tr>
+              <th style="width:40px"></th>
+              <th>Propiedad</th>
+              <th>Inquilino</th>
+              <th>Tipo</th>
+              <th>Vigencia</th>
+              <th class="num">Alquiler base</th>
+              <th>Ajuste</th>
+              <th>Estado</th>
+              <th style="text-align:right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="contract in contracts" :key="contract.id" style="cursor:pointer" @click="viewContract(contract.id)">
+              <td style="padding-left:0;padding-right:0">
+                <div class="contract-color-bar" :style="{ background: getContractColor(contract.id) }"></div>
+              </td>
+              <td>
+                <div>
+                  <strong>{{ formatPropertyAddress(contract) }}</strong>
+                  <div style="font-size:11.5px;color:var(--pia-text-3)">{{ contract.property?.address_city }}</div>
+                </div>
+              </td>
+              <td style="color:var(--brand-700);font-weight:500">{{ getTitularName(contract) }}</td>
+              <td>
+                <span class="pia-chip" :class="getTypeChipClass(contract.contract_type)">{{ formatContractType(contract.contract_type) }}</span>
+              </td>
+              <td>
+                <div class="pia-mono" style="font-size:12px;color:var(--pia-text-2)">{{ formatDate(contract.start_date) }} → {{ formatDate(contract.end_date) }}</div>
+                <div :class="getRemainingTimeClass(contract)" style="font-size:11px;margin-top:2px">
+                  {{ getRemainingTime(contract) }}
+                </div>
+              </td>
+              <td class="num" style="color:var(--pia-text);font-weight:550">{{ formatCurrency(contract.current_rent_amount) }}</td>
+              <td>
+                <span style="font-size:12px;color:var(--pia-text-2)">{{ formatAdjustment(contract) }}</span>
+              </td>
+              <td @click.stop>
+                <span class="pia-status" :class="getStatusClass(calculateDisplayStatus(contract))">
+                  <span class="dot" />
+                  {{ getStatusLabel(calculateDisplayStatus(contract)) }}
+                </span>
+              </td>
+              <td style="text-align:right" @click.stop>
+                <div style="display:inline-flex;gap:2px">
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Ver" @click="viewContract(contract.id)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  </button>
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Editar" @click="openEditDialog(contract.id)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Ajustar" @click="openEditDialog(contract.id)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                  </button>
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Renovar"
+                    :disabled="calculateDisplayStatus(contract) === 'cancelled'"
+                    @click="handleRenew(contract)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                  </button>
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Más opciones">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      <div class="pia-tbl-footer">
+        <span>Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ filterStore.totalCount }}</span>
+        <div style="display:flex;gap:4px">
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+    </template>
 
-      <!-- Contract Dialog (Create/Edit) -->
-      <ContractDialog
-        v-model:open="dialogOpen"
-        :contract-id="editingContractId"
-        @success="handleDialogSuccess"
-      />
-
-      <!-- Rescind Contract Confirmation Dialog -->
-      <CancelContractDialog
-        v-model:open="cancelDialogOpen"
-        :contract-id="cancellingContract?.id ?? ''"
-        :property-address="cancellingContractPropertyAddress"
-        :tenant-name="cancellingContractTenantName"
-        @confirm="handleRescindSuccess"
-      />
+    <!-- Dialogs -->
+    <ContractDialog
+      v-model:open="dialogOpen"
+      :contract-id="editingContractId"
+      @success="handleDialogSuccess"
+    />
+    <CancelContractDialog
+      v-model:open="cancelDialogOpen"
+      :contract="cancellingContract"
+      :property-address="cancellingContractPropertyAddress"
+      :tenant-name="cancellingContractTenantName"
+      @success="handleRescindSuccess"
+    />
   </div>
 </template>
 
@@ -353,30 +211,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
-import {
-  Plus,
-  Search,
-  X,
-  Eye,
-  Pencil,
-  XCircle,
-  FileText,
-  Loader2,
-  RefreshCw,
-} from 'lucide-vue-next'
 import { useContracts } from '@/composables/useContracts'
 import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import { useToast } from '@/composables/useToast'
@@ -384,7 +220,6 @@ import { useDebounce } from '@/composables/useDebounce'
 import { useContractsFilterStore } from '@/stores/filters/useContractsFilterStore'
 import { storeToRefs } from 'pinia'
 import type { ContractWithRelations, ContractDisplayStatus } from '@/types'
-
 import { useDate } from '@/composables/useDate'
 
 const router = useRouter()
@@ -392,156 +227,233 @@ const { t } = useI18n()
 const toast = useToast()
 const { formatDate } = useDate()
 const { formatCurrency } = useFormatCurrency()
-const {
-  contracts,
-  loading,
-  error,
-  fetchContracts,
-  calculateDisplayStatus,
-  formatPropertyAddress,
-  getTitular,
-} = useContracts()
+const { contracts, loading, error, fetchContracts, calculateDisplayStatus, formatPropertyAddress, getTitular } = useContracts()
 const filterStore = useContractsFilterStore()
-
-// Create debounced search value
 const { search } = storeToRefs(filterStore)
 const debouncedSearch = useDebounce(search, 300)
 
-// Dialog state
 const dialogOpen = ref(false)
 const editingContractId = ref<string | null>(null)
 const cancelDialogOpen = ref(false)
 const cancellingContract = ref<ContractWithRelations | null>(null)
 
-// Computed
 const hasActiveFilters = computed(() =>
-  filterStore.search !== '' ||
-  filterStore.status !== 'all' ||
-  filterStore.contractType !== 'all'
+  filterStore.search !== '' || filterStore.status !== 'all' || filterStore.contractType !== 'all'
+)
+const totalPages = computed(() => Math.ceil(filterStore.totalCount / filterStore.pageSize))
+const paginationStart = computed(() => filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1)
+const paginationEnd = computed(() => Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount))
+
+const activeCount = computed(() => contracts.value.filter(c => calculateDisplayStatus(c) === 'active').length)
+const expiringCount = computed(() => contracts.value.filter(c => calculateDisplayStatus(c) === 'expiring_soon').length)
+const totalMonthlyIncome = computed(() =>
+  contracts.value
+    .filter(c => calculateDisplayStatus(c) === 'active' || calculateDisplayStatus(c) === 'expiring_soon')
+    .reduce((sum, c) => sum + (c.current_rent_amount || 0), 0)
 )
 
-const totalPages = computed(() => {
-  return Math.ceil(filterStore.totalCount / filterStore.pageSize)
-})
+const statusTabs = computed(() => [
+  { id: 'all', label: 'Todos', count: filterStore.totalCount },
+  { id: 'active', label: 'Activos', count: activeCount.value },
+  { id: 'expiring_soon', label: 'Por vencer', count: expiringCount.value },
+  { id: 'expired', label: 'Vencidos', count: contracts.value.filter(c => calculateDisplayStatus(c) === 'expired').length },
+  { id: 'cancelled', label: 'Rescindidos', count: contracts.value.filter(c => calculateDisplayStatus(c) === 'cancelled').length },
+])
 
-const paginationStart = computed(() => {
-  return filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1
-})
+const cancellingContractPropertyAddress = computed(() => cancellingContract.value ? formatPropertyAddress(cancellingContract.value) : '')
+const cancellingContractTenantName = computed(() => cancellingContract.value ? getTitularName(cancellingContract.value) : '')
 
-const paginationEnd = computed(() => {
-  return Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount)
-})
-
-const cancellingContractPropertyAddress = computed(() => {
-  if (!cancellingContract.value) return ''
-  return formatPropertyAddress(cancellingContract.value)
-})
-
-const cancellingContractTenantName = computed(() => {
-  if (!cancellingContract.value) return ''
-  return getTitularName(cancellingContract.value)
-})
-
-// Methods
-function getTitularName(contract: ContractWithRelations): string {
+function getTitularName(contract: ContractWithRelations) {
   const titular = getTitular(contract)
   if (!titular) return t('contracts.noTenantAssigned')
   return `${titular.first_name} ${titular.last_name}`
 }
 
-function getStatusBadgeClass(status: ContractDisplayStatus): string {
-  const classes: Record<ContractDisplayStatus, string> = {
-    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
-    expiring_soon: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
-    expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
-    cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
-    renewed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-    draft: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800',
+function getStatusClass(status: ContractDisplayStatus) {
+  const map: Record<ContractDisplayStatus, string> = {
+    active: 'ok', expiring_soon: 'pending', expired: 'late', cancelled: 'draft', renewed: 'ok', draft: 'draft',
   }
-  return classes[status] ?? classes.active
+  return map[status] ?? 'draft'
 }
 
-function clearFilters() {
-  filterStore.resetFilters()
-  loadContracts()
+function getStatusLabel(status: ContractDisplayStatus) {
+  const map: Record<ContractDisplayStatus, string> = {
+    active: 'Activo', expiring_soon: 'Por vencer', expired: 'Vencido', cancelled: 'Rescindido', renewed: 'Renovado', draft: 'Borrador',
+  }
+  return map[status] ?? status
 }
 
-function openCreateDialog() {
-  editingContractId.value = null
-  dialogOpen.value = true
+// Color palette for contract color bars
+const CONTRACT_COLORS = [
+  '#E8DCC8',
+  '#DDE5D8',
+  '#E6D3C2',
+  '#D6DADB',
+  '#E3D9E8',
+  '#D7E7E5',
+  '#F0E2C8',
+  '#E1E5EA',
+  '#E8D6D6',
+  '#D9E4E6',
+  '#EAD8C8',
+  '#E2E8D5',
+  '#D6E2F0',
+  '#E4ECDD',
+  '#F1E6CC',
+];
+function getContractColor(contractId: string): string {
+  let hash = 0
+  for (let i = 0; i < contractId.length; i++) {
+    hash = contractId.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return CONTRACT_COLORS[Math.abs(hash) % CONTRACT_COLORS.length]
 }
 
-function openEditDialog(contractId: string) {
-  editingContractId.value = contractId
-  dialogOpen.value = true
+function getTypeChipClass(type: string): string {
+  const map: Record<string, string> = {
+    vivienda: 'neutral',
+    comercial: 'warn',
+    cochera: 'neutral',
+    oficina: 'neutral',
+  }
+  return map[type] || 'neutral'
 }
 
-function openRescindDialog(contract: ContractWithRelations) {
-  cancellingContract.value = contract
-  cancelDialogOpen.value = true
+function formatContractType(type: string): string {
+  return type.charAt(0).toUpperCase() + type.slice(1)
 }
 
-function handleRenew() {
-  toast.info(t('contracts.featureComingSoon'))
+function getRemainingTime(contract: ContractWithRelations): string {
+  const now = new Date()
+  const end = new Date(contract.end_date)
+  const diffMs = end.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  const diffMonths = Math.ceil(diffDays / 30)
+
+  if (diffDays < 0) {
+    return 'Vencido'
+  } else if (diffDays === 0) {
+    return 'Vence hoy'
+  } else if (diffDays <= 30) {
+    return `vence en ${diffDays} días`
+  } else {
+    return `${diffMonths} meses restantes`
+  }
 }
 
-function viewContract(contractId: string) {
-  router.push({ name: 'contract-details', params: { id: contractId } })
+function getRemainingTimeClass(contract: ContractWithRelations): string {
+  const now = new Date()
+  const end = new Date(contract.end_date)
+  const diffMs = end.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) return 'color: var(--terra)'
+  if (diffDays <= 30) return 'color: var(--terra)'
+  if (diffDays <= 90) return 'color: var(--amber)'
+  return 'color: var(--pia-text-3)'
 }
 
-function goToPreviousPage() {
-  filterStore.setPage(filterStore.currentPage - 1)
-  loadContracts()
+function formatAdjustment(contract: ContractWithRelations): string {
+  if (!contract.adjustment_type || contract.adjustment_type === 'ninguno') {
+    return '-'
+  }
+  const type = contract.adjustment_type.toUpperCase()
+  const period = contract.adjustment_period
+    ? { trimestral: 'Trim.', semestral: 'Sem.', anual: 'Anual' }[contract.adjustment_period] || ''
+    : ''
+  return period ? `${type} · ${period}` : type
 }
 
-function goToNextPage() {
-  filterStore.setPage(filterStore.currentPage + 1)
-  loadContracts()
+function exportContracts() {
+  toast.info('Exportando contratos...')
+  // TODO: Implement CSV/Excel export
 }
+
+function setStatusFilter(id: string) {
+  filterStore.status = id as 'all' | 'active' | 'expiring_soon' | 'expired' | 'cancelled'
+}
+
+function clearFilters() { filterStore.resetFilters(); loadContracts() }
+function openCreateDialog() { editingContractId.value = null; dialogOpen.value = true }
+function openEditDialog(id: string) { editingContractId.value = id; dialogOpen.value = true }
+function openRescindDialog(contract: ContractWithRelations) { cancellingContract.value = contract; cancelDialogOpen.value = true }
+function handleRenew(_contract: ContractWithRelations) { toast.info(t('contracts.featureComingSoon')) }
+function viewContract(id: string) { router.push({ name: 'contract-details', params: { id } }) }
+function goToPreviousPage() { filterStore.setPage(filterStore.currentPage - 1); loadContracts() }
+function goToNextPage() { filterStore.setPage(filterStore.currentPage + 1); loadContracts() }
 
 async function loadContracts() {
   const result = await fetchContracts(
-    {
-      search: filterStore.search || undefined,
-      status: filterStore.status,
-      contract_type: filterStore.contractType,
-    },
-    {
-      page: filterStore.currentPage,
-      pageSize: filterStore.pageSize,
-    }
+    { search: filterStore.search || undefined, status: filterStore.status, contract_type: filterStore.contractType },
+    { page: filterStore.currentPage, pageSize: filterStore.pageSize }
   )
-
-  if (result) {
-    filterStore.setTotalCount(result.totalCount)
-  }
+  if (result) filterStore.setTotalCount(result.totalCount)
 }
 
-async function handleDialogSuccess() {
-  await loadContracts()
-}
+async function handleDialogSuccess() { await loadContracts() }
+async function handleRescindSuccess() { cancellingContract.value = null; await loadContracts() }
 
-async function handleRescindSuccess() {
-  cancellingContract.value = null
-  await loadContracts()
-}
-
-// Watch for non-search filter changes - immediate re-fetch
-watch(
-  () => [filterStore.status, filterStore.contractType],
-  () => {
-    filterStore.resetPage()
-    loadContracts()
-  }
-)
-
-// Watch debounced search - re-fetch after debounce
-watch(debouncedSearch, () => {
-  filterStore.resetPage()
-  loadContracts()
-})
-
-onMounted(() => {
-  loadContracts()
-})
+watch(() => [filterStore.status, filterStore.contractType], () => { filterStore.resetPage(); loadContracts() })
+watch(debouncedSearch, () => { filterStore.resetPage(); loadContracts() })
+onMounted(() => loadContracts())
 </script>
+
+<style scoped>
+/* Responsive visibility */
+.contracts-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contracts-desktop-table {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .contracts-mobile-list {
+    display: none;
+  }
+
+  .contracts-desktop-table {
+    display: block;
+  }
+}
+
+.contract-color-bar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;   
+  margin-left: 12px;
+}
+.contract-mobile-card {
+  display: flex;
+  background: var(--pia-surface);
+  border: 1px solid var(--pia-border);
+  border-radius: var(--pia-radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.contract-mobile-card:hover {
+  border-color: var(--pia-border-strong);
+}
+
+.contract-color-bar-mobile {
+  width: 5px;
+  flex-shrink: 0;
+}
+
+.contract-mobile-content {
+  flex: 1;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+/* Chip styles for contract types */
+.pia-chip.warn {
+  background: var(--amber-bg);
+  color: var(--amber-700);
+}
+</style>

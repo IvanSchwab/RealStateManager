@@ -1,4 +1,4 @@
--- Real Estate Management System - Initial Setup
+-- PIA Gestión System - Initial Setup
 -- This migration creates only the minimal required tables for the initial setup.
 -- Additional tables (properties, tenants, contracts, payments) will be added in subsequent migrations.
 

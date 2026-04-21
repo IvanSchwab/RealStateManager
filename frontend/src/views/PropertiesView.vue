@@ -1,232 +1,195 @@
 <template>
-  <div class="p-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-6">
-      <h1 class="text-2xl font-bold">Propiedades</h1>
-      <Button @click="openCreateDialog">
-        <Plus class="w-4 h-4 mr-2" />
-        Nueva Propiedad
-      </Button>
-    </div>
-
-    <!-- Filters -->
-    <div class="flex flex-wrap gap-4 mb-6">
-      <div class="flex-1 min-w-[200px]">
-        <Input
-          v-model="search"
-          placeholder="Buscar por nombre, dirección o ciudad..."
-          class="w-full"
-        >
-          <template #prefix>
-            <Search class="w-4 h-4 text-muted-foreground" />
-          </template>
-        </Input>
-      </div>
-
-      <Select v-model="typeFilter" class="w-full sm:w-auto">
-        <SelectTrigger>
-          <SelectValue placeholder="Tipo" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            <SelectItem value="departamento">Departamento</SelectItem>
-            <SelectItem value="casa">Casa</SelectItem>
-            <SelectItem value="comercial">Comercial</SelectItem>
-            <SelectItem value="terreno">Terreno</SelectItem>
-            <SelectItem value="oficina">Oficina</SelectItem>
-            <SelectItem value="local">Local</SelectItem>
-            <SelectItem value="galpon">Galpón</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      <Select v-model="statusFilter" class="w-full sm:w-auto">
-        <SelectTrigger>
-          <SelectValue placeholder="Estado" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="disponible">Disponible</SelectItem>
-            <SelectItem value="alquilada">Alquilada</SelectItem>
-            <SelectItem value="mantenimiento">En mantenimiento</SelectItem>
-            <SelectItem value="reservada">Reservada</SelectItem>
-            <SelectItem value="vendida">Vendida</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      <Select v-model="purposeFilter" class="w-full sm:w-auto">
-        <SelectTrigger>
-          <SelectValue placeholder="Finalidad" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value="all">Todas las finalidades</SelectItem>
-            <SelectItem value="alquiler">Alquiler</SelectItem>
-            <SelectItem value="venta">Venta</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      <Button
-        v-if="hasActiveFilters"
-        variant="ghost"
-        size="sm"
-        @click="clearFilters"
-      >
-        <X class="w-4 h-4 mr-1" />
-        Limpiar filtros
-      </Button>
-    </div>
-
-    <!-- Loading state -->
-    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div
-        v-for="i in 6"
-        :key="i"
-        class="bg-card border border-border rounded-lg p-4"
-      >
-        <div class="flex items-center gap-2 mb-3">
-          <Skeleton class="h-5 w-24" />
-          <Skeleton class="h-5 w-16" />
+  <div>
+    <div class="pia-page-header">
+      <div class="pia-page-title-block">
+        <h1>Propiedades</h1>
+        <div class="pia-page-subtitle">
+          <span>{{ properties.length }} en total</span>
+          <span class="pia-dot-sep" />
+          <span>{{ filteredProperties.length }} mostradas</span>
         </div>
-        <Skeleton class="h-6 w-3/4 mb-2" />
-        <Skeleton class="h-4 w-full mb-3" />
-        <Skeleton class="h-4 w-1/2 mb-4" />
-        <div class="flex items-center gap-4 mb-4">
-          <Skeleton class="h-4 w-12" />
-          <Skeleton class="h-4 w-12" />
-          <Skeleton class="h-4 w-16" />
+      </div>
+      <div class="pia-page-actions">
+        <button class="pia-btn pia-btn-primary" @click="openCreateDialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nueva propiedad
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:gap-2.5" style="margin-bottom:var(--gap)">
+      <!-- Search bar - full width on mobile -->
+      <div class="pia-search-bar w-full md:w-[260px]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input v-model="search" placeholder="Nombre, dirección o ciudad…" />
+      </div>
+      <!-- Filters row - horizontal scroll on mobile -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 md:flex-1">
+        <select v-model="statusFilter" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
+          <option value="all">Todos los estados</option>
+          <option value="disponible">Disponible</option>
+          <option value="alquilada">Alquilada</option>
+          <option value="mantenimiento">Mantenimiento</option>
+          <option value="reservada">Reservada</option>
+          <option value="vendida">Vendida</option>
+        </select>
+        <select v-model="typeFilter" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
+          <option value="all">Todos los tipos</option>
+          <option value="departamento">Departamento</option>
+          <option value="casa">Casa</option>
+          <option value="comercial">Comercial</option>
+          <option value="terreno">Terreno</option>
+          <option value="oficina">Oficina</option>
+          <option value="local">Local</option>
+          <option value="galpon">Galpón</option>
+        </select>
+        <select v-model="purposeFilter" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
+          <option value="all">Alquiler y venta</option>
+          <option value="alquiler">Alquiler</option>
+          <option value="venta">Venta</option>
+        </select>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm flex-shrink-0" @click="clearFilters">Limpiar</button>
+        <div class="flex-1 hidden md:block" />
+        <!-- View toggle - hidden on mobile -->
+        <div class="pia-segmented hidden md:flex">
+          <button :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </button>
         </div>
-        <Skeleton class="h-5 w-20" />
       </div>
     </div>
 
-    <!-- Error state -->
-    <div v-else-if="error" class="py-12 text-center">
-      <p class="text-destructive font-medium mb-2">Error al cargar propiedades</p>
-      <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-      <Button variant="outline" @click="loadProperties">
-        Reintentar
-      </Button>
-    </div>
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando propiedades…</div>
+    <div v-else-if="error" style="padding:40px;text-align:center;color:var(--terra)">{{ error }}</div>
 
-    <!-- Data loaded -->
-    <template v-else>
-      <!-- Empty state -->
-      <div v-if="filteredProperties.length === 0" class="py-12 text-center">
-        <Building2 class="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <p class="text-lg font-medium text-muted-foreground mb-2">
-          {{ hasActiveFilters ? 'No se encontraron propiedades' : 'No hay propiedades' }}
-        </p>
-        <p class="text-sm text-muted-foreground mb-4">
-          {{ hasActiveFilters
-            ? 'Intenta ajustar los filtros de búsqueda'
-            : 'Comienza agregando tu primera propiedad'
-          }}
-        </p>
-        <Button v-if="hasActiveFilters" variant="outline" @click="clearFilters">
-          Limpiar filtros
-        </Button>
-        <Button v-else @click="openCreateDialog">
-          <Plus class="w-4 h-4 mr-2" />
-          Nueva Propiedad
-        </Button>
+    <!-- Grid view -->
+    <template v-else-if="viewMode === 'grid'">
+      <div v-if="filteredProperties.length === 0" class="pia-card">
+        <div class="pia-empty">
+          <div class="pia-empty-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div>{{ hasActiveFilters ? 'Sin propiedades con estos filtros' : 'No hay propiedades registradas' }}</div>
+          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+          <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">Nueva propiedad</button>
+        </div>
       </div>
-
-      <!-- Properties grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-else class="pia-grid pia-grid-4" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
         <div
           v-for="property in filteredProperties"
           :key="property.id"
-          class="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/30 hover:border-primary/50 transition-colors"
+          class="pia-property-card"
           @click="navigateToProperty(property.id)"
         >
-          <!-- Badges row -->
-          <div class="flex items-center gap-2 mb-3">
-            <Badge :class="getTypeBadgeClass(property.property_type)">
-              {{ getTypeLabel(property.property_type) }}
-            </Badge>
-            <Badge :class="getPurposeBadgeClass(property.purpose)">
-              {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
-            </Badge>
+          <div class="pia-property-thumb" style="background:var(--pia-surface-2);display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--pia-text-4)" stroke-width="1.5" width="32" height="32"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </div>
-
-          <!-- Title -->
-          <h3 class="font-semibold text-foreground mb-1 truncate">
-            {{ property.name }}
-          </h3>
-
-          <!-- Address -->
-          <p class="text-sm text-muted-foreground mb-3 truncate">
-            {{ formatAddress(property) }}
-          </p>
-
-          <!-- Owner -->
-          <div v-if="property.owner" class="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <User class="w-4 h-4" />
-            <span class="truncate">{{ property.owner.full_name }}</span>
-          </div>
-
-          <!-- Stats row -->
-          <div class="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-            <div v-if="property.bedrooms" class="flex items-center gap-1">
-              <Bed class="w-4 h-4" />
-              <span>{{ property.bedrooms }}</span>
+          <div class="pia-property-body">
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+              <span class="pia-chip neutral" style="font-size:10px">{{ getTypeLabel(property.property_type) }}</span>
+              <span class="pia-chip" :class="property.purpose === 'alquiler' ? 'neutral' : 'warn'" style="font-size:10px">
+                {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+              </span>
             </div>
-            <div v-if="property.bathrooms" class="flex items-center gap-1">
-              <Bath class="w-4 h-4" />
-              <span>{{ property.bathrooms }}</span>
+            <strong style="display:block;font-size:14px;margin-bottom:4px">{{ property.name }}</strong>
+            <div style="font-size:12px;color:var(--pia-text-3);margin-bottom:8px">{{ formatAddress(property) }}</div>
+            <div v-if="property.owner" style="font-size:11.5px;color:var(--pia-text-3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="12" height="12"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/></svg>
+              {{ property.owner.full_name }}
             </div>
-            <div v-if="property.square_meters" class="flex items-center gap-1">
-              <Ruler class="w-4 h-4" />
-              <span>{{ property.square_meters }} m²</span>
+            <div v-if="property.bedrooms || property.bathrooms || property.square_meters" style="display:flex;gap:12px;font-size:11.5px;color:var(--pia-text-3);margin-bottom:12px;font-family:var(--font-mono)">
+              <span v-if="property.bedrooms">{{ property.bedrooms }} amb</span>
+              <span v-if="property.bathrooms">{{ property.bathrooms }} ba</span>
+              <span v-if="property.square_meters">{{ property.square_meters }} m²</span>
             </div>
-          </div>
-
-          <!-- Footer with status and actions -->
-          <div class="flex items-center justify-between pt-3 border-t border-border">
-            <Badge :class="getStatusBadgeClass(property.status)">
-              {{ getStatusLabel(property.status) }}
-            </Badge>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild @click.stop>
-                <Button variant="ghost" size="icon" class="h-8 w-8">
-                  <MoreVertical class="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" @click.stop>
-                <DropdownMenuItem @click.stop="navigateToProperty(property.id)">
-                  <Eye class="w-4 h-4 mr-2" />
-                  Ver detalle
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  class="text-destructive focus:text-destructive"
-                  @click.stop="confirmDelete(property)"
-                >
-                  <Trash2 class="w-4 h-4 mr-2" />
-                  Eliminar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--pia-border)">
+              <span class="pia-status" :class="getStatusClass(property.status)">
+                <span class="dot" />{{ getStatusLabel(property.status) }}
+              </span>
+              <button class="pia-icon-btn" style="width:26px;height:26px" title="Eliminar" @click.stop="confirmDelete(property)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-
-      <p v-if="filteredProperties.length > 0" class="mt-4 text-sm text-muted-foreground">
-        Mostrando {{ filteredProperties.length }} de {{ properties.length }} propiedades
-      </p>
+      <div v-if="filteredProperties.length > 0" style="margin-top:16px;font-size:12px;color:var(--pia-text-3)">
+        {{ filteredProperties.length }} de {{ properties.length }} propiedades
+      </div>
     </template>
 
+    <!-- List view -->
+    <div v-else class="pia-card" style="padding:0;overflow:hidden">
+      <div class="pia-scroll-x">
+        <table class="pia-tbl">
+          <thead>
+            <tr>
+              <th>Propiedad</th>
+              <th>Propietario</th>
+              <th>Tipo</th>
+              <th>Finalidad</th>
+              <th>Estado</th>
+              <th style="text-align:right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="property in filteredProperties" :key="property.id" style="cursor:pointer" @click="navigateToProperty(property.id)">
+              <td>
+                <strong style="display:block">{{ property.name }}</strong>
+                <div style="font-size:11.5px;color:var(--pia-text-3)">{{ formatAddress(property) }}</div>
+                <div v-if="property.square_meters || property.bedrooms" style="font-size:11px;color:var(--pia-text-4);font-family:var(--font-mono);margin-top:2px">
+                  <span v-if="property.bedrooms">{{ property.bedrooms }} amb</span>
+                  <span v-if="property.bedrooms && property.square_meters"> · </span>
+                  <span v-if="property.square_meters">{{ property.square_meters }} m²</span>
+                </div>
+              </td>
+              <td style="color:var(--pia-text-3)">{{ property.owner?.full_name || '—' }}</td>
+              <td>
+                <span class="pia-chip neutral" style="font-size:11px">{{ getTypeLabel(property.property_type) }}</span>
+              </td>
+              <td>
+                <span class="pia-chip" :class="property.purpose === 'alquiler' ? 'neutral' : 'warn'" style="font-size:11px">
+                  {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+                </span>
+              </td>
+              <td>
+                <span class="pia-status" :class="getStatusClass(property.status)">
+                  <span class="dot" />{{ getStatusLabel(property.status) }}
+                </span>
+              </td>
+              <td style="text-align:right" @click.stop>
+                <div style="display:inline-flex;gap:2px">
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Ver" @click="navigateToProperty(property.id)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  </button>
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Eliminar" @click.stop="confirmDelete(property)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="filteredProperties.length === 0" class="pia-empty">
+          <div class="pia-empty-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div>{{ hasActiveFilters ? 'Sin propiedades con estos filtros' : 'No hay propiedades registradas' }}</div>
+          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+          <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">Nueva propiedad</button>
+        </div>
+      </div>
+      <div v-if="filteredProperties.length > 0" class="pia-tbl-footer">
+        <span>{{ filteredProperties.length }} de {{ properties.length }} propiedades</span>
+      </div>
+    </div>
+
     <!-- Property Dialog (Create) -->
-    <PropertyDialog
-      v-model:open="createDialogOpen"
-      @success="handleCreateSuccess"
-    />
+    <PropertyDialog v-model:open="createDialogOpen" @success="handleCreateSuccess" />
 
     <!-- Delete Confirmation Dialog -->
     <AlertDialog v-model:open="deleteDialogOpen">
@@ -239,11 +202,7 @@
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel :disabled="deleting">Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            :disabled="deleting"
-            @click="executeDelete"
-          >
+          <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/90" :disabled="deleting" @click="executeDelete">
             <Loader2 v-if="deleting" class="w-4 h-4 mr-2 animate-spin" />
             Eliminar
           </AlertDialogAction>
@@ -256,25 +215,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -286,20 +226,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import PropertyDialog from '@/components/properties/PropertyDialog.vue'
-import {
-  Plus,
-  Search,
-  X,
-  Eye,
-  Trash2,
-  Building2,
-  Loader2,
-  MoreVertical,
-  User,
-  Bed,
-  Bath,
-  Ruler,
-} from 'lucide-vue-next'
+import { Loader2 } from 'lucide-vue-next'
 import { useProperties } from '@/composables/useProperties'
 import { useToast } from '@/composables/useToast'
 import { useDebounce } from '@/composables/useDebounce'
@@ -314,6 +241,9 @@ const {
   fetchProperties,
   deleteProperty,
 } = useProperties()
+
+// View mode
+const viewMode = ref<'grid' | 'list'>('grid')
 
 // Filter state
 const search = ref('')
@@ -392,25 +322,6 @@ function getTypeLabel(type: PropertyType): string {
   return labels[type] || type
 }
 
-function getTypeBadgeClass(type: PropertyType): string {
-  const classes: Record<PropertyType, string> = {
-    departamento: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
-    casa: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
-    comercial: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
-    terreno: 'bg-stone-100 text-stone-800 dark:bg-stone-900/30 dark:text-stone-400 border-stone-200 dark:border-stone-800',
-    oficina: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800',
-    local: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200 dark:border-violet-800',
-    galpon: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800',
-  }
-  return classes[type] || ''
-}
-
-function getPurposeBadgeClass(purpose: PropertyPurpose): string {
-  if (purpose === 'alquiler') {
-    return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800'
-  }
-  return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800'
-}
 
 function getStatusLabel(status: PropertyStatus): string {
   const labels: Record<PropertyStatus, string> = {
@@ -423,15 +334,16 @@ function getStatusLabel(status: PropertyStatus): string {
   return labels[status] || status
 }
 
-function getStatusBadgeClass(status: PropertyStatus): string {
-  const classes: Record<PropertyStatus, string> = {
-    disponible: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
-    alquilada: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-    mantenimiento: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
-    reservada: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800',
-    vendida: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
+
+function getStatusClass(status: PropertyStatus): string {
+  const map: Record<PropertyStatus, string> = {
+    disponible: 'ok',
+    alquilada: 'pending',
+    mantenimiento: 'late',
+    reservada: 'pending',
+    vendida: 'draft',
   }
-  return classes[status] || ''
+  return map[status] || 'draft'
 }
 
 // Actions
