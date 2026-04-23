@@ -159,7 +159,7 @@ function goToSettings() {
 
 async function handleLogout() {
   showUserDropdown.value = false
-  await authStore.logout()
+  await authStore.signOut()
   router.push({ name: 'login' })
 }
 

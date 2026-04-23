@@ -711,7 +711,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
+
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -752,7 +752,7 @@ import { useContracts } from '@/composables/useContracts'
 import { usePayments } from '@/composables/usePayments'
 import { useDate } from '@/composables/useDate'
 import { useFormatCurrency } from '@/composables/useFormatCurrency'
-import { useToast } from '@/composables/useToast'
+
 import AdjustmentAlert from '@/components/payments/AdjustmentAlert.vue'
 import GeneratePaymentsDialog from '@/components/payments/GeneratePaymentsDialog.vue'
 import RentAdjustmentDialog from '@/components/payments/RentAdjustmentDialog.vue'
@@ -767,8 +767,7 @@ import type {
   PaymentStatus,
 } from '@/types'
 
-const { t } = useI18n()
-const toast = useToast()
+
 const route = useRoute()
 const router = useRouter()
 const {

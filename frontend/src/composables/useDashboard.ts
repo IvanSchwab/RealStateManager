@@ -455,20 +455,8 @@ export function useDashboard() {
 
       if (fetchError) throw fetchError
 
-      recentPayments.value = (payments || []).map((p: {
-        id: string
-        total_amount: number | null
-        payment_date: string | null
-        contract: {
-          id: string
-          property: { address_street: string; address_number: string | null } | null
-          tenants: Array<{
-            role: string
-            tenant: { first_name: string; last_name: string } | null
-          }>
-        }
-      }) => {
-        const titular = p.contract?.tenants?.find(t => t.role === 'titular')
+      recentPayments.value = (payments || []).map((p: any) => {
+        const titular = p.contract?.tenants?.find((t: any) => t.role === 'titular')
         const tenantName = titular?.tenant
           ? `${titular.tenant.first_name} ${titular.tenant.last_name}`
           : 'Inquilino desconocido'
@@ -536,16 +524,8 @@ export function useDashboard() {
 
       if (fetchError) throw fetchError
 
-      expiringContracts.value = (contracts || []).map((c: {
-        id: string
-        end_date: string
-        property: { address_street: string; address_number: string | null; property_type: string } | null
-        tenants: Array<{
-          role: string
-          tenant: { first_name: string; last_name: string } | null
-        }>
-      }) => {
-        const titular = c.tenants?.find(t => t.role === 'titular')
+      expiringContracts.value = (contracts || []).map((c: any) => {
+        const titular = c.tenants?.find((t: any) => t.role === 'titular')
         const tenantName = titular?.tenant
           ? `${titular.tenant.first_name} ${titular.tenant.last_name}`
           : 'Inquilino desconocido'

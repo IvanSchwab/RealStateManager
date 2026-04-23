@@ -43,7 +43,7 @@
         <div>
           <div style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;opacity:0.75;font-weight:600">Total a cobrar · {{ getMonthName(filterStore.month) }} {{ filterStore.year }}</div>
           <div class="text-2xl md:text-4xl" style="font-weight:500;letter-spacing:-0.02em;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums">
-            <span class="text-sm md:text-lg" style="font-weight:400;opacity:0.8;margin-right:6px">$</span>{{ (summary.totalExpected || 0).toLocaleString('es-AR') }}
+            <span class="text-sm md:text-lg" style="font-weight:400;opacity:0.8;margin-right:6px">$</span>{{ (summary.totalToCollect || 0).toLocaleString('es-AR') }}
           </div>
           <div style="font-size:12.5px;opacity:0.85;margin-top:6px">{{ payments.length }} cobranzas · {{ pctCobrado }}% completadas</div>
         </div>
@@ -300,11 +300,11 @@ import { storeToRefs } from 'pinia'
 import type { PaymentWithDetails, PaymentStatus } from '@/types'
 
 const { t } = useI18n()
-const { payments, loading, error, fetchPayments, fetchPaymentsByIds, updateOverduePayments, getMonthSummary, formatCurrency, getPeriodLabel, formatPropertyAddress, getStatusLabel, getDaysOverdue } = usePayments()
+const { payments, loading, fetchPayments, fetchPaymentsByIds, updateOverduePayments, getMonthSummary, formatCurrency, getPeriodLabel, formatPropertyAddress, getStatusLabel, getDaysOverdue } = usePayments()
 const { formatDate, getMonthName } = useDate()
 const { printReceiptPDF } = useReceiptPDF()
 const { sending: sendingNotification, canNotifyByEmail, canNotifyByWhatsApp, openWhatsApp, sendEmailNotification } = usePaymentNotification()
-const { loading: bulkNotificationLoading, progress: bulkNotificationProgress, notifySelected: bulkNotifySelected, notifyAll: bulkNotifyAll } = useBulkNotification()
+const { loading: bulkNotificationLoading, notifySelected: bulkNotifySelected, notifyAll: bulkNotifyAll } = useBulkNotification()
 const filterStore = usePaymentsFilterStore()
 const { search } = storeToRefs(filterStore)
 const debouncedSearch = useDebounce(search, 300)
@@ -322,25 +322,24 @@ const bulkNotificationResult = ref<BulkNotificationResult>({ sent: 0, skipped: 0
 const hasActiveFilters = computed(() => filterStore.search !== '' || filterStore.status !== 'all')
 const yearOptions = computed(() => { const y = new Date().getFullYear(); return [y - 1, y, y + 1] })
 const totalPages = computed(() => Math.ceil(filterStore.totalCount / filterStore.pageSize))
-const paginationStart = computed(() => filterStore.totalCount === 0 ? 0 : (filterStore.currentPage - 1) * filterStore.pageSize + 1)
-const paginationEnd = computed(() => Math.min(filterStore.currentPage * filterStore.pageSize, filterStore.totalCount))
+
 const isAllSelected = computed(() => payments.value.length > 0 && payments.value.every(p => selectedPayments.value.includes(p.id)))
 const isPartiallySelected = computed(() => { const s = payments.value.filter(p => selectedPayments.value.includes(p.id)); return s.length > 0 && s.length < payments.value.length })
 const summary = computed(() => getMonthSummary(payments.value, filterStore.month, filterStore.year))
 
 const pctCobrado = computed(() => {
-  const t = summary.value.totalExpected || 0
+  const t = summary.value.totalToCollect || 0
   if (!t) return 0
-  return Math.round((summary.value.totalPaid / t) * 100)
+  return Math.round((summary.value.collected / t) * 100)
 })
-const paidFraction = computed(() => { const t = summary.value.totalExpected || 1; return Math.round((summary.value.totalPaid / t) * 100) })
-const pendingFraction = computed(() => { const t = summary.value.totalExpected || 1; return Math.round((summary.value.totalPending / t) * 100) })
-const overdueFraction = computed(() => { const t = summary.value.totalExpected || 1; return Math.round((summary.value.totalOverdue / t) * 100) })
+const paidFraction = computed(() => { const t = summary.value.totalToCollect || 1; return Math.round((summary.value.collected / t) * 100) })
+const pendingFraction = computed(() => { const t = summary.value.totalToCollect || 1; return Math.round((summary.value.pending / t) * 100) })
+const overdueFraction = computed(() => { const t = summary.value.totalToCollect || 1; return Math.round((summary.value.overdue / t) * 100) })
 
 const heroSegments = computed(() => [
-  { label: 'Cobrado', amount: summary.value.totalPaid || 0, count: summary.value.paidCount || 0, color: 'rgba(134,239,172,1)' },
-  { label: 'Pendiente', amount: summary.value.totalPending || 0, count: summary.value.pendingCount || 0, color: 'rgba(253,224,71,1)' },
-  { label: 'Vencido', amount: summary.value.totalOverdue || 0, count: summary.value.overdueCount || 0, color: 'rgba(252,165,165,1)' },
+  { label: 'Cobrado', amount: summary.value.collected || 0, count: summary.value.paidCount || 0, color: 'rgba(134,239,172,1)' },
+  { label: 'Pendiente', amount: summary.value.pending || 0, count: summary.value.pendingCount || 0, color: 'rgba(253,224,71,1)' },
+  { label: 'Vencido', amount: summary.value.overdue || 0, count: summary.value.overdueCount || 0, color: 'rgba(252,165,165,1)' },
 ])
 
 const statusTabs = computed(() => [

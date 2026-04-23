@@ -388,29 +388,27 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useI18n } from 'vue-i18n'
+
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { AdjustmentCorrectionDialog, AdjustmentHistoryList } from '@/components/adjustments'
 import { useDashboard } from '@/composables/useDashboard'
 import { useAutomaticAdjustments } from '@/composables/useAutomaticAdjustments'
-import { useInflationData } from '@/composables/useInflationData'
+
 import type { AdjustmentHistory } from '@/types'
 
-const { t } = useI18n()
+
 
 const {
-  loading, economicLoading, economicError,
+  loading,
   incomeKPIs, economicIndicators, incomeChartData, paymentDistribution,
   recentPayments, expiringContracts, formatCurrency, getMonthName, fetchAllData, fetchChartData,
 } = useDashboard()
 
 const {
-  loading: adjustmentsLoading, processAutomaticAdjustments, getAdjustmentCounts,
+  loading: adjustmentsLoading, getAdjustmentCounts,
   getEstimatedAdjustments, correctEstimatedAdjustment, keepEstimatedAdjustment,
-  getAdjustmentHistory, shouldProcessAutomatically,
 } = useAutomaticAdjustments()
 
-const { getLatestInflation } = useInflationData()
 
 const chartPeriod = ref(6)
 const chartPeriodOptions = computed(() => [

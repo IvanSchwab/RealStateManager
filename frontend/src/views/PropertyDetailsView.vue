@@ -137,15 +137,15 @@
                     </div>
                     <div>
                       <Label for="address_number">Numero</Label>
-                      <Input id="address_number" v-model="editForm.address_number" />
+                      <Input id="address_number" :model-value="editForm.address_number ?? undefined" @update:model-value="editForm.address_number = $event != null ? String($event) : null" />
                     </div>
                     <div>
                       <Label for="address_floor">Piso</Label>
-                      <Input id="address_floor" v-model="editForm.address_floor" />
+                      <Input id="address_floor" :model-value="editForm.address_floor ?? undefined" @update:model-value="editForm.address_floor = $event != null ? String($event) : null" />
                     </div>
                     <div>
                       <Label for="address_apartment">Departamento</Label>
-                      <Input id="address_apartment" v-model="editForm.address_apartment" />
+                      <Input id="address_apartment" :model-value="editForm.address_apartment ?? undefined" @update:model-value="editForm.address_apartment = $event != null ? String($event) : null" />
                     </div>
                     <div>
                       <Label for="address_city">Ciudad</Label>
@@ -157,7 +157,7 @@
                     </div>
                     <div>
                       <Label for="address_zip_code">Codigo Postal</Label>
-                      <Input id="address_zip_code" v-model="editForm.address_zip_code" />
+                      <Input id="address_zip_code" :model-value="editForm.address_zip_code ?? undefined" @update:model-value="editForm.address_zip_code = $event != null ? String($event) : null" />
                     </div>
                   </div>
 
@@ -167,21 +167,21 @@
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label for="bedrooms">Dormitorios</Label>
-                      <Input id="bedrooms" v-model="editForm.bedrooms" type="text" inputmode="decimal" placeholder="ej: 3" />
+                      <Input id="bedrooms" :model-value="editForm.bedrooms ?? undefined" @update:model-value="editForm.bedrooms = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 3" />
                     </div>
                     <div>
                       <Label for="bathrooms">Banos</Label>
-                      <Input id="bathrooms" v-model="editForm.bathrooms" type="text" inputmode="decimal" placeholder="ej: 2" />
+                      <Input id="bathrooms" :model-value="editForm.bathrooms ?? undefined" @update:model-value="editForm.bathrooms = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 2" />
                     </div>
                     <div>
                       <Label for="square_meters">Superficie (m2)</Label>
-                      <Input id="square_meters" v-model="editForm.square_meters" type="text" inputmode="decimal" placeholder="ej: 45,5" />
+                      <Input id="square_meters" :model-value="editForm.square_meters ?? undefined" @update:model-value="editForm.square_meters = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 45,5" />
                     </div>
                   </div>
 
                   <div>
                     <Label for="description">Descripcion</Label>
-                    <Textarea id="description" v-model="editForm.description" rows="3" />
+                    <Textarea id="description" :model-value="editForm.description ?? undefined" @update:model-value="editForm.description = $event != null ? String($event) : null" rows="3" />
                   </div>
 
                   <!-- Owner -->

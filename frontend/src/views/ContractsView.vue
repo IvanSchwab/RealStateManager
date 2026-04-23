@@ -199,10 +199,11 @@
     />
     <CancelContractDialog
       v-model:open="cancelDialogOpen"
-      :contract="cancellingContract"
+      :contract-id="cancellingContract?.id ?? ''"
+      :contract="cancellingContract ?? undefined"
       :property-address="cancellingContractPropertyAddress"
       :tenant-name="cancellingContractTenantName"
-      @success="handleRescindSuccess"
+      @confirm="handleRescindSuccess"
     />
   </div>
 </template>
@@ -376,7 +377,6 @@ function setStatusFilter(id: string) {
 function clearFilters() { filterStore.resetFilters(); loadContracts() }
 function openCreateDialog() { editingContractId.value = null; dialogOpen.value = true }
 function openEditDialog(id: string) { editingContractId.value = id; dialogOpen.value = true }
-function openRescindDialog(contract: ContractWithRelations) { cancellingContract.value = contract; cancelDialogOpen.value = true }
 function handleRenew(_contract: ContractWithRelations) { toast.info(t('contracts.featureComingSoon')) }
 function viewContract(id: string) { router.push({ name: 'contract-details', params: { id } }) }
 function goToPreviousPage() { filterStore.setPage(filterStore.currentPage - 1); loadContracts() }

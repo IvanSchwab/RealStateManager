@@ -90,7 +90,7 @@
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <div
         v-for="(image, index) in images"
-        :key="image.path"
+        :key="image.storage_path"
         class="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
         @click="openLightbox(index)"
       >
@@ -328,7 +328,7 @@ function confirmDelete(image: PropertyImage) {
 
 async function handleDelete() {
   if (imageToDelete.value) {
-    await deleteImage(imageToDelete.value.path)
+    await deleteImage(imageToDelete.value.storage_path)
     imageToDelete.value = null
   }
   deleteDialogOpen.value = false

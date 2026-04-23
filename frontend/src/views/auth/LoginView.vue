@@ -80,7 +80,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Building2, Loader2, UserPlus } from 'lucide-vue-next'
+import { Loader2, UserPlus } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

@@ -330,7 +330,7 @@ async function acceptInvitation(token: string) {
     }
 
     // Success - refresh auth state and start redirect
-    await authStore.refreshProfile()
+    await authStore.loadProfile()
     state.value = 'success'
     startRedirectCountdown()
   } catch (e) {

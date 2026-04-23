@@ -210,21 +210,26 @@ export function usePaymentConcepts() {
     try {
       const today = new Date().toISOString().split('T')[0]
 
+      // First, fetch the payment IDs for future pending payments
+      const { data: futurePayments, error: fetchError } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('contract_id', contractId)
+        .eq('status', 'pendiente')
+        .gte('due_date', today)
+
+      if (fetchError) throw fetchError
+      if (!futurePayments || futurePayments.length === 0) return 0
+
+      const paymentIds = futurePayments.map(p => p.id)
+
       // Find all concepts matching the name in future pending payments
       const { data, error: deleteError } = await supabase
         .from('payment_concepts')
         .delete()
         .eq('concept_name', conceptName)
         .eq('is_recurring', true)
-        .in(
-          'payment_id',
-          supabase
-            .from('payments')
-            .select('id')
-            .eq('contract_id', contractId)
-            .eq('status', 'pendiente')
-            .gte('due_date', today)
-        )
+        .in('payment_id', paymentIds)
         .select('id')
 
       if (deleteError) throw deleteError
