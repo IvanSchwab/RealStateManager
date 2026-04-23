@@ -212,6 +212,7 @@ export default {
     errorLoading: 'Error loading owners',
     ownerNotFound: 'Owner not found',
     backToOwners: 'Back to Owners',
+    clientSince: 'Client since',
     personalInfo: 'Personal Information',
     fullName: 'Full Name',
     cuitCuil: 'Tax ID (CUIT/CUIL)',

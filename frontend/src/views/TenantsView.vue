@@ -68,8 +68,8 @@
 
     <!-- Content -->
     <template v-else>
-      <!-- List View (Table) -->
-      <div v-if="viewMode === 'list'" class="pia-card" style="padding:0;overflow:hidden">
+      <!-- List View (Table) — hidden on mobile via CSS, replaced by cards -->
+      <div v-show="viewMode === 'list'" class="list-view-wrapper pia-card" style="padding:0;overflow:hidden">
         <div class="pia-scroll-x">
           <table class="pia-tbl tenants-tbl">
             <thead>
@@ -163,8 +163,8 @@
         </div>
       </div>
 
-      <!-- Cards View -->
-      <template v-else>
+      <!-- Cards View — always visible on mobile via CSS, shown on desktop when toggled -->
+      <div class="cards-view-wrapper" v-show="viewMode === 'cards'">
         <div class="tenants-grid">
           <div v-for="tenant in tenants" :key="tenant.id" class="tenant-card" @click="viewTenant(tenant.id)">
             <div class="tenant-card-header">
@@ -227,7 +227,7 @@
             <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
           </div>
         </div>
-      </template>
+      </div>
     </template>
 
     <!-- Context Menu -->
@@ -278,8 +278,8 @@ const editingTenantId = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const deletingTenant = ref<TenantWithContract | null>(null)
 
-// View mode - default to cards on mobile, list on desktop
-const viewMode = ref<'list' | 'cards'>(window.innerWidth <= 768 ? 'cards' : 'list')
+// View mode toggle — CSS handles forcing cards on mobile
+const viewMode = ref<'list' | 'cards'>('list')
 
 const currentTab = ref<TenantDisplayStatus | 'all'>('all')
 const counts = ref({ all: 0, activo: 0, moroso: 0, sin_contrato: 0 })
@@ -717,6 +717,15 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .tenants-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* On mobile: force cards, hide the table regardless of viewMode toggle */
+  .list-view-wrapper {
+    display: none !important;
+  }
+
+  .cards-view-wrapper {
+    display: block !important;
   }
 
   .filter-bar {

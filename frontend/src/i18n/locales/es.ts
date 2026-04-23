@@ -212,6 +212,7 @@ export default {
     errorLoading: 'Error al cargar propietarios',
     ownerNotFound: 'Propietario no encontrado',
     backToOwners: 'Volver a Propietarios',
+    clientSince: 'Cliente desde',
     personalInfo: 'Informacion Personal',
     fullName: 'Nombre Completo',
     cuitCuil: 'CUIT/CUIL',

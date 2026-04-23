@@ -1,580 +1,552 @@
 <template>
-  <div class="p-6">
+  <div>
     <!-- Loading state -->
-    <div v-if="loading && !currentProperty" class="py-12 text-center text-muted-foreground">
-      <Loader2 class="w-8 h-8 mx-auto animate-spin" />
-      <p class="mt-2">Cargando propiedad...</p>
+    <div v-if="loading && !currentProperty" class="flex flex-col items-center justify-center py-20 gap-3" style="color: var(--pia-text-3)">
+      <Loader2 class="w-8 h-8 animate-spin" />
+      <p class="text-sm">Cargando propiedad...</p>
     </div>
 
     <!-- Error state -->
-    <div v-else-if="error && !currentProperty" class="py-12 text-center">
-      <AlertCircle class="w-12 h-12 mx-auto text-destructive mb-4" />
-      <p class="text-destructive font-medium mb-2">Error al cargar la propiedad</p>
-      <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-      <Button variant="outline" @click="goBack">
-        <ArrowLeft class="w-4 h-4 mr-2" />
+    <div v-else-if="error && !currentProperty" class="flex flex-col items-center justify-center py-20 gap-3">
+      <AlertCircle class="w-10 h-10" style="color: var(--terra)" />
+      <p class="font-medium" style="color: var(--terra)">Error al cargar la propiedad</p>
+      <p class="text-sm" style="color: var(--pia-text-3)">{{ error }}</p>
+      <button class="pia-btn pia-btn-ghost" @click="goBack">
+        <ArrowLeft class="w-4 h-4" />
         Volver a Propiedades
-      </Button>
+      </button>
     </div>
 
     <!-- Property details -->
     <template v-else-if="currentProperty">
-      <!-- Header Card -->
-      <div
-        class="bg-white dark:bg-gray-900 rounded-xl shadow-sm mb-6 overflow-hidden"
-      >
-        <!-- Colored top border based on property_type -->
-        <div :class="['h-1', getPropertyTypeColorClass(currentProperty.property_type)]" />
+      <!-- Page header -->
+      <div class="pia-page-header prop-page-header">
+        <!-- Back link -->
+        <button class="pia-btn-back" @click="goBack">
+          <ArrowLeft class="w-3.5 h-3.5" />
+          <span>Volver a Propiedades</span>
+        </button>
 
-        <div class="p-6">
-          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <Button variant="ghost" size="sm" class="mb-2 -ml-2" @click="goBack">
-                <ArrowLeft class="w-4 h-4 mr-2" />
-                Volver a Propiedades
-              </Button>
-              <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ currentProperty.name }}</h1>
-              <div class="flex items-center gap-2 mt-3">
-                <Badge :class="getStatusBadgeClass(currentProperty.status)">
-                  {{ getStatusLabel(currentProperty.status) }}
-                </Badge>
-                <Badge :class="getTypeBadgeClass(currentProperty.property_type)">
-                  {{ getTypeLabel(currentProperty.property_type) }}
-                </Badge>
-                <Badge :class="getPurposeBadgeClass(currentProperty.purpose)">
-                  {{ currentProperty.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
-                </Badge>
+        <!-- Title row -->
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <!-- Status + type + purpose badges -->
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <span class="pia-status" :class="getPropertyStatusClass(currentProperty.status)">
+                <span class="dot" />{{ getStatusLabel(currentProperty.status) }}
+              </span>
+              <span class="prop-chip">{{ getTypeLabel(currentProperty.property_type) }}</span>
+              <span class="prop-chip">{{ currentProperty.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}</span>
+            </div>
+            <!-- Name -->
+            <h1 class="prop-name">{{ currentProperty.name }}</h1>
+            <!-- Address sub-line -->
+            <div class="prop-address-line">
+              <MapPin class="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{{ currentProperty.address_city }}, {{ currentProperty.address_state }}</span>
+              <template v-if="currentProperty.address_floor || currentProperty.address_apartment">
+                <span class="prop-addr-sep">·</span>
+                <span>Unidad {{ [currentProperty.address_floor, currentProperty.address_apartment].filter(Boolean).join(' ') }}</span>
+              </template>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button class="pia-btn pia-btn-ghost" :disabled="isEditing" @click="enterEditMode">
+              <Pencil class="w-3.5 h-3.5" />
+              Editar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab navigation -->
+      <div class="prop-tabs-nav">
+        <button class="prop-tab" :class="{ active: activeTab === 'datos' }" @click="activeTab = 'datos'">
+          Datos
+        </button>
+        <button class="prop-tab" :class="{ active: activeTab === 'contratos' }" @click="setTab('contratos')">
+          Contratos
+        </button>
+        <button class="prop-tab" :class="{ active: activeTab === 'documentos' }" @click="setTab('documentos')">
+          Documentos legales
+        </button>
+        <button class="prop-tab" :class="{ active: activeTab === 'fotos' }" @click="setTab('fotos')">
+          Fotos
+        </button>
+      </div>
+
+      <!-- ── Datos tab ── -->
+      <div v-if="activeTab === 'datos'">
+        <!-- Edit mode -->
+        <div v-if="isEditing" class="pia-card" style="padding: 0; overflow: hidden">
+          <div class="pia-detail-section-head">
+            <span class="pia-detail-section-label">Editar propiedad</span>
+          </div>
+          <div class="pia-detail-section-body">
+            <form @submit.prevent="handleSave" style="display: flex; flex-direction: column; gap: 20px">
+              <!-- Basic Info -->
+              <div class="prop-form-grid">
+                <div style="grid-column: 1 / -1">
+                  <Label for="name" class="prop-form-label">Nombre</Label>
+                  <Input id="name" v-model="editForm.name" required />
+                </div>
+                <div>
+                  <Label for="property_type" class="prop-form-label">Tipo de Propiedad</Label>
+                  <Select v-model="editForm.property_type">
+                    <SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="departamento">Departamento</SelectItem>
+                      <SelectItem value="casa">Casa</SelectItem>
+                      <SelectItem value="comercial">Comercial</SelectItem>
+                      <SelectItem value="terreno">Terreno</SelectItem>
+                      <SelectItem value="oficina">Oficina</SelectItem>
+                      <SelectItem value="local">Local</SelectItem>
+                      <SelectItem value="galpon">Galpon</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label for="purpose" class="prop-form-label">Propósito</Label>
+                  <Select v-model="editForm.purpose">
+                    <SelectTrigger><SelectValue placeholder="Seleccionar propósito" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alquiler">Alquiler</SelectItem>
+                      <SelectItem value="venta">Venta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label for="status" class="prop-form-label">Estado</Label>
+                  <Select v-model="editForm.status">
+                    <SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="disponible">Disponible</SelectItem>
+                      <SelectItem value="alquilada">Alquilada</SelectItem>
+                      <SelectItem value="mantenimiento">En mantenimiento</SelectItem>
+                      <SelectItem value="reservada">Reservada</SelectItem>
+                      <SelectItem value="vendida">Vendida</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Separator />
+              <p class="prop-form-section-title">Ubicación</p>
+              <div class="prop-form-grid">
+                <div>
+                  <Label for="address_street" class="prop-form-label">Calle</Label>
+                  <Input id="address_street" v-model="editForm.address_street" required />
+                </div>
+                <div>
+                  <Label for="address_number" class="prop-form-label">Número</Label>
+                  <Input id="address_number" :model-value="editForm.address_number ?? undefined" @update:model-value="editForm.address_number = $event != null ? String($event) : null" />
+                </div>
+                <div>
+                  <Label for="address_floor" class="prop-form-label">Piso</Label>
+                  <Input id="address_floor" :model-value="editForm.address_floor ?? undefined" @update:model-value="editForm.address_floor = $event != null ? String($event) : null" />
+                </div>
+                <div>
+                  <Label for="address_apartment" class="prop-form-label">Departamento</Label>
+                  <Input id="address_apartment" :model-value="editForm.address_apartment ?? undefined" @update:model-value="editForm.address_apartment = $event != null ? String($event) : null" />
+                </div>
+                <div>
+                  <Label for="address_city" class="prop-form-label">Ciudad</Label>
+                  <Input id="address_city" v-model="editForm.address_city" required />
+                </div>
+                <div>
+                  <Label for="address_state" class="prop-form-label">Provincia</Label>
+                  <Input id="address_state" v-model="editForm.address_state" required />
+                </div>
+                <div>
+                  <Label for="address_zip_code" class="prop-form-label">Código Postal</Label>
+                  <Input id="address_zip_code" :model-value="editForm.address_zip_code ?? undefined" @update:model-value="editForm.address_zip_code = $event != null ? String($event) : null" />
+                </div>
+              </div>
+
+              <Separator />
+              <p class="prop-form-section-title">Detalles</p>
+              <div class="prop-form-grid prop-form-grid-3">
+                <div>
+                  <Label for="bedrooms" class="prop-form-label">Dormitorios</Label>
+                  <Input id="bedrooms" :model-value="editForm.bedrooms ?? undefined" @update:model-value="editForm.bedrooms = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 3" />
+                </div>
+                <div>
+                  <Label for="bathrooms" class="prop-form-label">Baños</Label>
+                  <Input id="bathrooms" :model-value="editForm.bathrooms ?? undefined" @update:model-value="editForm.bathrooms = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 2" />
+                </div>
+                <div>
+                  <Label for="square_meters" class="prop-form-label">Superficie (m²)</Label>
+                  <Input id="square_meters" :model-value="editForm.square_meters ?? undefined" @update:model-value="editForm.square_meters = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 45,5" />
+                </div>
+              </div>
+
+              <div>
+                <Label for="description" class="prop-form-label">Descripción</Label>
+                <Textarea id="description" :model-value="editForm.description ?? undefined" @update:model-value="editForm.description = $event != null ? String($event) : null" rows="3" />
+              </div>
+
+              <Separator />
+              <p class="prop-form-section-title">Propietario</p>
+              <div>
+                <Label for="owner_id" class="prop-form-label">Propietario</Label>
+                <Select v-model="editForm.owner_id">
+                  <SelectTrigger><SelectValue placeholder="Seleccionar propietario" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin propietario</SelectItem>
+                    <SelectItem v-for="owner in owners" :key="owner.id" :value="owner.id">
+                      {{ owner.full_name }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <!-- Form actions -->
+              <div class="flex justify-end gap-2 pt-2">
+                <button type="button" class="pia-btn pia-btn-ghost" :disabled="saving" @click="cancelEdit">Cancelar</button>
+                <button type="submit" class="pia-btn pia-btn-primary" :disabled="saving">
+                  <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
+                  Guardar cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Read mode -->
+        <div v-else class="pia-grid pia-grid-main" style="align-items: start">
+          <!-- Main column -->
+          <div style="display: flex; flex-direction: column; gap: var(--gap)">
+
+            <!-- General information -->
+            <div class="pia-card" style="padding: 0; overflow: hidden">
+              <div class="pia-detail-section-head">
+                <span class="pia-detail-section-label">Información general</span>
+              </div>
+              <div class="pia-detail-section-body">
+                <dl class="pia-detail-grid">
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Tipo de propiedad</dt>
+                    <dd class="pia-detail-value">{{ getTypeLabel(currentProperty.property_type) }}</dd>
+                  </div>
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Propósito</dt>
+                    <dd class="pia-detail-value">{{ currentProperty.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}</dd>
+                  </div>
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Estado</dt>
+                    <dd>
+                      <span class="pia-status" :class="getPropertyStatusClass(currentProperty.status)">
+                        <span class="dot" />{{ getStatusLabel(currentProperty.status) }}
+                      </span>
+                    </dd>
+                  </div>
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Superficie</dt>
+                    <dd class="pia-detail-value">{{ currentProperty.square_meters ? `${currentProperty.square_meters} m²` : '-' }}</dd>
+                  </div>
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Dormitorios</dt>
+                    <dd class="pia-detail-value">{{ currentProperty.bedrooms ?? '-' }}</dd>
+                  </div>
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Baños</dt>
+                    <dd class="pia-detail-value">{{ currentProperty.bathrooms ?? '-' }}</dd>
+                  </div>
+                  <div v-if="currentProperty.description" class="pia-detail-field prop-full-col">
+                    <dt class="pia-detail-label">Descripción</dt>
+                    <dd class="pia-detail-value" style="white-space: pre-wrap; line-height: 1.6">{{ currentProperty.description }}</dd>
+                  </div>
+                </dl>
               </div>
             </div>
-            <div class="flex items-center gap-2">
-              <Button variant="outline" @click="enterEditMode" :disabled="isEditing">
-                <Pencil class="w-4 h-4 mr-2" />
-                Editar Propiedad
-              </Button>
+
+            <!-- Location -->
+            <div class="pia-card" style="padding: 0; overflow: hidden">
+              <div class="pia-detail-section-head">
+                <span class="pia-detail-section-label">Ubicación</span>
+              </div>
+              <div class="pia-detail-section-body">
+                <dl class="pia-detail-grid">
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Calle y número</dt>
+                    <dd class="pia-detail-value">
+                      {{ currentProperty.address_street }}{{ currentProperty.address_number ? ` ${currentProperty.address_number}` : '' }}
+                    </dd>
+                  </div>
+                  <div v-if="currentProperty.address_floor || currentProperty.address_apartment" class="pia-detail-field">
+                    <dt class="pia-detail-label">Piso / Depto</dt>
+                    <dd class="pia-detail-value">
+                      {{ [currentProperty.address_floor, currentProperty.address_apartment].filter(Boolean).join(' - ') }}
+                    </dd>
+                  </div>
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Ciudad</dt>
+                    <dd class="pia-detail-value">{{ currentProperty.address_city }}</dd>
+                  </div>
+                  <div class="pia-detail-field">
+                    <dt class="pia-detail-label">Provincia</dt>
+                    <dd class="pia-detail-value">{{ currentProperty.address_state }}</dd>
+                  </div>
+                  <div v-if="currentProperty.address_zip_code" class="pia-detail-field">
+                    <dt class="pia-detail-label">Código Postal</dt>
+                    <dd class="pia-detail-value">{{ currentProperty.address_zip_code }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div style="display: flex; flex-direction: column; gap: var(--gap)">
+
+            <!-- Owner -->
+            <div class="pia-card" style="padding: 0; overflow: hidden">
+              <div class="pia-detail-section-head">
+                <span class="pia-detail-section-label">Propietario</span>
+              </div>
+              <div class="pia-detail-section-body">
+                <div v-if="currentProperty.owner">
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                      <div class="prop-owner-avatar">
+                        {{ getOwnerInitials(currentProperty.owner.full_name) }}
+                      </div>
+                      <div>
+                        <p style="font-size: 13.5px; font-weight: 600; color: var(--pia-text)">{{ currentProperty.owner.full_name }}</p>
+                        <p v-if="currentProperty.owner.cuit_cuil" style="font-size: 11.5px; color: var(--pia-text-4); font-family: var(--font-mono); margin-top: 1px">
+                          {{ currentProperty.owner.cuit_cuil }}
+                        </p>
+                      </div>
+                    </div>
+                    <RouterLink
+                      :to="{ name: 'owner-details', params: { id: currentProperty.owner.id } }"
+                      class="pia-icon-btn"
+                      style="width: 28px; height: 28px"
+                      title="Ver propietario"
+                    >
+                      <ChevronRight class="w-3.5 h-3.5" />
+                    </RouterLink>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 6px">
+                    <div v-if="currentProperty.owner.email" class="prop-owner-contact">
+                      <Mail class="w-3.5 h-3.5 flex-shrink-0" />
+                      <a :href="`mailto:${currentProperty.owner.email}`" class="pia-detail-link" style="font-size: 12.5px">
+                        {{ currentProperty.owner.email }}
+                      </a>
+                    </div>
+                    <div v-if="currentProperty.owner.phone" class="prop-owner-contact">
+                      <Phone class="w-3.5 h-3.5 flex-shrink-0" />
+                      <a :href="`tel:${currentProperty.owner.phone}`" class="pia-detail-link" style="font-size: 12.5px; font-family: var(--font-mono)">
+                        {{ currentProperty.owner.phone }}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="pia-empty" style="padding: 20px 0">
+                  <div class="pia-empty-mark">
+                    <User class="w-4 h-4" />
+                  </div>
+                  <div>Sin propietario asignado</div>
+                  <button class="pia-btn pia-btn-ghost pia-btn-sm" @click="enterEditMode">Asignar propietario</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="pia-card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+              <p class="pia-meta-row">
+                <span class="pia-meta-label">Creado</span>
+                <span class="pia-meta-date">{{ formatDateTime(currentProperty.created_at) }}</span>
+              </p>
+              <p class="pia-meta-row">
+                <span class="pia-meta-label">Última actualización</span>
+                <span class="pia-meta-date">{{ formatDateTime(currentProperty.updated_at) }}</span>
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Tabs -->
-      <Tabs v-model="activeTab" class="w-full">
-        <TabsList class="mb-6 w-full overflow-x-auto justify-start">
-          <TabsTrigger value="datos" class="shrink-0">Datos</TabsTrigger>
-          <TabsTrigger value="contratos" class="shrink-0" @click="loadContractsIfNeeded">Contratos</TabsTrigger>
-          <TabsTrigger value="documentos" class="shrink-0" @click="loadLegalDocumentsIfNeeded">Documentos Legales</TabsTrigger>
-          <TabsTrigger value="fotos" class="shrink-0" @click="loadImagesIfNeeded">Fotos</TabsTrigger>
-        </TabsList>
+      <!-- ── Contratos tab ── -->
+      <div v-if="activeTab === 'contratos'" class="pia-card" style="padding: 0; overflow: hidden">
+        <div class="pia-detail-section-head">
+          <span class="pia-detail-section-label">Contratos asociados</span>
+        </div>
 
-        <!-- Tab 1: Datos -->
-        <TabsContent value="datos">
-          <!-- Edit Mode -->
-          <div v-if="isEditing" class="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle class="text-lg">Editar Propiedad</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form @submit.prevent="handleSave" class="space-y-6">
-                  <!-- Basic Info -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="md:col-span-2">
-                      <Label for="name">Nombre</Label>
-                      <Input id="name" v-model="editForm.name" required />
-                    </div>
-                    <div>
-                      <Label for="property_type">Tipo de Propiedad</Label>
-                      <Select v-model="editForm.property_type">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="departamento">Departamento</SelectItem>
-                          <SelectItem value="casa">Casa</SelectItem>
-                          <SelectItem value="comercial">Comercial</SelectItem>
-                          <SelectItem value="terreno">Terreno</SelectItem>
-                          <SelectItem value="oficina">Oficina</SelectItem>
-                          <SelectItem value="local">Local</SelectItem>
-                          <SelectItem value="galpon">Galpon</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label for="purpose">Proposito</Label>
-                      <Select v-model="editForm.purpose">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar proposito" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="alquiler">Alquiler</SelectItem>
-                          <SelectItem value="venta">Venta</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label for="status">Estado</Label>
-                      <Select v-model="editForm.status">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="disponible">Disponible</SelectItem>
-                          <SelectItem value="alquilada">Alquilada</SelectItem>
-                          <SelectItem value="mantenimiento">En mantenimiento</SelectItem>
-                          <SelectItem value="reservada">Reservada</SelectItem>
-                          <SelectItem value="vendida">Vendida</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+        <!-- Loading -->
+        <div v-if="loadingContracts" class="pia-detail-section-body" style="display: flex; flex-direction: column; gap: 10px">
+          <Skeleton class="h-16 w-full rounded-lg" />
+          <Skeleton class="h-16 w-full rounded-lg" />
+          <Skeleton class="h-16 w-full rounded-lg" />
+        </div>
 
-                  <!-- Location -->
-                  <Separator />
-                  <h3 class="font-medium">Ubicacion</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label for="address_street">Calle</Label>
-                      <Input id="address_street" v-model="editForm.address_street" required />
-                    </div>
-                    <div>
-                      <Label for="address_number">Numero</Label>
-                      <Input id="address_number" :model-value="editForm.address_number ?? undefined" @update:model-value="editForm.address_number = $event != null ? String($event) : null" />
-                    </div>
-                    <div>
-                      <Label for="address_floor">Piso</Label>
-                      <Input id="address_floor" :model-value="editForm.address_floor ?? undefined" @update:model-value="editForm.address_floor = $event != null ? String($event) : null" />
-                    </div>
-                    <div>
-                      <Label for="address_apartment">Departamento</Label>
-                      <Input id="address_apartment" :model-value="editForm.address_apartment ?? undefined" @update:model-value="editForm.address_apartment = $event != null ? String($event) : null" />
-                    </div>
-                    <div>
-                      <Label for="address_city">Ciudad</Label>
-                      <Input id="address_city" v-model="editForm.address_city" required />
-                    </div>
-                    <div>
-                      <Label for="address_state">Provincia</Label>
-                      <Input id="address_state" v-model="editForm.address_state" required />
-                    </div>
-                    <div>
-                      <Label for="address_zip_code">Codigo Postal</Label>
-                      <Input id="address_zip_code" :model-value="editForm.address_zip_code ?? undefined" @update:model-value="editForm.address_zip_code = $event != null ? String($event) : null" />
-                    </div>
-                  </div>
-
-                  <!-- Details -->
-                  <Separator />
-                  <h3 class="font-medium">Detalles</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label for="bedrooms">Dormitorios</Label>
-                      <Input id="bedrooms" :model-value="editForm.bedrooms ?? undefined" @update:model-value="editForm.bedrooms = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 3" />
-                    </div>
-                    <div>
-                      <Label for="bathrooms">Banos</Label>
-                      <Input id="bathrooms" :model-value="editForm.bathrooms ?? undefined" @update:model-value="editForm.bathrooms = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 2" />
-                    </div>
-                    <div>
-                      <Label for="square_meters">Superficie (m2)</Label>
-                      <Input id="square_meters" :model-value="editForm.square_meters ?? undefined" @update:model-value="editForm.square_meters = $event ?? null" type="text" inputmode="decimal" placeholder="ej: 45,5" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label for="description">Descripcion</Label>
-                    <Textarea id="description" :model-value="editForm.description ?? undefined" @update:model-value="editForm.description = $event != null ? String($event) : null" rows="3" />
-                  </div>
-
-                  <!-- Owner -->
-                  <Separator />
-                  <h3 class="font-medium">Propietario</h3>
-                  <div>
-                    <Label for="owner_id">Propietario</Label>
-                    <Select v-model="editForm.owner_id">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar propietario" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sin propietario</SelectItem>
-                        <SelectItem v-for="owner in owners" :key="owner.id" :value="owner.id">
-                          {{ owner.full_name }}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <!-- Actions -->
-                  <div class="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" @click="cancelEdit" :disabled="saving">
-                      Cancelar
-                    </Button>
-                    <Button type="submit" :disabled="saving">
-                      <Loader2 v-if="saving" class="w-4 h-4 mr-2 animate-spin" />
-                      Guardar cambios
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-
-          <!-- Read-only Mode -->
-          <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Main Column -->
-            <div class="lg:col-span-2 space-y-6">
-              <!-- General Information -->
-              <Card>
-                <CardHeader>
-                  <CardTitle class="text-lg border-l-4 border-primary pl-3">Informacion General</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Tipo de Propiedad</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ getTypeLabel(currentProperty.property_type) }}</dd>
-                    </div>
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Proposito</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ currentProperty.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}</dd>
-                    </div>
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Estado</dt>
-                      <dd>
-                        <Badge :class="getStatusBadgeClass(currentProperty.status)">
-                          {{ getStatusLabel(currentProperty.status) }}
-                        </Badge>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Superficie</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ currentProperty.square_meters ? `${currentProperty.square_meters} m2` : '-' }}</dd>
-                    </div>
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Dormitorios</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ currentProperty.bedrooms ?? '-' }}</dd>
-                    </div>
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Banos</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ currentProperty.bathrooms ?? '-' }}</dd>
-                    </div>
-                    <div v-if="currentProperty.description" class="md:col-span-2">
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Descripcion</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white whitespace-pre-wrap">{{ currentProperty.description }}</dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-
-              <!-- Location -->
-              <Card>
-                <CardHeader>
-                  <CardTitle class="text-lg border-l-4 border-primary pl-3">Ubicacion</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Calle y numero</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">
-                        {{ currentProperty.address_street }}{{ currentProperty.address_number ? ` ${currentProperty.address_number}` : '' }}
-                      </dd>
-                    </div>
-                    <div v-if="currentProperty.address_floor || currentProperty.address_apartment">
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Piso / Depto</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">
-                        {{ [currentProperty.address_floor, currentProperty.address_apartment].filter(Boolean).join(' - ') }}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Ciudad</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ currentProperty.address_city }}</dd>
-                    </div>
-                    <div>
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Provincia</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ currentProperty.address_state }}</dd>
-                    </div>
-                    <div v-if="currentProperty.address_zip_code">
-                      <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Codigo Postal</dt>
-                      <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ currentProperty.address_zip_code }}</dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
+        <!-- Contracts list -->
+        <div v-else-if="contracts.length > 0">
+          <div
+            v-for="contract in contracts"
+            :key="contract.id"
+            class="prop-contract-row"
+            @click="navigateToContract(contract.id)"
+          >
+            <div class="prop-contract-bar" :style="{ background: getContractColor(contract.id) }" />
+            <div class="prop-contract-info">
+              <span class="prop-contract-tenants">
+                {{ contract.tenants.map(t => `${t.first_name} ${t.last_name}`).join(', ') || 'Sin inquilinos' }}
+              </span>
+              <span class="prop-contract-dates">
+                {{ formatDate(contract.start_date) }} → {{ formatDate(contract.end_date) }}
+              </span>
             </div>
-
-            <!-- Sidebar -->
-            <div class="space-y-6">
-              <!-- Owner Card -->
-              <Card>
-                <CardHeader>
-                  <CardTitle class="text-lg border-l-4 border-primary pl-3">Propietario</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div v-if="currentProperty.owner" class="space-y-3">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <User class="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p class="font-medium text-gray-900 dark:text-white">{{ currentProperty.owner.full_name }}</p>
-                      </div>
-                    </div>
-                    <div v-if="currentProperty.owner.email" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      <Mail class="w-4 h-4" />
-                      <span>{{ currentProperty.owner.email }}</span>
-                    </div>
-                    <div v-if="currentProperty.owner.phone" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      <Phone class="w-4 h-4" />
-                      <span>{{ currentProperty.owner.phone }}</span>
-                    </div>
-                    <RouterLink
-                      :to="{ name: 'owner-details', params: { id: currentProperty.owner.id } }"
-                      class="inline-flex items-center text-sm text-primary hover:underline mt-2"
-                    >
-                      Ver propietario
-                      <ChevronRight class="w-4 h-4 ml-1" />
-                    </RouterLink>
-                  </div>
-                  <div v-else class="text-center py-4">
-                    <User class="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Sin propietario asignado</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Asigna un propietario para esta propiedad</p>
-                    <Button variant="outline" size="sm" @click="enterEditMode">
-                      Asignar propietario
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <!-- Metadata Card -->
-              <Card>
-                <CardHeader>
-                  <CardTitle class="text-lg border-l-4 border-primary pl-3">Detalles</CardTitle>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                  <div>
-                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Creado</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ formatDateTime(currentProperty.created_at) }}</p>
-                  </div>
-                  <div>
-                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Ultima actualizacion</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ formatDateTime(currentProperty.updated_at) }}</p>
-                  </div>
-                </CardContent>
-              </Card>
+            <div class="prop-contract-right">
+              <span class="prop-contract-amount">{{ formatCurrency(contract.monthly_rent) }}</span>
+              <span class="pia-status" :class="getContractStatusPiaClass(contract.status)">
+                <span class="dot" />{{ getContractStatusLabel(contract.status) }}
+              </span>
+              <ChevronRight class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--pia-text-4)" />
             </div>
           </div>
-        </TabsContent>
+        </div>
 
-        <!-- Tab 2: Contratos -->
-        <TabsContent value="contratos">
-          <Card>
-            <CardHeader>
-              <CardTitle class="text-lg">Contratos Asociados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <!-- Loading -->
-              <div v-if="loadingContracts" class="space-y-3">
-                <Skeleton class="h-16 w-full" />
-                <Skeleton class="h-16 w-full" />
-                <Skeleton class="h-16 w-full" />
+        <!-- Empty -->
+        <div v-else class="pia-empty">
+          <div class="pia-empty-mark">
+            <FileText class="w-4 h-4" />
+          </div>
+          <div>No hay contratos asociados</div>
+          <p style="font-size: 12px; color: var(--pia-text-4)">Los contratos de esta propiedad aparecerán aquí</p>
+        </div>
+      </div>
+
+      <!-- ── Documentos legales tab ── -->
+      <div v-if="activeTab === 'documentos'" class="pia-card" style="padding: 0; overflow: hidden">
+        <div class="pia-detail-section-head">
+          <span class="pia-detail-section-label">Documentos legales</span>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="loadingLegalDocs" class="pia-detail-section-body" style="display: flex; flex-direction: column; gap: 10px">
+          <Skeleton class="h-14 w-full rounded-lg" />
+          <Skeleton class="h-14 w-full rounded-lg" />
+          <Skeleton class="h-14 w-full rounded-lg" />
+        </div>
+
+        <!-- Docs list -->
+        <div v-else-if="legalDocuments.length > 0">
+          <div
+            v-for="doc in legalDocuments"
+            :key="doc.id"
+            class="prop-doc-row"
+          >
+            <div class="prop-doc-icon-wrap">
+              <FileText class="w-4 h-4" style="color: var(--brand-700)" />
+            </div>
+            <div class="prop-doc-info">
+              <span class="prop-doc-name">{{ getLegalDocumentTypeLabel(doc.document_type) }}</span>
+              <span class="prop-doc-date">{{ formatDate(doc.created_at) }}</span>
+            </div>
+            <button
+              class="pia-btn pia-btn-ghost pia-btn-sm"
+              :disabled="!doc.pdf_url || downloadingDocId === doc.id"
+              @click="downloadLegalDocument(doc)"
+            >
+              <Loader2 v-if="downloadingDocId === doc.id" class="w-3.5 h-3.5 animate-spin" />
+              <Download v-else class="w-3.5 h-3.5" />
+              Descargar
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty -->
+        <div v-else class="pia-empty">
+          <div class="pia-empty-mark">
+            <FileText class="w-4 h-4" />
+          </div>
+          <div>No hay documentos legales</div>
+          <p style="font-size: 12px; color: var(--pia-text-4)">Los documentos legales aparecerán aquí</p>
+        </div>
+      </div>
+
+      <!-- ── Fotos tab ── -->
+      <div v-if="activeTab === 'fotos'" class="pia-card" style="padding: 0; overflow: hidden">
+        <div class="pia-detail-section-head">
+          <span class="pia-detail-section-label">Fotos</span>
+          <button class="pia-btn pia-btn-primary pia-btn-sm" :disabled="uploading" @click="triggerFileInput">
+            <Plus class="w-3.5 h-3.5" />
+            Agregar foto
+          </button>
+          <input ref="fileInputRef" type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
+        </div>
+
+        <div class="pia-detail-section-body">
+          <!-- Loading -->
+          <div v-if="loadingImages" class="prop-photo-grid">
+            <Skeleton class="aspect-square w-full rounded-lg" />
+            <Skeleton class="aspect-square w-full rounded-lg" />
+            <Skeleton class="aspect-square w-full rounded-lg" />
+            <Skeleton class="aspect-square w-full rounded-lg" />
+          </div>
+
+          <!-- Image grid -->
+          <div v-else-if="images.length > 0 || uploadProgress.length > 0" class="prop-photo-grid">
+            <div
+              v-for="image in images"
+              :key="image.id"
+              class="prop-photo-item"
+              @click="openImageLightbox(image)"
+            >
+              <img :src="image.url" :alt="image.name" class="prop-photo-img" />
+              <div class="prop-photo-overlay" />
+              <div class="prop-photo-actions">
+                <button class="pia-btn pia-btn-ghost prop-photo-action-btn" title="Ver" @click.stop="openImageLightbox(image)">
+                  <Expand class="w-4 h-4" />
+                </button>
+                <button class="pia-btn pia-btn-ghost prop-photo-action-btn" title="Descargar" @click.stop="downloadImage(image)">
+                  <Download class="w-4 h-4" />
+                </button>
               </div>
+              <button class="prop-photo-delete" title="Eliminar" @click.stop="confirmDeleteImage(image)">
+                <X class="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-              <!-- Contracts List -->
-              <div v-else-if="contracts.length > 0" class="space-y-3">
-                <div
-                  v-for="contract in contracts"
-                  :key="contract.id"
-                  :class="[
-                    'flex items-center justify-between p-4 border border-border rounded-lg cursor-pointer transition-colors',
-                    'hover:bg-gray-50 dark:hover:bg-gray-800/50',
-                    'border-l-4',
-                    getContractStatusBorderClass(contract.status)
-                  ]"
-                  @click="navigateToContract(contract.id)"
-                >
-                  <div class="space-y-1">
-                    <p class="font-medium text-gray-900 dark:text-white">
-                      {{ contract.tenants.map(t => `${t.first_name} ${t.last_name}`).join(', ') || 'Sin inquilinos' }}
-                    </p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ formatDate(contract.start_date) }} - {{ formatDate(contract.end_date) }}
-                    </p>
-                  </div>
-                  <div class="flex items-center gap-4">
-                    <p class="font-semibold text-gray-900 dark:text-white">{{ formatCurrency(contract.monthly_rent) }}</p>
-                    <Badge :class="getContractStatusBadgeClass(contract.status)">
-                      {{ getContractStatusLabel(contract.status) }}
-                    </Badge>
-                    <ChevronRight class="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                </div>
+            <!-- Upload progress items -->
+            <div
+              v-for="progress in uploadProgress"
+              :key="progress.fileName"
+              class="prop-photo-item prop-photo-uploading"
+            >
+              <div class="flex flex-col items-center gap-2">
+                <Loader2 class="w-7 h-7 animate-spin" style="color: var(--brand-600)" />
+                <p style="font-size: 12px; color: var(--pia-text-3)" class="truncate px-2 w-full text-center">{{ progress.fileName }}</p>
+                <p style="font-size: 11px; color: var(--pia-text-4)">{{ progress.percentage }}%</p>
               </div>
+            </div>
+          </div>
 
-              <!-- Empty State -->
-              <div v-else class="py-12 text-center">
-                <FileText class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">No hay contratos asociados</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500">Los contratos de esta propiedad apareceran aqui</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <!-- Tab 3: Documentos Legales -->
-        <TabsContent value="documentos">
-          <Card>
-            <CardHeader>
-              <CardTitle class="text-lg">Documentos Legales</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <!-- Loading -->
-              <div v-if="loadingLegalDocs" class="space-y-3">
-                <Skeleton class="h-12 w-full" />
-                <Skeleton class="h-12 w-full" />
-                <Skeleton class="h-12 w-full" />
-              </div>
-
-              <!-- Documents List -->
-              <div v-else-if="legalDocuments.length > 0" class="space-y-3">
-                <div
-                  v-for="doc in legalDocuments"
-                  :key="doc.id"
-                  class="flex items-center justify-between p-4 border border-border rounded-lg"
-                >
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <FileText class="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p class="font-medium">{{ getLegalDocumentTypeLabel(doc.document_type) }}</p>
-                      <p class="text-sm text-muted-foreground">{{ formatDate(doc.created_at) }}</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" :disabled="!doc.pdf_url || downloadingDocId === doc.id" @click="downloadLegalDocument(doc)">
-                    <Loader2 v-if="downloadingDocId === doc.id" class="w-4 h-4 mr-2 animate-spin" />
-                    <Download v-else class="w-4 h-4 mr-2" />
-                    Descargar
-                  </Button>
-                </div>
-              </div>
-
-              <!-- Empty State -->
-              <div v-else class="py-12 text-center">
-                <FileText class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">No hay documentos legales</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500">Los documentos legales de esta propiedad apareceran aqui</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <!-- Tab 4: Fotos -->
-        <TabsContent value="fotos">
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between">
-              <CardTitle class="text-lg">Fotos</CardTitle>
-              <Button @click="triggerFileInput" :disabled="uploading">
-                <Plus class="w-4 h-4 mr-2" />
-                Agregar foto
-              </Button>
-              <input
-                ref="fileInputRef"
-                type="file"
-                accept="image/*"
-                multiple
-                class="hidden"
-                @change="handleFileSelect"
-              />
-            </CardHeader>
-            <CardContent>
-              <!-- Loading -->
-              <div v-if="loadingImages" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <Skeleton class="aspect-square w-full rounded-lg" />
-                <Skeleton class="aspect-square w-full rounded-lg" />
-                <Skeleton class="aspect-square w-full rounded-lg" />
-                <Skeleton class="aspect-square w-full rounded-lg" />
-              </div>
-
-              <!-- Images Grid -->
-              <div v-else-if="images.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div
-                  v-for="image in images"
-                  :key="image.id"
-                  class="relative group aspect-square rounded-lg overflow-hidden border border-border hover:shadow-md transition-all duration-200 cursor-pointer"
-                  @click="openImageLightbox(image)"
-                >
-                  <img
-                    :src="image.url"
-                    :alt="image.name"
-                    class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                  />
-                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200" />
-                  <!-- Action buttons overlay -->
-                  <div class="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      class="h-9 w-9 shadow-lg"
-                      @click.stop="openImageLightbox(image)"
-                    >
-                      <Expand class="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      class="h-9 w-9 shadow-lg"
-                      @click.stop="downloadImage(image)"
-                    >
-                      <Download class="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <!-- Delete button -->
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    class="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
-                    @click.stop="confirmDeleteImage(image)"
-                  >
-                    <X class="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <!-- Upload Progress -->
-                <div
-                  v-for="progress in uploadProgress"
-                  :key="progress.fileName"
-                  class="relative aspect-square rounded-lg overflow-hidden border border-border bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center"
-                >
-                  <div class="text-center">
-                    <Loader2 class="w-8 h-8 mx-auto animate-spin text-primary mb-2" />
-                    <p class="text-sm text-gray-600 dark:text-gray-400 truncate px-2">{{ progress.fileName }}</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500">{{ progress.percentage }}%</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Empty State -->
-              <div v-else class="py-12 text-center">
-                <ImageIcon class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">No hay fotos cargadas</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">Sube imagenes de la propiedad para mostrar a los interesados</p>
-                <Button @click="triggerFileInput" :disabled="uploading">
-                  <Plus class="w-4 h-4 mr-2" />
-                  Agregar foto
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <!-- Empty -->
+          <div v-else class="pia-empty">
+            <div class="pia-empty-mark">
+              <ImageIcon class="w-4 h-4" />
+            </div>
+            <div>No hay fotos cargadas</div>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="uploading" @click="triggerFileInput">
+              <Plus class="w-3.5 h-3.5" />
+              Agregar foto
+            </button>
+          </div>
+        </div>
+      </div>
     </template>
 
-    <!-- Delete Image Confirmation Dialog -->
+    <!-- Delete image dialog -->
     <AlertDialog v-model:open="deleteImageDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Eliminar imagen</AlertDialogTitle>
           <AlertDialogDescription>
-            Estas seguro de que deseas eliminar esta imagen? Esta accion no se puede deshacer.
+            ¿Estás seguro de que deseas eliminar esta imagen? Esta acción no se puede deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -591,33 +563,29 @@
       </AlertDialogContent>
     </AlertDialog>
 
-    <!-- Image Lightbox Dialog -->
+    <!-- Image lightbox -->
     <AlertDialog v-model:open="lightboxOpen">
       <AlertDialogContent class="max-w-4xl p-0 overflow-hidden">
         <div class="relative">
-          <!-- Close button -->
-          <Button
-            variant="ghost"
-            size="icon"
-            class="absolute top-2 right-2 z-10 h-8 w-8 bg-black/50 hover:bg-black/70 text-white"
+          <button
+            class="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center"
+            style="background: rgba(0,0,0,0.5); color: white"
             @click="lightboxOpen = false"
           >
             <X class="w-4 h-4" />
-          </Button>
-          <!-- Image -->
+          </button>
           <img
             v-if="lightboxImage"
             :src="lightboxImage.url"
             :alt="lightboxImage.name"
             class="w-full max-h-[80vh] object-contain bg-black"
           />
-          <!-- Footer with filename and download -->
-          <div class="p-4 bg-background flex items-center justify-between">
-            <p class="text-sm text-muted-foreground truncate">{{ lightboxImage?.name }}</p>
-            <Button variant="outline" size="sm" @click="downloadImage(lightboxImage!)">
-              <Download class="w-4 h-4 mr-2" />
+          <div class="p-4 flex items-center justify-between" style="background: var(--pia-surface); border-top: 1px solid var(--pia-border)">
+            <p style="font-size: 13px; color: var(--pia-text-3)" class="truncate">{{ lightboxImage?.name }}</p>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" @click="downloadImage(lightboxImage!)">
+              <Download class="w-3.5 h-3.5" />
               Descargar
-            </Button>
+            </button>
           </div>
         </div>
       </AlertDialogContent>
@@ -628,9 +596,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -653,7 +618,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   ArrowLeft,
   Pencil,
@@ -669,6 +633,7 @@ import {
   Image as ImageIcon,
   AlertCircle,
   Expand,
+  MapPin,
 } from 'lucide-vue-next'
 import { useProperties } from '@/composables/useProperties'
 import { usePropertyImages, type PropertyImage } from '@/composables/usePropertyImages'
@@ -692,7 +657,6 @@ const toast = useToast()
 const { formatDate, formatDateTime } = useDate()
 const { formatCurrency } = useFormatCurrency()
 
-// Properties composable
 const {
   currentProperty,
   loading,
@@ -703,7 +667,6 @@ const {
   getPropertyLegalDocuments,
 } = useProperties()
 
-// Property images composable
 const {
   images,
   loading: loadingImages,
@@ -714,26 +677,21 @@ const {
   deletePropertyImage,
 } = usePropertyImages()
 
-// Owners composable
 const { owners, fetchOwners } = useOwners()
 
-// State
 const activeTab = ref('datos')
 const isEditing = ref(false)
 const saving = ref(false)
 
-// Contracts state
 const contracts = ref<PropertyContract[]>([])
 const loadingContracts = ref(false)
 const contractsLoaded = ref(false)
 
-// Legal documents state
 const legalDocuments = ref<PropertyLegalDocument[]>([])
 const loadingLegalDocs = ref(false)
 const legalDocsLoaded = ref(false)
 const downloadingDocId = ref<string | null>(null)
 
-// Images state
 const imagesLoaded = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const deleteImageDialogOpen = ref(false)
@@ -742,7 +700,6 @@ const deletingImage = ref(false)
 const lightboxOpen = ref(false)
 const lightboxImage = ref<PropertyImage | null>(null)
 
-// Edit form
 const editForm = reactive<{
   name: string
   property_type: PropertyType
@@ -779,109 +736,66 @@ const editForm = reactive<{
   owner_id: 'none',
 })
 
-// Property ID from route
 const propertyId = route.params.id as string
 
+// Color palette (same as ContractsView)
+const CONTRACT_COLORS = [
+  '#E8DCC8', '#DDE5D8', '#E6D3C2', '#D6DADB', '#E3D9E8',
+  '#D7E7E5', '#F0E2C8', '#E1E5EA', '#E8D6D6', '#D9E4E6',
+  '#EAD8C8', '#E2E8D5', '#D6E2F0', '#E4ECDD', '#F1E6CC',
+]
+function getContractColor(id: string): string {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  return CONTRACT_COLORS[Math.abs(hash) % CONTRACT_COLORS.length]
+}
+
 // Helper functions
+function getOwnerInitials(name: string): string {
+  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+}
+
 function getTypeLabel(type: PropertyType): string {
   const labels: Record<PropertyType, string> = {
-    departamento: 'Departamento',
-    casa: 'Casa',
-    comercial: 'Comercial',
-    terreno: 'Terreno',
-    oficina: 'Oficina',
-    local: 'Local',
-    galpon: 'Galpon',
+    departamento: 'Departamento', casa: 'Casa', comercial: 'Comercial',
+    terreno: 'Terreno', oficina: 'Oficina', local: 'Local', galpon: 'Galpon',
   }
   return labels[type] || type
 }
 
-function getTypeBadgeClass(type: PropertyType): string {
-  const classes: Record<PropertyType, string> = {
-    departamento: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
-    casa: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
-    comercial: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
-    terreno: 'bg-stone-100 text-stone-800 dark:bg-stone-900/30 dark:text-stone-400 border-stone-200 dark:border-stone-800',
-    oficina: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800',
-    local: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200 dark:border-violet-800',
-    galpon: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800',
-  }
-  return classes[type] || ''
-}
-
-function getPropertyTypeColorClass(type: PropertyType): string {
-  const classes: Record<PropertyType, string> = {
-    departamento: 'bg-indigo-500',
-    casa: 'bg-emerald-500',
-    comercial: 'bg-amber-500',
-    terreno: 'bg-stone-500',
-    oficina: 'bg-sky-500',
-    local: 'bg-violet-500',
-    galpon: 'bg-rose-500',
-  }
-  return classes[type] || 'bg-gray-500'
-}
-
-function getPurposeBadgeClass(purpose: PropertyPurpose): string {
-  if (purpose === 'alquiler') {
-    return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800'
-  }
-  return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800'
-}
-
 function getStatusLabel(status: PropertyStatus): string {
   const labels: Record<PropertyStatus, string> = {
-    disponible: 'Disponible',
-    alquilada: 'Alquilada',
-    mantenimiento: 'En mantenimiento',
-    reservada: 'Reservada',
-    vendida: 'Vendida',
+    disponible: 'Disponible', alquilada: 'Alquilada', mantenimiento: 'En mantenimiento',
+    reservada: 'Reservada', vendida: 'Vendida',
   }
   return labels[status] || status
 }
 
-function getStatusBadgeClass(status: PropertyStatus): string {
-  const classes: Record<PropertyStatus, string> = {
-    disponible: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
-    alquilada: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-    mantenimiento: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
-    reservada: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800',
-    vendida: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
+function getPropertyStatusClass(status: PropertyStatus): string {
+  const map: Record<PropertyStatus, string> = {
+    alquilada: 'ok',
+    disponible: 'pending',
+    mantenimiento: 'danger',
+    reservada: 'warning',
+    vendida: 'draft',
   }
-  return classes[status] || ''
+  return map[status] || 'draft'
 }
 
 function getContractStatusLabel(status: ContractStatus): string {
   const labels: Record<ContractStatus, string> = {
-    borrador: 'Borrador',
-    activo: 'Activo',
-    vencido: 'Vencido',
-    rescindido: 'Rescindido',
-    renovado: 'Renovado',
+    borrador: 'Borrador', activo: 'Activo', vencido: 'Vencido',
+    rescindido: 'Rescindido', renovado: 'Renovado',
   }
   return labels[status] || status
 }
 
-function getContractStatusBadgeClass(status: ContractStatus): string {
-  const classes: Record<ContractStatus, string> = {
-    borrador: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800',
-    activo: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800',
-    vencido: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
-    rescindido: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
-    renovado: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+function getContractStatusPiaClass(status: ContractStatus): string {
+  const map: Record<ContractStatus, string> = {
+    activo: 'ok', renovado: 'ok',
+    borrador: 'draft', rescindido: 'draft', vencido: 'danger',
   }
-  return classes[status] || ''
-}
-
-function getContractStatusBorderClass(status: ContractStatus): string {
-  const classes: Record<ContractStatus, string> = {
-    borrador: 'border-l-slate-400',
-    activo: 'border-l-green-500',
-    vencido: 'border-l-red-500',
-    rescindido: 'border-l-gray-400',
-    renovado: 'border-l-blue-500',
-  }
-  return classes[status] || 'border-l-gray-300'
+  return map[status] || 'draft'
 }
 
 function getLegalDocumentTypeLabel(type: string): string {
@@ -893,20 +807,19 @@ function getLegalDocumentTypeLabel(type: string): string {
   return labels[type] || type
 }
 
-// Navigation
-function goBack() {
-  router.push({ name: 'properties' })
+// Tab switching (preserves lazy-load triggers)
+function setTab(tab: string) {
+  activeTab.value = tab
+  if (tab === 'contratos') loadContractsIfNeeded()
+  if (tab === 'documentos') loadLegalDocumentsIfNeeded()
+  if (tab === 'fotos') loadImagesIfNeeded()
 }
 
-function navigateToContract(contractId: string) {
-  router.push({ name: 'contract-details', params: { id: contractId } })
-}
+function goBack() { router.push({ name: 'properties' }) }
+function navigateToContract(id: string) { router.push({ name: 'contract-details', params: { id } }) }
 
-// Edit mode
 function enterEditMode() {
   if (!currentProperty.value) return
-
-  // Populate form with current values
   editForm.name = currentProperty.value.name
   editForm.property_type = currentProperty.value.property_type
   editForm.purpose = currentProperty.value.purpose
@@ -923,16 +836,12 @@ function enterEditMode() {
   editForm.square_meters = currentProperty.value.square_meters ?? ''
   editForm.description = currentProperty.value.description
   editForm.owner_id = currentProperty.value.owner_id || 'none'
-
   isEditing.value = true
   activeTab.value = 'datos'
 }
 
-function cancelEdit() {
-  isEditing.value = false
-}
+function cancelEdit() { isEditing.value = false }
 
-// Normalize decimal input (handles comma as decimal separator)
 function normalizeDecimal(val: string | number | null): number | null {
   if (val === null || val === '') return null
   const parsed = parseFloat(String(val).replace(',', '.'))
@@ -941,9 +850,7 @@ function normalizeDecimal(val: string | number | null): number | null {
 
 async function handleSave() {
   if (!currentProperty.value) return
-
   saving.value = true
-
   try {
     await updateProperty(propertyId, {
       name: editForm.name,
@@ -963,11 +870,8 @@ async function handleSave() {
       description: editForm.description || null,
       owner_id: editForm.owner_id === 'none' ? null : editForm.owner_id || null,
     })
-
     toast.success('Propiedad actualizada correctamente')
     isEditing.value = false
-
-    // Refresh property data after exiting edit mode
     fetchPropertyById(propertyId)
   } catch (e) {
     console.error('Error updating property:', e)
@@ -977,10 +881,8 @@ async function handleSave() {
   }
 }
 
-// Lazy load contracts
 async function loadContractsIfNeeded() {
   if (contractsLoaded.value) return
-
   loadingContracts.value = true
   try {
     contracts.value = await getPropertyContracts(propertyId)
@@ -993,10 +895,8 @@ async function loadContractsIfNeeded() {
   }
 }
 
-// Lazy load legal documents
 async function loadLegalDocumentsIfNeeded() {
   if (legalDocsLoaded.value) return
-
   loadingLegalDocs.value = true
   try {
     legalDocuments.value = await getPropertyLegalDocuments(propertyId)
@@ -1009,37 +909,25 @@ async function loadLegalDocumentsIfNeeded() {
   }
 }
 
-// Lazy load images
 async function loadImagesIfNeeded() {
   if (imagesLoaded.value) return
-
   try {
     await fetchPropertyImages(propertyId)
     imagesLoaded.value = true
   } catch (e) {
     console.error('Error loading images:', e)
-    toast.error('Error al cargar las imagenes')
+    toast.error('Error al cargar las imágenes')
   }
 }
 
-// Legal document download (same approach as LegalDocumentsView.vue)
 async function downloadLegalDocument(doc: PropertyLegalDocument) {
-  if (!doc.pdf_url) {
-    toast.error('El documento no tiene un PDF asociado')
-    return
-  }
-
+  if (!doc.pdf_url) { toast.error('El documento no tiene un PDF asociado'); return }
   downloadingDocId.value = doc.id
-
   try {
-    // Download from Supabase storage
     const { data, error: downloadError } = await supabase.storage
       .from('contract-documents')
       .download(doc.pdf_url)
-
     if (downloadError) throw downloadError
-
-    // Create download link
     const url = URL.createObjectURL(data)
     const link = document.createElement('a')
     link.href = url
@@ -1048,7 +936,6 @@ async function downloadLegalDocument(doc: PropertyLegalDocument) {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-
     toast.success('Documento descargado correctamente')
   } catch (e) {
     console.error('Error downloading document:', e)
@@ -1058,34 +945,24 @@ async function downloadLegalDocument(doc: PropertyLegalDocument) {
   }
 }
 
-// Image upload
-function triggerFileInput() {
-  fileInputRef.value?.click()
-}
+function triggerFileInput() { fileInputRef.value?.click() }
 
 async function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement
   const files = input.files
-
   if (!files || files.length === 0) return
-
   for (const file of files) {
     try {
       const result = await uploadPropertyImage(propertyId, file)
-      if (result) {
-        toast.success(`Imagen "${file.name}" subida correctamente`)
-      }
+      if (result) toast.success(`Imagen "${file.name}" subida correctamente`)
     } catch (e) {
       console.error('Error uploading image:', e)
       toast.error(`Error al subir "${file.name}"`)
     }
   }
-
-  // Reset input
   input.value = ''
 }
 
-// Image delete
 function confirmDeleteImage(image: PropertyImage) {
   imageToDelete.value = image
   deleteImageDialogOpen.value = true
@@ -1093,16 +970,11 @@ function confirmDeleteImage(image: PropertyImage) {
 
 async function executeDeleteImage() {
   if (!imageToDelete.value) return
-
   deletingImage.value = true
-
   try {
     const success = await deletePropertyImage(imageToDelete.value.id)
-    if (success) {
-      toast.success('Imagen eliminada correctamente')
-    } else {
-      toast.error('Error al eliminar la imagen')
-    }
+    if (success) toast.success('Imagen eliminada correctamente')
+    else toast.error('Error al eliminar la imagen')
   } catch (e) {
     console.error('Error deleting image:', e)
     toast.error('Error al eliminar la imagen')
@@ -1113,13 +985,11 @@ async function executeDeleteImage() {
   }
 }
 
-// Image lightbox
 function openImageLightbox(image: PropertyImage) {
   lightboxImage.value = image
   lightboxOpen.value = true
 }
 
-// Image download
 async function downloadImage(image: PropertyImage) {
   try {
     const response = await fetch(image.url)
@@ -1139,12 +1009,377 @@ async function downloadImage(image: PropertyImage) {
   }
 }
 
-// On mount
 onMounted(async () => {
-  // Fetch property and owners in parallel
-  await Promise.all([
-    fetchPropertyById(propertyId),
-    fetchOwners(),
-  ])
+  await Promise.all([fetchPropertyById(propertyId), fetchOwners()])
 })
 </script>
+
+<style scoped>
+/* Mobile topbar clearance */
+@media (max-width: 1023px) {
+  .prop-page-header {
+    padding-top: calc(var(--app-header-height) - 16px);
+  }
+}
+
+/* Page header */
+.prop-page-header {
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Back link */
+.pia-btn-back {
+  font-size: 12.5px;
+  color: var(--pia-text-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: color 0.12s;
+  width: fit-content;
+}
+.pia-btn-back:hover { color: var(--pia-text-2); }
+
+/* Property name */
+.prop-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--pia-text);
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+/* Address sub-line */
+.prop-address-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--pia-text-4);
+}
+.prop-addr-sep { color: var(--pia-border-strong); margin: 0 2px; }
+
+/* Type/purpose chips */
+.prop-chip {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--pia-surface-2);
+  border: 1px solid var(--pia-border);
+  color: var(--pia-text-3);
+}
+
+/* Tab navigation */
+.prop-tabs-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--pia-border);
+  margin-bottom: var(--gap);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.prop-tabs-nav::-webkit-scrollbar { display: none; }
+
+.prop-tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 450;
+  color: var(--pia-text-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  transition: color 0.12s, border-color 0.12s;
+  margin-bottom: -1px;
+}
+.prop-tab:hover { color: var(--pia-text-2); }
+.prop-tab.active {
+  color: var(--brand-700);
+  font-weight: 550;
+  border-bottom-color: var(--brand-600);
+}
+
+/* Shared section styles */
+.pia-detail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--pia-border);
+  background: var(--pia-surface-2);
+}
+.pia-detail-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pia-text-3);
+}
+.pia-detail-section-body { padding: 18px; }
+
+.pia-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px 32px;
+}
+@media (max-width: 540px) {
+  .pia-detail-grid { grid-template-columns: 1fr; }
+}
+
+.prop-full-col { grid-column: 1 / -1; }
+
+.pia-detail-field { display: flex; flex-direction: column; gap: 3px; }
+.pia-detail-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--pia-text-4);
+}
+.pia-detail-value {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--pia-text);
+}
+.pia-detail-link {
+  color: var(--brand-700);
+  text-decoration: none;
+  transition: opacity 0.12s;
+}
+.pia-detail-link:hover { text-decoration: underline; }
+
+/* Metadata */
+.pia-meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.pia-meta-label { color: var(--pia-text-3); font-weight: 400; flex-shrink: 0; }
+.pia-meta-date { color: var(--pia-text); font-weight: 500; }
+
+/* Owner card */
+.prop-owner-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.prop-owner-contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pia-text-3);
+}
+
+/* Status variants */
+.pia-status.warning { background: var(--amber-50); color: var(--amber-700); }
+.pia-status.warning .dot { background: var(--amber-500); }
+.pia-status.danger { background: var(--terra-50, #fef2f2); color: var(--terra); }
+.pia-status.danger .dot { background: var(--terra); }
+.pia-status.draft { background: var(--pia-surface-2); color: var(--pia-text-3); }
+.pia-status.draft .dot { background: var(--pia-text-4); }
+.pia-status.pending { background: var(--amber-50); color: var(--amber-700); }
+.pia-status.pending .dot { background: var(--amber-500); }
+
+/* Contract rows */
+.prop-contract-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--pia-border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.prop-contract-row:last-child { border-bottom: none; }
+.prop-contract-row:hover { background: var(--pia-surface-2); }
+
+.prop-contract-bar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.prop-contract-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.prop-contract-tenants {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--pia-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prop-contract-dates {
+  font-size: 11.5px;
+  color: var(--pia-text-4);
+  font-family: var(--font-mono);
+}
+.prop-contract-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.prop-contract-amount {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pia-text);
+}
+
+/* Legal doc rows */
+.prop-doc-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--pia-border);
+}
+.prop-doc-row:last-child { border-bottom: none; }
+.prop-doc-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--brand-50);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.prop-doc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.prop-doc-name { font-size: 13px; font-weight: 500; color: var(--pia-text); }
+.prop-doc-date { font-size: 11.5px; color: var(--pia-text-4); }
+
+/* Photo grid */
+.prop-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .prop-photo-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.prop-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--pia-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--pia-border);
+  cursor: pointer;
+}
+.prop-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s;
+}
+.prop-photo-item:hover .prop-photo-img { transform: scale(1.05); }
+.prop-photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  transition: background 0.2s;
+}
+.prop-photo-item:hover .prop-photo-overlay { background: rgba(0,0,0,0.28); }
+.prop-photo-actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.prop-photo-item:hover .prop-photo-actions { opacity: 1; }
+.prop-photo-action-btn {
+  background: rgba(255,255,255,0.9) !important;
+  color: var(--pia-text) !important;
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+}
+.prop-photo-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--terra);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.prop-photo-item:hover .prop-photo-delete { opacity: 1; }
+.prop-photo-uploading {
+  background: var(--pia-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+/* Edit form */
+.prop-form-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--pia-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 5px;
+}
+.prop-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.prop-form-grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 640px) {
+  .prop-form-grid, .prop-form-grid-3 { grid-template-columns: 1fr; }
+}
+.prop-form-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pia-text-3);
+  margin: 0;
+}
+
+/* Danger button (used nowhere in this file but keep consistent) */
+.pia-btn-danger {
+  background: var(--terra-50, #fef2f2);
+  color: var(--terra);
+  border: 1px solid color-mix(in oklch, var(--terra) 20%, transparent);
+}
+.pia-btn-danger:hover { background: color-mix(in oklch, var(--terra) 12%, white); }
+</style>
