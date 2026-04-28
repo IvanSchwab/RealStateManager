@@ -2,23 +2,23 @@
   <div>
     <div class="pia-page-header">
       <div class="pia-page-title-block">
-        <h1>Propietarios</h1>
+        <h1>{{ t('owners.title') }}</h1>
         <div class="pia-page-subtitle">
-          <span>{{ filterStore.totalCount }} propietarios</span>
+          <span>{{ t('owners.ownersCount', { count: filterStore.totalCount }) }}</span>
           <span class="pia-dot-sep" />
-          <span>{{ totalProperties }} propiedades administradas</span>
+          <span>{{ t('owners.propertiesManaged', { count: totalProperties }) }}</span>
           <span class="pia-dot-sep" />
-          <span>{{ formatCurrency(totalMonthlyRent) }}/mes total</span>
+          <span>{{ t('owners.monthlyRentTotal', { amount: formatCurrency(totalMonthlyRent) }) }}</span>
         </div>
       </div>
       <div class="pia-page-actions">
         <button class="pia-btn pia-btn-ghost" @click="openLiquidaciones">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Liquidaciones
+          {{ t('owners.liquidaciones') }}
         </button>
         <button class="pia-btn pia-btn-primary" @click="openCreateDialog">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          Nuevo propietario
+          {{ t('owners.newOwner') }}
         </button>
       </div>
     </div>
@@ -27,28 +27,28 @@
     <div class="filter-bar">
       <div class="pia-search-bar filter-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input v-model="filterStore.search" placeholder="Buscar por nombre, email, teléfono o CUIT..." />
+        <input v-model="filterStore.search" :placeholder="t('owners.searchPlaceholder')" />
       </div>
       <select v-model="propertiesFilter" class="pia-btn pia-btn-ghost filter-select">
-        <option value="all">Todas</option>
-        <option value="with">Con propiedades</option>
-        <option value="without">Sin propiedades</option>
+        <option value="all">{{ t('common.all') }}</option>
+        <option value="with">{{ t('owners.withProperties') }}</option>
+        <option value="without">{{ t('owners.withoutProperties') }}</option>
       </select>
-      <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm filter-clear" @click="clearFilters">Limpiar</button>
+      <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm filter-clear" @click="clearFilters">{{ t('common.clearFilters') }}</button>
       <div class="filter-spacer" />
       <div class="pia-segmented filter-toggle">
         <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="Vista lista">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          <span class="toggle-label">Lista</span>
+          <span class="toggle-label">{{ t('owners.viewList') }}</span>
         </button>
         <button :class="{ active: viewMode === 'cards' }" @click="viewMode = 'cards'" title="Vista tarjetas">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          <span class="toggle-label">Tarjetas</span>
+          <span class="toggle-label">{{ t('owners.viewCards') }}</span>
         </button>
       </div>
     </div>
 
-    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando propietarios...</div>
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">{{ t('owners.loadingOwners') }}</div>
 
     <!-- Empty state -->
     <div v-else-if="owners.length === 0" class="pia-card" style="padding:0;overflow:hidden">
@@ -56,9 +56,9 @@
         <div class="pia-empty-mark">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/></svg>
         </div>
-        <div>{{ hasActiveFilters ? 'Sin propietarios con estos filtros' : 'No hay propietarios registrados' }}</div>
-        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
-        <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">Agregar propietario</button>
+        <div>{{ hasActiveFilters ? t('owners.noOwnersWithFilters') : t('owners.noOwners') }}</div>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">{{ t('common.clearFilters') }}</button>
+        <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">{{ t('owners.newOwner') }}</button>
       </div>
     </div>
 
@@ -70,13 +70,13 @@
           <table class="pia-tbl owners-tbl">
             <thead>
               <tr>
-                <th>Propietario</th>
-                <th>Contacto</th>
+                <th>{{ t('roles.owner') }}</th>
+                <th>{{ t('common.contact') }}</th>
                 <th>CUIT</th>
-                <th class="num">Propiedades</th>
-                <th class="num">Canon mensual</th>
-                <th>Cliente desde</th>
-                <th style="text-align:right">Acciones</th>
+                <th class="num">{{ t('nav.properties') }}</th>
+                <th class="num">{{ t('owners.monthlyRent') }}</th>
+                <th>{{ t('owners.clientSince') }}</th>
+                <th style="text-align:right">{{ t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -125,10 +125,10 @@
           </table>
         </div>
         <div class="pia-tbl-footer">
-          <span>Mostrando {{ paginationStart }}-{{ paginationEnd }} de {{ filterStore.totalCount }} propietarios</span>
+          <span>{{ t('owners.paginationShowing', { start: paginationStart, end: paginationEnd, total: filterStore.totalCount }) }}</span>
           <div style="display:flex;gap:4px">
-            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
-            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← {{ t('common.previous') }}</button>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">{{ t('common.next') }} →</button>
           </div>
         </div>
       </div>
@@ -153,16 +153,16 @@
             </div>
             <div class="owner-card-contact">
               <a v-if="owner.email" :href="'mailto:' + owner.email" class="owner-email" @click.stop>{{ owner.email }}</a>
-              <span v-else style="color:var(--pia-text-4)">Sin email</span>
+              <span v-else style="color:var(--pia-text-4)">{{ t('owners.noEmail') }}</span>
               <div class="owner-phone">{{ formatPhone(owner.phone) }}</div>
             </div>
             <div class="owner-card-stats">
               <div class="owner-stat">
-                <span class="owner-stat-label">Propiedades</span>
+                <span class="owner-stat-label">{{ t('nav.properties') }}</span>
                 <span class="owner-stat-value">{{ getPropertyCount(owner.id) }}</span>
               </div>
               <div class="owner-stat">
-                <span class="owner-stat-label">Canon / mes</span>
+                <span class="owner-stat-label">{{ t('owners.canonPerMonth') }}</span>
                 <span class="owner-stat-value">
                   <span v-if="getOwnerMonthlyRent(owner.id) > 0" style="font-size:11px;color:var(--pia-text-3)">$</span>{{ formatNumber(getOwnerMonthlyRent(owner.id)) }}
                 </span>
@@ -171,10 +171,10 @@
           </div>
         </div>
         <div class="pia-tbl-footer" style="background:var(--pia-surface);border:1px solid var(--pia-border);border-radius:var(--pia-radius);padding:12px 16px;margin-top:16px">
-          <span>Mostrando {{ paginationStart }}-{{ paginationEnd }} de {{ filterStore.totalCount }} propietarios</span>
+          <span>{{ t('owners.paginationShowing', { start: paginationStart, end: paginationEnd, total: filterStore.totalCount }) }}</span>
           <div style="display:flex;gap:4px">
-            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
-            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← {{ t('common.previous') }}</button>
+            <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">{{ t('common.next') }} →</button>
           </div>
         </div>
       </template>
@@ -185,15 +185,15 @@
       <div v-if="menuOpen" class="context-menu" :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }" @click.stop>
         <button @click="handleMenuAction('view')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          Ver detalle
+          {{ t('owners.viewDetail') }}
         </button>
         <button @click="handleMenuAction('edit')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Editar
+          {{ t('common.edit') }}
         </button>
         <button @click="handleMenuAction('delete')" style="color:var(--terra)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          Eliminar
+          {{ t('common.delete') }}
         </button>
       </div>
       <div v-if="menuOpen" class="context-menu-overlay" @click="closeMenu" />
@@ -207,6 +207,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import OwnerDialog from '@/components/owners/OwnerDialog.vue'
 import DeleteOwnerDialog from '@/components/owners/DeleteOwnerDialog.vue'
 import { useOwners } from '@/composables/useOwners'
@@ -217,6 +218,7 @@ import { storeToRefs } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import type { Owner } from '@/types'
 
+const { t } = useI18n()
 const router = useRouter()
 const { owners, loading, fetchOwners, getOwnerPropertyCount } = useOwners()
 const { formatCurrency } = useFormatCurrency()

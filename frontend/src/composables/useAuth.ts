@@ -182,7 +182,20 @@ export function useAuth() {
       }
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('[useAuth] onAuthStateChange', event, 'userId:', session?.user?.id ?? null)
+
         if (event === 'SIGNED_IN' && user.value?.id === session?.user?.id) {
+          return
+        }
+
+        // USER_UPDATED and TOKEN_REFRESHED for the same user (e.g. password change) only
+        // need the token updated — the profile is unchanged, so skip the DB reload to avoid
+        // a reactive cascade that can briefly set profile=null and unmount the layout.
+        if (
+          (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') &&
+          user.value?.id === session?.user?.id
+        ) {
+          user.value = session?.user ?? null
           return
         }
 

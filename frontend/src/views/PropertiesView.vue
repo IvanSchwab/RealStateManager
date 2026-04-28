@@ -2,17 +2,17 @@
   <div>
     <div class="pia-page-header">
       <div class="pia-page-title-block">
-        <h1>Propiedades</h1>
+        <h1>{{ t('properties.title') }}</h1>
         <div class="pia-page-subtitle">
-          <span>{{ properties.length }} en total</span>
+          <span>{{ t('properties.totalCount', { count: properties.length }) }}</span>
           <span class="pia-dot-sep" />
-          <span>{{ filteredProperties.length }} mostradas</span>
+          <span>{{ t('properties.shownCount', { count: filteredProperties.length }) }}</span>
         </div>
       </div>
       <div class="pia-page-actions">
         <button class="pia-btn pia-btn-primary" @click="openCreateDialog">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          Nueva propiedad
+          {{ t('properties.newProperty') }}
         </button>
       </div>
     </div>
@@ -22,34 +22,34 @@
       <!-- Search bar - full width on mobile -->
       <div class="pia-search-bar w-full md:w-[260px]">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input v-model="search" placeholder="Nombre, dirección o ciudad…" />
+        <input v-model="search" :placeholder="t('properties.searchPlaceholder')" />
       </div>
       <!-- Filters row - horizontal scroll on mobile -->
       <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 md:flex-1">
         <select v-model="statusFilter" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
-          <option value="all">Todos los estados</option>
-          <option value="disponible">Disponible</option>
-          <option value="alquilada">Alquilada</option>
-          <option value="mantenimiento">Mantenimiento</option>
-          <option value="reservada">Reservada</option>
-          <option value="vendida">Vendida</option>
+          <option value="all">{{ t('properties.allStatus') }}</option>
+          <option value="disponible">{{ t('properties.disponible') }}</option>
+          <option value="alquilada">{{ t('properties.alquilada') }}</option>
+          <option value="mantenimiento">{{ t('properties.mantenimiento') }}</option>
+          <option value="reservada">{{ t('properties.reservada') }}</option>
+          <option value="vendida">{{ t('properties.vendida') }}</option>
         </select>
         <select v-model="typeFilter" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
-          <option value="all">Todos los tipos</option>
-          <option value="departamento">Departamento</option>
-          <option value="casa">Casa</option>
-          <option value="comercial">Comercial</option>
-          <option value="terreno">Terreno</option>
-          <option value="oficina">Oficina</option>
-          <option value="local">Local</option>
-          <option value="galpon">Galpón</option>
+          <option value="all">{{ t('properties.allTypes') }}</option>
+          <option value="departamento">{{ t('properties.departamento') }}</option>
+          <option value="casa">{{ t('properties.casa') }}</option>
+          <option value="comercial">{{ t('properties.comercial') }}</option>
+          <option value="terreno">{{ t('properties.terreno') }}</option>
+          <option value="oficina">{{ t('properties.oficina') }}</option>
+          <option value="local">{{ t('properties.local') }}</option>
+          <option value="galpon">{{ t('properties.galpon') }}</option>
         </select>
         <select v-model="purposeFilter" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
-          <option value="all">Alquiler y venta</option>
-          <option value="alquiler">Alquiler</option>
-          <option value="venta">Venta</option>
+          <option value="all">{{ t('properties.allPurposesLabel') }}</option>
+          <option value="alquiler">{{ t('properties.alquiler') }}</option>
+          <option value="venta">{{ t('properties.venta') }}</option>
         </select>
-        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm flex-shrink-0" @click="clearFilters">Limpiar</button>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm flex-shrink-0" @click="clearFilters">{{ t('common.clearFilters') }}</button>
         <div class="flex-1 hidden md:block" />
         <!-- View toggle - hidden on mobile -->
         <div class="pia-segmented hidden md:flex">
@@ -63,7 +63,7 @@
       </div>
     </div>
 
-    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando propiedades…</div>
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">{{ t('properties.loadingProperties') }}</div>
     <div v-else-if="error" style="padding:40px;text-align:center;color:var(--terra)">{{ error }}</div>
 
     <!-- Grid view -->
@@ -73,9 +73,9 @@
           <div class="pia-empty-mark">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </div>
-          <div>{{ hasActiveFilters ? 'Sin propiedades con estos filtros' : 'No hay propiedades registradas' }}</div>
-          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
-          <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">Nueva propiedad</button>
+          <div>{{ hasActiveFilters ? t('properties.noPropertiesWithFilters') : t('properties.noProperties') }}</div>
+          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">{{ t('common.clearFilters') }}</button>
+          <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">{{ t('properties.newProperty') }}</button>
         </div>
       </div>
       <div v-else class="pia-grid pia-grid-4" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
@@ -92,7 +92,7 @@
             <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
               <span class="pia-chip neutral" style="font-size:10px">{{ getTypeLabel(property.property_type) }}</span>
               <span class="pia-chip" :class="property.purpose === 'alquiler' ? 'neutral' : 'warn'" style="font-size:10px">
-                {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+                {{ t('properties.' + property.purpose) }}
               </span>
             </div>
             <strong style="display:block;font-size:14px;margin-bottom:4px">{{ property.name }}</strong>
@@ -118,7 +118,7 @@
         </div>
       </div>
       <div v-if="filteredProperties.length > 0" style="margin-top:16px;font-size:12px;color:var(--pia-text-3)">
-        {{ filteredProperties.length }} de {{ properties.length }} propiedades
+        {{ t('properties.propertiesCounter', { shown: filteredProperties.length, total: properties.length }) }}
       </div>
     </template>
 
@@ -128,12 +128,12 @@
         <table class="pia-tbl">
           <thead>
             <tr>
-              <th>Propiedad</th>
-              <th>Propietario</th>
-              <th>Tipo</th>
-              <th>Finalidad</th>
-              <th>Estado</th>
-              <th style="text-align:right">Acciones</th>
+              <th>{{ t('properties.property') }}</th>
+              <th>{{ t('properties.owner') }}</th>
+              <th>{{ t('common.type') }}</th>
+              <th>{{ t('properties.purpose') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th style="text-align:right">{{ t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -153,7 +153,7 @@
               </td>
               <td>
                 <span class="pia-chip" :class="property.purpose === 'alquiler' ? 'neutral' : 'warn'" style="font-size:11px">
-                  {{ property.purpose === 'alquiler' ? 'Alquiler' : 'Venta' }}
+                  {{ t('properties.' + property.purpose) }}
                 </span>
               </td>
               <td>
@@ -178,9 +178,9 @@
           <div class="pia-empty-mark">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </div>
-          <div>{{ hasActiveFilters ? 'Sin propiedades con estos filtros' : 'No hay propiedades registradas' }}</div>
-          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
-          <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">Nueva propiedad</button>
+          <div>{{ hasActiveFilters ? t('properties.noPropertiesWithFilters') : t('properties.noProperties') }}</div>
+          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">{{ t('common.clearFilters') }}</button>
+          <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">{{ t('properties.newProperty') }}</button>
         </div>
       </div>
       <div v-if="filteredProperties.length > 0" class="pia-tbl-footer">
@@ -195,16 +195,16 @@
     <AlertDialog v-model:open="deleteDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Eliminar propiedad</AlertDialogTitle>
+          <AlertDialogTitle>{{ t('properties.deleteProperty') }}</AlertDialogTitle>
           <AlertDialogDescription>
-            ¿Estás seguro de que deseas eliminar "{{ propertyToDelete?.name }}"? Esta acción no se puede deshacer.
+            {{ t('properties.deleteConfirmDescription', { name: propertyToDelete?.name }) }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel :disabled="deleting">Cancelar</AlertDialogCancel>
+          <AlertDialogCancel :disabled="deleting">{{ t('common.cancel') }}</AlertDialogCancel>
           <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/90" :disabled="deleting" @click="executeDelete">
             <Loader2 v-if="deleting" class="w-4 h-4 mr-2 animate-spin" />
-            Eliminar
+            {{ t('common.delete') }}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -215,6 +215,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,6 +233,7 @@ import { useToast } from '@/composables/useToast'
 import { useDebounce } from '@/composables/useDebounce'
 import type { Property, PropertyType, PropertyStatus, PropertyPurpose } from '@/types'
 
+const { t } = useI18n()
 const router = useRouter()
 const toast = useToast()
 const {
@@ -311,13 +313,13 @@ function formatAddress(property: Property): string {
 
 function getTypeLabel(type: PropertyType): string {
   const labels: Record<PropertyType, string> = {
-    departamento: 'Departamento',
-    casa: 'Casa',
-    comercial: 'Comercial',
-    terreno: 'Terreno',
-    oficina: 'Oficina',
-    local: 'Local',
-    galpon: 'Galpón',
+    departamento: t('properties.departamento'),
+    casa: t('properties.casa'),
+    comercial: t('properties.comercial'),
+    terreno: t('properties.terreno'),
+    oficina: t('properties.oficina'),
+    local: t('properties.local'),
+    galpon: t('properties.galpon'),
   }
   return labels[type] || type
 }
@@ -325,11 +327,11 @@ function getTypeLabel(type: PropertyType): string {
 
 function getStatusLabel(status: PropertyStatus): string {
   const labels: Record<PropertyStatus, string> = {
-    disponible: 'Disponible',
-    alquilada: 'Alquilada',
-    mantenimiento: 'En mantenimiento',
-    reservada: 'Reservada',
-    vendida: 'Vendida',
+    disponible: t('properties.disponible'),
+    alquilada: t('properties.alquilada'),
+    mantenimiento: t('properties.mantenimiento'),
+    reservada: t('properties.reservada'),
+    vendida: t('properties.vendida'),
   }
   return labels[status] || status
 }
@@ -378,12 +380,12 @@ async function executeDelete() {
 
   try {
     await deleteProperty(propertyToDelete.value.id)
-    toast.success('Propiedad eliminada correctamente')
+    toast.success(t('toast.propertyDeleted'))
     deleteDialogOpen.value = false
     propertyToDelete.value = null
   } catch (e) {
     console.error('Error deleting property:', e)
-    toast.error('Error al eliminar la propiedad')
+    toast.error(t('properties.deleteError'))
   } finally {
     deleting.value = false
   }

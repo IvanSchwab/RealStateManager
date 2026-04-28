@@ -55,7 +55,7 @@
           <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
           <rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
         </svg>
-        <span>Dashboard</span>
+        <span>{{ t('nav.dashboard') }}</span>
       </RouterLink>
     </div>
 
@@ -71,7 +71,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>
         </svg>
-        <span>Propiedades</span>
+        <span>{{ t('nav.properties') }}</span>
       </RouterLink>
       <RouterLink
         to="/owners"
@@ -83,7 +83,7 @@
           <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/>
           <circle cx="17" cy="6" r="2.5"/><path d="M16 13.5c2.5 0 4.5 1.5 5.5 4"/>
         </svg>
-        <span>Propietarios</span>
+        <span>{{ t('nav.owners') }}</span>
       </RouterLink>
       <RouterLink
         to="/tenants"
@@ -94,7 +94,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/>
         </svg>
-        <span>Inquilinos</span>
+        <span>{{ t('nav.tenants') }}</span>
       </RouterLink>
       <RouterLink
         to="/contracts"
@@ -106,7 +106,7 @@
           <path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
           <path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/>
         </svg>
-        <span>Contratos</span>
+        <span>{{ t('nav.contracts') }}</span>
       </RouterLink>
       <RouterLink
         to="/payments"
@@ -117,7 +117,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h3"/>
         </svg>
-        <span>Pagos</span>
+        <span>{{ t('nav.payments') }}</span>
       </RouterLink>
     </div>
 
@@ -134,7 +134,7 @@
           <path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
           <path d="M14 3v5h5"/><circle cx="12" cy="14" r="3"/>
         </svg>
-        <span>Documentos</span>
+        <span>{{ t('nav.documents') }}</span>
       </RouterLink>
     </div>
 
@@ -159,7 +159,7 @@
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
         </svg>
-        <span>Configuración</span>
+        <span>{{ t('nav.settings') }}</span>
       </RouterLink>
       <div class="pia-version">
         <span>v3.1.0 · Development</span>
@@ -172,9 +172,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useSidebarStore } from '@/stores/useSidebarStore'
 import { useOrganization } from '@/composables/useOrganization'
 
+const { t } = useI18n()
 const route = useRoute()
 const sidebarStore = useSidebarStore()
 const { organization, fetchOrganization } = useOrganization()

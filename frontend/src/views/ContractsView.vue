@@ -2,23 +2,23 @@
   <div>
     <div class="pia-page-header">
       <div class="pia-page-title-block">
-        <h1>Contratos</h1>
+        <h1>{{ t('contracts.title') }}</h1>
         <div class="pia-page-subtitle">
-          <span>{{ filterStore.totalCount }} contratos gestionados</span>
+          <span>{{ t('contracts.contractsManaged', { count: filterStore.totalCount }) }}</span>
           <span class="pia-dot-sep" />
-          <span>{{ activeCount }} activos · {{ expiringCount }} por vencer</span>
+          <span>{{ t('contracts.activeDotExpiring', { active: activeCount, expiring: expiringCount }) }}</span>
           <span class="pia-dot-sep" />
-          <span>Ingresos totales <strong>{{ formatCurrency(totalMonthlyIncome) }}/mes</strong></span>
+          <span>{{ t('contracts.totalIncomeLabel') }} <strong>{{ formatCurrency(totalMonthlyIncome) }}/mes</strong></span>
         </div>
       </div>
       <div class="pia-page-actions">
         <button class="pia-btn pia-btn-ghost" @click="exportContracts">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Exportar
+          {{ t('common.export') }}
         </button>
         <button class="pia-btn pia-btn-primary" @click="openCreateDialog">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          Nuevo contrato
+          {{ t('contracts.newContract') }}
         </button>
       </div>
     </div>
@@ -28,7 +28,7 @@
       <!-- Search bar - full width on mobile, fixed width on desktop -->
       <div class="pia-search-bar w-full md:w-[280px] md:order-last">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input v-model="filterStore.search" placeholder="Buscar por dirección o inquilino…" />
+        <input v-model="filterStore.search" :placeholder="t('contracts.searchPlaceholder')" />
       </div>
       <!-- Status tabs + Type select row -->
       <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 md:flex-1">
@@ -42,17 +42,17 @@
         </div>
         <div class="flex-1 hidden md:block" />
         <select v-model="filterStore.contractType" class="pia-btn pia-btn-ghost flex-shrink-0" style="font-size:13px;cursor:pointer">
-          <option value="all">Todos los tipos</option>
-          <option value="vivienda">Vivienda</option>
-          <option value="comercial">Comercial</option>
-          <option value="cochera">Cochera</option>
-          <option value="oficina">Oficina</option>
+          <option value="all">{{ t('contracts.allTypes') }}</option>
+          <option value="vivienda">{{ t('contracts.vivienda') }}</option>
+          <option value="comercial">{{ t('contracts.comercial') }}</option>
+          <option value="cochera">{{ t('contracts.cochera') }}</option>
+          <option value="oficina">{{ t('contracts.oficina') }}</option>
         </select>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando contratos…</div>
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">{{ t('contracts.loadingContracts') }}</div>
 
     <!-- Error -->
     <div v-else-if="error" style="padding:40px;text-align:center;color:var(--terra)">{{ error }}</div>
@@ -63,8 +63,8 @@
         <div class="pia-empty-mark">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/></svg>
         </div>
-        <div>No se encontraron contratos con estos filtros</div>
-        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+        <div>{{ t('contracts.noContractsFiltered') }}</div>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">{{ t('common.clearFilters') }}</button>
       </div>
     </div>
 
@@ -100,10 +100,10 @@
         </div>
       </div>
       <div class="pia-tbl-footer" style="background:var(--pia-surface);border:1px solid var(--pia-border);border-radius:var(--pia-radius);padding:12px 16px">
-        <span>Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ filterStore.totalCount }}</span>
+        <span>{{ t('contracts.paginationShowing', { start: paginationStart, end: paginationEnd, total: filterStore.totalCount }) }}</span>
         <div style="display:flex;gap:4px">
-          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
-          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← {{ t('common.previous') }}</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">{{ t('common.next') }} →</button>
         </div>
       </div>
     </div>
@@ -115,14 +115,14 @@
           <thead>
             <tr>
               <th style="width:40px"></th>
-              <th>Propiedad</th>
-              <th>Inquilino</th>
-              <th>Tipo</th>
-              <th>Vigencia</th>
-              <th class="num">Alquiler base</th>
-              <th>Ajuste</th>
-              <th>Estado</th>
-              <th style="text-align:right">Acciones</th>
+              <th>{{ t('contracts.property') }}</th>
+              <th>{{ t('contracts.tenant') }}</th>
+              <th>{{ t('common.type') }}</th>
+              <th>{{ t('contracts.term') }}</th>
+              <th class="num">{{ t('contracts.baseRent') }}</th>
+              <th>{{ t('contracts.adjustment') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th style="text-align:right">{{ t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -182,10 +182,10 @@
         </table>
         </div>
       <div class="pia-tbl-footer">
-        <span>Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ filterStore.totalCount }}</span>
+        <span>{{ t('contracts.paginationShowing', { start: paginationStart, end: paginationEnd, total: filterStore.totalCount }) }}</span>
         <div style="display:flex;gap:4px">
-          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
-          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← {{ t('common.previous') }}</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">{{ t('common.next') }} →</button>
         </div>
       </div>
     </div>
@@ -254,11 +254,11 @@ const totalMonthlyIncome = computed(() =>
 )
 
 const statusTabs = computed(() => [
-  { id: 'all', label: 'Todos', count: filterStore.totalCount },
-  { id: 'active', label: 'Activos', count: activeCount.value },
-  { id: 'expiring_soon', label: 'Por vencer', count: expiringCount.value },
-  { id: 'expired', label: 'Vencidos', count: contracts.value.filter(c => calculateDisplayStatus(c) === 'expired').length },
-  { id: 'cancelled', label: 'Rescindidos', count: contracts.value.filter(c => calculateDisplayStatus(c) === 'cancelled').length },
+  { id: 'all', label: t('common.all'), count: filterStore.totalCount },
+  { id: 'active', label: t('contracts.active'), count: activeCount.value },
+  { id: 'expiring_soon', label: t('contracts.expiring_soon'), count: expiringCount.value },
+  { id: 'expired', label: t('contracts.expired'), count: contracts.value.filter(c => calculateDisplayStatus(c) === 'expired').length },
+  { id: 'cancelled', label: t('contracts.cancelled'), count: contracts.value.filter(c => calculateDisplayStatus(c) === 'cancelled').length },
 ])
 
 const cancellingContractPropertyAddress = computed(() => cancellingContract.value ? formatPropertyAddress(cancellingContract.value) : '')
@@ -279,7 +279,12 @@ function getStatusClass(status: ContractDisplayStatus) {
 
 function getStatusLabel(status: ContractDisplayStatus) {
   const map: Record<ContractDisplayStatus, string> = {
-    active: 'Activo', expiring_soon: 'Por vencer', expired: 'Vencido', cancelled: 'Rescindido', renewed: 'Renovado', draft: 'Borrador',
+    active: t('contracts.active'),
+    expiring_soon: t('contracts.expiring_soon'),
+    expired: t('contracts.expired'),
+    cancelled: t('contracts.cancelled'),
+    renewed: t('contracts.renewed'),
+    draft: t('contracts.draft'),
   }
   return map[status] ?? status
 }
@@ -321,7 +326,13 @@ function getTypeChipClass(type: string): string {
 }
 
 function formatContractType(type: string): string {
-  return type.charAt(0).toUpperCase() + type.slice(1)
+  const map: Record<string, string> = {
+    vivienda: t('contracts.vivienda'),
+    comercial: t('contracts.comercial'),
+    cochera: t('contracts.cochera'),
+    oficina: t('contracts.oficina'),
+  }
+  return map[type] || type.charAt(0).toUpperCase() + type.slice(1)
 }
 
 function getRemainingTime(contract: ContractWithRelations): string {
@@ -332,13 +343,13 @@ function getRemainingTime(contract: ContractWithRelations): string {
   const diffMonths = Math.ceil(diffDays / 30)
 
   if (diffDays < 0) {
-    return 'Vencido'
+    return t('contracts.expired')
   } else if (diffDays === 0) {
-    return 'Vence hoy'
+    return t('contracts.expiresToday')
   } else if (diffDays <= 30) {
-    return `vence en ${diffDays} días`
+    return t('contracts.expiresInDays', { days: diffDays })
   } else {
-    return `${diffMonths} meses restantes`
+    return t('contracts.expiresInMonths', { months: diffMonths })
   }
 }
 

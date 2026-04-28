@@ -2,7 +2,7 @@
   <div>
     <div class="pia-page-header">
       <div class="pia-page-title-block">
-        <h1>Inquilinos</h1>
+        <h1>{{ t('tenants.title') }}</h1>
         <div class="pia-page-subtitle">
           <span>{{ counts.all }} registrados</span>
           <span class="pia-dot-sep" />
@@ -38,7 +38,7 @@
           <span class="pia-tab-count">{{ tab.count }}</span>
         </button>
       </div>
-      <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm filter-clear" @click="clearFilters">Limpiar</button>
+      <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm filter-clear" @click="clearFilters">{{ t('common.clearFilters') }}</button>
       <div class="filter-spacer" />
       <div class="pia-segmented filter-toggle">
         <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="Vista lista">
@@ -61,8 +61,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/></svg>
         </div>
         <div>{{ hasActiveFilters ? 'Sin inquilinos con estos filtros' : 'No hay inquilinos registrados' }}</div>
-        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
-        <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">Agregar inquilino</button>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">{{ t('common.clearFilters') }}</button>
+        <button v-else class="pia-btn pia-btn-primary pia-btn-sm" @click="openCreateDialog">{{ t('tenants.newTenant') }}</button>
       </div>
     </div>
 
@@ -74,14 +74,14 @@
           <table class="pia-tbl tenants-tbl">
             <thead>
               <tr>
-                <th>Inquilino</th>
-                <th>Contacto</th>
-                <th>Empleador</th>
-                <th class="num">Ingreso declarado</th>
-                <th>Propiedad</th>
+                <th>{{ t('contracts.tenant') }}</th>
+                <th>{{ t('common.contact') }}</th>
+                <th>{{ t('tenants.employer') }}</th>
+                <th class="num">{{ t('tenants.declaredIncome') }}</th>
+                <th>{{ t('contracts.property') }}</th>
                 <th style="text-align:center">Score</th>
-                <th>Estado</th>
-                <th style="text-align:right">Acciones</th>
+                <th>{{ t('common.status') }}</th>
+                <th style="text-align:right">{{ t('common.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -183,7 +183,7 @@
             </div>
             <div class="tenant-card-contact">
               <a v-if="tenant.email" :href="'mailto:' + tenant.email" class="tenant-email" @click.stop>{{ tenant.email }}</a>
-              <span v-else style="color:var(--pia-text-4)">Sin email</span>
+              <span v-else style="color:var(--pia-text-4)">{{ t('tenants.noEmail') }}</span>
               <div class="tenant-phone">{{ tenant.phone || '—' }}</div>
             </div>
             <div v-if="tenant.active_contract?.property" class="tenant-card-property">
@@ -258,6 +258,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import TenantDialog from '@/components/tenants/TenantDialog.vue'
 import DeleteTenantDialog from '@/components/tenants/DeleteTenantDialog.vue'
 import { useTenants, type TenantWithContract, type TenantDisplayStatus } from '@/composables/useTenants'
@@ -266,6 +267,7 @@ import { useDebounce } from '@/composables/useDebounce'
 import { useTenantsFilterStore } from '@/stores/filters/useTenantsFilterStore'
 import { storeToRefs } from 'pinia'
 
+const { t } = useI18n()
 const router = useRouter()
 const { tenants, loading, fetchTenants } = useTenants()
 const { formatCurrency } = useFormatCurrency()

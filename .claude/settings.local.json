@@ -21,7 +21,12 @@
       "Bash(npx supabase db dump:*)",
       "Bash(supabase functions list:*)",
       "WebFetch(domain:api.anthropic.com)",
-      "Bash(unzip -o \"Pia Gestion-handoff.zip\" -d \"/tmp/pia_gestion_handoff\")"
+      "Bash(unzip -o \"Pia Gestion-handoff.zip\" -d \"/tmp/pia_gestion_handoff\")",
+      "Bash(grep -E \"\\\\.\\(js|ts|vue\\)$\")",
+      "Bash(xargs grep *)",
+      "Bash(grep -rn --include=\"*.vue\" -E \">[A-ZÁÉÍÓÚÑ][a-záéíóúñ ]{3,}<\" src/components/ src/views/)",
+      "Bash(grep -v \"//.*>\")",
+      "Bash(grep -v '$t\\\\|t\\('\\\\''')"
     ]
   }
 }

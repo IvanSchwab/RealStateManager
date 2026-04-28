@@ -25,7 +25,7 @@
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
       </svg>
-      <input ref="searchInput" v-model="filterStore.search" placeholder="Buscar propiedad, inquilino, contrato…" />
+      <input ref="searchInput" v-model="filterStore.search" :placeholder="t('nav.searchPlaceholder')" />
       <span class="pia-kbd">⌘K</span>
     </div>
 
@@ -69,21 +69,21 @@
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
             </svg>
-            <span>Mi Perfil</span>
+            <span>{{ t('settings.profile') }}</span>
           </button>
           <button class="pia-dropdown-item" @click="goToSettings">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
             </svg>
-            <span>Configuración</span>
+            <span>{{ t('nav.settings') }}</span>
           </button>
           <div class="pia-dropdown-divider" />
           <button class="pia-dropdown-item pia-dropdown-item--danger" @click="handleLogout">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
-            <span>Cerrar Sesión</span>
+            <span>{{ t('auth.signOut') }}</span>
           </button>
         </div>
       </div>
@@ -94,6 +94,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSidebarStore } from '@/stores/useSidebarStore'
 import { useFilterStore } from '@/stores/useFilterStore'
@@ -102,6 +103,7 @@ import { useProfile } from '@/composables/useProfile'
 import { useOrganization } from '@/composables/useOrganization'
 import { useNotifications } from '@/composables/useNotifications'
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const sidebarStore = useSidebarStore()

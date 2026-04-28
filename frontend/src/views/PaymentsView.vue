@@ -3,13 +3,13 @@
     <!-- Page Header -->
     <div class="pia-page-header">
       <div class="pia-page-title-block">
-        <h1>Cobranzas</h1>
+        <h1>{{ t('payments.title') }}</h1>
         <div class="pia-page-subtitle">
           <span style="text-transform:capitalize">{{ getMonthName(filterStore.month) }} {{ filterStore.year }}</span>
           <span class="pia-dot-sep" />
-          <span>Gestión de pagos mensuales</span>
+          <span>{{ t('payments.subtitle') }}</span>
           <span class="pia-dot-sep" />
-          <span style="font-family:var(--font-mono);font-size:12px">{{ pctCobrado }}% cobrado</span>
+          <span style="font-family:var(--font-mono);font-size:12px">{{ t('payments.pctCobrado', { pct: pctCobrado }) }}</span>
         </div>
       </div>
       <div class="pia-page-actions">
@@ -41,11 +41,11 @@
       <!-- Main content - stacks vertically on mobile -->
       <div class="flex flex-col gap-4 md:flex-row md:justify-between md:items-start md:gap-6" style="position:relative">
         <div>
-          <div style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;opacity:0.75;font-weight:600">Total a cobrar · {{ getMonthName(filterStore.month) }} {{ filterStore.year }}</div>
+          <div style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;opacity:0.75;font-weight:600">{{ t('payments.totalToCollectLabel', { month: getMonthName(filterStore.month), year: filterStore.year }) }}</div>
           <div class="text-2xl md:text-4xl" style="font-weight:500;letter-spacing:-0.02em;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums">
             <span class="text-sm md:text-lg" style="font-weight:400;opacity:0.8;margin-right:6px">$</span>{{ (summary.totalToCollect || 0).toLocaleString('es-AR') }}
           </div>
-          <div style="font-size:12.5px;opacity:0.85;margin-top:6px">{{ payments.length }} cobranzas · {{ pctCobrado }}% completadas</div>
+          <div style="font-size:12.5px;opacity:0.85;margin-top:6px">{{ t('payments.collectionsAndPercent', { count: payments.length, pct: pctCobrado }) }}</div>
         </div>
         <!-- Segments - compact grid on mobile, row on desktop -->
         <div class="grid grid-cols-3 gap-2 md:flex md:gap-2 md:flex-wrap">
@@ -57,7 +57,7 @@
             <div class="text-sm md:text-xl" style="font-weight:500;margin-top:2px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">
               <span class="text-[10px] md:text-xs" style="opacity:0.8;margin-right:2px">$</span>{{ seg.amount.toLocaleString('es-AR') }}
             </div>
-            <div class="hidden md:block" style="font-size:11px;opacity:0.75;margin-top:2px">{{ seg.count }} {{ seg.count === 1 ? 'pago' : 'pagos' }}</div>
+            <div class="hidden md:block" style="font-size:11px;opacity:0.75;margin-top:2px">{{ seg.count }} {{ seg.count === 1 ? t('payments.paymentSingular') : t('payments.paymentPlural') }}</div>
           </div>
         </div>
       </div>
@@ -76,7 +76,7 @@
       <!-- Search bar - full width on mobile, fixed width on desktop -->
       <div class="pia-search-bar w-full md:w-[280px] md:order-last">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input v-model="filterStore.search" placeholder="Buscar por inquilino o propiedad…" />
+        <input v-model="filterStore.search" :placeholder="t('payments.searchPlaceholder')" />
       </div>
       <!-- Month/Year selects + Status tabs row -->
       <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 md:flex-1">
@@ -106,7 +106,7 @@
     <div v-if="selectedPayments.length > 0" class="pia-card" style="margin-bottom:var(--gap);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--brand-50);border-color:var(--brand-200)">
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-size:13px;font-weight:500">{{ selectedPayments.length }} seleccionado{{ selectedPayments.length > 1 ? 's' : '' }}</span>
-        <button class="pia-btn pia-btn-ghost pia-btn-sm" @click="selectedPayments = []">Deseleccionar</button>
+        <button class="pia-btn pia-btn-ghost pia-btn-sm" @click="selectedPayments = []">{{ t('common.deselect') }}</button>
       </div>
       <div style="display:flex;gap:6px">
         <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="bulkNotificationLoading" @click="handleNotifySelected">
@@ -121,7 +121,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">Cargando pagos…</div>
+    <div v-if="loading" style="padding:60px;text-align:center;color:var(--pia-text-3)">{{ t('payments.loadingPayments') }}</div>
 
     <!-- Table (Desktop) -->
     <div v-else class="pia-card hidden md:block" style="padding:0;overflow:hidden">
@@ -132,13 +132,13 @@
               <th style="width:40px;padding-left:12px">
                 <input type="checkbox" :checked="isAllSelected" :indeterminate="isPartiallySelected" @change="toggleSelectAll(($event.target as HTMLInputElement).checked)" style="cursor:pointer" />
               </th>
-              <th>Inquilino</th>
-              <th>Propiedad</th>
-              <th>Período</th>
-              <th>Vencimiento</th>
-              <th class="num">Total</th>
-              <th>Estado</th>
-              <th style="text-align:right">Acciones</th>
+              <th>{{ t('payments.tenant') }}</th>
+              <th>{{ t('payments.property') }}</th>
+              <th>{{ t('payments.period') }}</th>
+              <th>{{ t('payments.dueDate') }}</th>
+              <th class="num">{{ t('payments.totalAmount') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th style="text-align:right">{{ t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -158,11 +158,11 @@
               <td style="color:var(--pia-text-3)">{{ formatPropertyAddress(payment) }}</td>
               <td>
                 <div style="font-size:12.5px;color:var(--pia-text);font-weight:500">{{ getPeriodLabel(payment) }}</div>
-                <div v-if="payment.concepts?.length" style="font-size:11px;color:var(--pia-text-4)">{{ payment.concepts.length }} concepto{{ payment.concepts.length > 1 ? 's' : '' }}</div>
+                <div v-if="payment.concepts?.length" style="font-size:11px;color:var(--pia-text-4)">{{ payment.concepts.length }} {{ payment.concepts.length === 1 ? t('payments.conceptSingular') : t('payments.conceptPlural') }}</div>
               </td>
               <td>
                 <div class="pia-mono" style="font-size:12px">{{ formatDate(payment.due_date) }}</div>
-                <div v-if="payment.status === 'vencido'" style="font-size:10.5px;color:var(--terra);font-weight:600;margin-top:2px">{{ getDaysOverdue(payment) }} días vencido</div>
+                <div v-if="payment.status === 'vencido'" style="font-size:10.5px;color:var(--terra);font-weight:600;margin-top:2px">{{ t('payments.daysOverdueLabel', { days: getDaysOverdue(payment) }) }}</div>
                 <div v-if="payment.status === 'pagado' && payment.payment_date" style="font-size:10.5px;color:var(--sage);margin-top:2px">✓ {{ formatDate(payment.payment_date) }}</div>
               </td>
               <td class="num" style="color:var(--pia-text);font-weight:550">{{ formatCurrency(payment.total_amount || payment.expected_amount) }}</td>
@@ -200,15 +200,15 @@
           <div class="pia-empty-mark">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h3"/></svg>
           </div>
-          <div>{{ hasActiveFilters ? 'No se encontraron pagos con estos filtros' : 'Sin pagos para este período' }}</div>
-          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+          <div>{{ hasActiveFilters ? t('payments.noPaymentsFiltered') : t('payments.noPayments') }}</div>
+          <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">{{ t('common.clearFilters') }}</button>
         </div>
       </div>
       <div class="pia-tbl-footer">
-        <span>Mostrando {{ payments.length }} de {{ filterStore.totalCount }} cobranzas</span>
+        <span>{{ t('payments.showingCount', { count: payments.length, total: filterStore.totalCount }) }}</span>
         <div style="display:flex;gap:4px">
-          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
-          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← {{ t('common.previous') }}</button>
+          <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">{{ t('common.next') }} →</button>
         </div>
       </div>
     </div>
@@ -249,15 +249,15 @@
 
       <!-- Mobile Empty State -->
       <div v-if="payments.length === 0" class="pia-card" style="padding:40px 20px;text-align:center">
-        <div style="color:var(--pia-text-4);margin-bottom:8px">{{ hasActiveFilters ? 'No se encontraron pagos con estos filtros' : 'Sin pagos para este período' }}</div>
-        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">Limpiar filtros</button>
+        <div style="color:var(--pia-text-4);margin-bottom:8px">{{ hasActiveFilters ? t('payments.noPaymentsFiltered') : t('payments.noPayments') }}</div>
+        <button v-if="hasActiveFilters" class="pia-btn pia-btn-ghost pia-btn-sm" @click="clearFilters">{{ t('common.clearFilters') }}</button>
       </div>
 
       <!-- Mobile Pagination -->
       <div v-if="totalPages > 1" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:12px 0">
-        <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← Anterior</button>
+        <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage === 1" @click="goToPreviousPage">← {{ t('common.previous') }}</button>
         <span style="font-size:13px;color:var(--pia-text-3)">{{ filterStore.currentPage }} / {{ totalPages }}</span>
-        <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">Siguiente →</button>
+        <button class="pia-btn pia-btn-ghost pia-btn-sm" :disabled="filterStore.currentPage >= totalPages" @click="goToNextPage">{{ t('common.next') }} →</button>
       </div>
     </div>
 
@@ -267,12 +267,12 @@
     <Dialog v-model:open="conceptsDialogOpen">
       <DialogContent class="max-w-md">
         <DialogHeader>
-          <DialogTitle>Editar conceptos</DialogTitle>
+          <DialogTitle>{{ t('payments.editConcepts') }}</DialogTitle>
           <DialogDescription v-if="selectedPayment">{{ getPeriodLabel(selectedPayment) }} - {{ formatPropertyAddress(selectedPayment) }}</DialogDescription>
         </DialogHeader>
         <PaymentConceptsManager v-if="selectedPayment" :payment-id="selectedPayment.id" :contract-id="selectedPayment.contract_id" @update="handleConceptsUpdated" />
         <div class="flex justify-end pt-4">
-          <button class="pia-btn pia-btn-ghost" @click="conceptsDialogOpen = false">Cerrar</button>
+          <button class="pia-btn pia-btn-ghost" @click="conceptsDialogOpen = false">{{ t('common.close') }}</button>
         </div>
       </DialogContent>
     </Dialog>
@@ -337,16 +337,16 @@ const pendingFraction = computed(() => { const t = summary.value.totalToCollect 
 const overdueFraction = computed(() => { const t = summary.value.totalToCollect || 1; return Math.round((summary.value.overdue / t) * 100) })
 
 const heroSegments = computed(() => [
-  { label: 'Cobrado', amount: summary.value.collected || 0, count: summary.value.paidCount || 0, color: 'rgba(134,239,172,1)' },
-  { label: 'Pendiente', amount: summary.value.pending || 0, count: summary.value.pendingCount || 0, color: 'rgba(253,224,71,1)' },
-  { label: 'Vencido', amount: summary.value.overdue || 0, count: summary.value.overdueCount || 0, color: 'rgba(252,165,165,1)' },
+  { label: t('payments.collected'), amount: summary.value.collected || 0, count: summary.value.paidCount || 0, color: 'rgba(134,239,172,1)' },
+  { label: t('payments.pending'), amount: summary.value.pending || 0, count: summary.value.pendingCount || 0, color: 'rgba(253,224,71,1)' },
+  { label: t('payments.overdue'), amount: summary.value.overdue || 0, count: summary.value.overdueCount || 0, color: 'rgba(252,165,165,1)' },
 ])
 
 const statusTabs = computed(() => [
-  { id: 'all' as const, label: 'Todos', count: filterStore.totalCount },
-  { id: 'pagado' as const, label: 'Cobrados', count: summary.value.paidCount || 0 },
-  { id: 'pendiente' as const, label: 'Pendientes', count: summary.value.pendingCount || 0 },
-  { id: 'vencido' as const, label: 'Vencidos', count: summary.value.overdueCount || 0 },
+  { id: 'all' as const, label: t('payments.allStatus'), count: filterStore.totalCount },
+  { id: 'pagado' as const, label: t('payments.collectedTab'), count: summary.value.paidCount || 0 },
+  { id: 'pendiente' as const, label: t('contracts.pending'), count: summary.value.pendingCount || 0 },
+  { id: 'vencido' as const, label: t('contracts.overdue'), count: summary.value.overdueCount || 0 },
 ])
 
 function getTenantName(payment: PaymentWithDetails) {

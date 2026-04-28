@@ -1,13 +1,14 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import i18n from '@/i18n'
 
 export type Locale = 'es' | 'en'
 
 export function useLocale() {
-  const { locale, t } = useI18n()
+  const { t } = useI18n()
 
   function setLocale(newLocale: Locale) {
-    locale.value = newLocale
+    i18n.global.locale.value = newLocale
     localStorage.setItem('locale', newLocale)
     document.documentElement.setAttribute('lang', newLocale)
   }
@@ -17,9 +18,9 @@ export function useLocale() {
     setLocale(saved ?? orgDefault)
   }
 
-  const currentLocale = computed(() => locale.value as Locale)
-  const isSpanish = computed(() => locale.value === 'es')
-  const isEnglish = computed(() => locale.value === 'en')
+  const currentLocale = computed(() => i18n.global.locale.value as Locale)
+  const isSpanish = computed(() => i18n.global.locale.value === 'es')
+  const isEnglish = computed(() => i18n.global.locale.value === 'en')
 
   return {
     currentLocale,
