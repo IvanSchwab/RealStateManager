@@ -60,6 +60,7 @@ export default {
     settings: 'Configuracion',
     managementSystem: 'Sistema de Gestion',
     searchPlaceholder: 'Buscar propiedad, inquilino, contrato...',
+    noResults: 'Sin resultados',
   },
   auth: {
     login: 'Iniciar sesion',

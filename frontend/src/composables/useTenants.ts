@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { Tenant, TenantFormData, TenantStatus, Property, ContractStatus } from '@/types'
 import { useAuth } from './useAuth'
+import { normalize } from '@/utils/normalize'
 
 // Extended tenant with contract and property info
 export type TenantDisplayStatus = 'activo' | 'moroso' | 'sin_contrato'
@@ -82,13 +83,9 @@ export function useTenants() {
                 .is('deleted_at', null)
                 .order('last_name', { ascending: true })
 
-            // Apply search filter
-            if (filters?.search) {
-                const searchTerm = `%${filters.search}%`
-                query = query.or(
-                    `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm},dni.ilike.${searchTerm}`
-                )
-            }
+            // No DB search filter — Postgres ilike is accent-sensitive and multi-word AND logic
+            // would block name records from reaching the client-side normalize() filter.
+            // Client-side filter below handles all name/email/phone/dni matching.
 
             if (filters?.hasEmployer === true) {
                 query = query.not('employer', 'is', null)
@@ -104,12 +101,27 @@ export function useTenants() {
 
             if (fetchError) throw fetchError
 
-            if (!tenantsData || tenantsData.length === 0) {
+            // Client-side accent-insensitive secondary filter
+            let filteredTenantsData = tenantsData ?? []
+            if (filters?.search) {
+                const tokens = normalize(filters.search).split(/\s+/).filter(Boolean)
+                filteredTenantsData = filteredTenantsData.filter(tenant =>
+                    tokens.every(token =>
+                        normalize(tenant.first_name).includes(token) ||
+                        normalize(tenant.last_name).includes(token) ||
+                        normalize(tenant.email ?? '').includes(token) ||
+                        normalize(tenant.phone ?? '').includes(token) ||
+                        normalize(tenant.dni ?? '').includes(token)
+                    )
+                )
+            }
+
+            if (filteredTenantsData.length === 0) {
                 tenants.value = []
                 return { data: [], totalCount: 0, counts: { all: 0, activo: 0, moroso: 0, sin_contrato: 0 } }
             }
 
-            const tenantIds = tenantsData.map(t => t.id)
+            const tenantIds = filteredTenantsData.map(t => t.id)
 
             // Get active contracts for these tenants
             const { data: contractTenants } = await supabase
@@ -168,7 +180,7 @@ export function useTenants() {
             }
 
             // Transform tenants with contract info and calculate display status
-            const enrichedTenants: TenantWithContract[] = tenantsData.map(tenant => {
+            const enrichedTenants: TenantWithContract[] = filteredTenantsData.map(tenant => {
                 const activeContract = contractMap.get(tenant.id) || null
                 const hasOverdue = overdueSet.has(tenant.id)
 

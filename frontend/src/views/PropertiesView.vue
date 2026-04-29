@@ -232,6 +232,7 @@ import { useProperties } from '@/composables/useProperties'
 import { useToast } from '@/composables/useToast'
 import { useDebounce } from '@/composables/useDebounce'
 import type { Property, PropertyType, PropertyStatus, PropertyPurpose } from '@/types'
+import { normalize } from '@/utils/normalize'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -275,11 +276,11 @@ const filteredProperties = computed(() => {
 
   // Filter by search (name, address_street, address_city)
   if (debouncedSearch.value) {
-    const searchLower = debouncedSearch.value.toLowerCase()
+    const searchNorm = normalize(debouncedSearch.value)
     result = result.filter(p =>
-      p.name.toLowerCase().includes(searchLower) ||
-      p.address_street.toLowerCase().includes(searchLower) ||
-      p.address_city.toLowerCase().includes(searchLower)
+      normalize(p.name).includes(searchNorm) ||
+      normalize(p.address_street).includes(searchNorm) ||
+      normalize(p.address_city).includes(searchNorm)
     )
   }
 

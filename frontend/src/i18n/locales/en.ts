@@ -60,6 +60,7 @@ export default {
     settings: 'Settings',
     managementSystem: 'Management System',
     searchPlaceholder: 'Search property, tenant, contract...',
+    noResults: 'No results',
   },
   auth: {
     login: 'Login',

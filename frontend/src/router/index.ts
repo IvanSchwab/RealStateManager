@@ -147,20 +147,26 @@ router.beforeEach(async (to, _from, next) => {
 
   const hasOrganization = profile?.organization_id != null
 
+  // Determine if the user was deactivated (removed from an org) vs brand new.
+  // The auth trigger auto-creates profiles with created_at == updated_at.
+  // If they differ, the profile was modified after creation (user was in an org, then removed).
+  const isDeactivatedUser = profile?.id != null
+    && !hasOrganization
+    && profile.created_at !== profile.updated_at
+
   // 4. Authenticated but no organization → go to onboarding or deactivated
   // Skip if user has an invite_token (they're in the process of accepting an invitation)
   const hasInviteToken = !!to.query.invite_token
   if (!hasOrganization && !hasInviteToken && to.name !== 'onboarding' && to.name !== 'deactivated') {
-    // Has a profile but no org = was removed from org
-    if (profile?.id) {
+    if (isDeactivatedUser) {
       return next({ name: 'deactivated' })
     }
-    // No profile yet = brand new user going through onboarding
+    // Brand new user (profile auto-created by trigger) → onboarding
     return next({ name: 'onboarding' })
   }
 
-  // 5. Deactivated user (has profile but no org) trying to access onboarding → go to deactivated
-  if (!hasOrganization && profile?.id && to.name === 'onboarding') {
+  // 5. Deactivated user trying to access onboarding → redirect to deactivated
+  if (isDeactivatedUser && to.name === 'onboarding') {
     return next({ name: 'deactivated' })
   }
 

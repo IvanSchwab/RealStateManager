@@ -13,6 +13,7 @@ import type {
 } from '@/types'
 import { useAuth } from './useAuth'
 import { useContractPDF } from './useContractPDF'
+import { normalize } from '@/utils/normalize'
 
 export interface ContractFilters {
     search?: string
@@ -126,34 +127,31 @@ export function useContracts() {
             let contractIdsFromSearch: string[] | null = null
 
             if (filters?.search) {
-                const searchTerm = `%${filters.search}%`
+                const tokens = normalize(filters.search).split(/\s+/).filter(Boolean)
 
-                // Run both search queries in parallel
-                const [propertyResult, tenantResult] = await Promise.all([
-                    // Search in properties (address_street, address_number)
-                    supabase
-                        .from('contracts')
-                        .select('id, property:properties!inner(address_street, address_number)')
-                        .eq('organization_id', organizationId.value)
-                        .is('deleted_at', null)
-                        .or(`address_street.ilike.${searchTerm},address_number.ilike.${searchTerm}`, { referencedTable: 'properties' }),
+                // Pre-filter by property address only (ASCII-safe for DB ilike)
+                // Tenant name matching is handled client-side to support accented names
+                let propertySearchQuery = supabase
+                    .from('contracts')
+                    .select('id, property:properties!inner(address_street, address_number)')
+                    .eq('organization_id', organizationId.value)
+                    .is('deleted_at', null)
+                for (const token of tokens) {
+                    const term = `%${token}%`
+                    propertySearchQuery = propertySearchQuery.or(
+                        `address_street.ilike.${term},address_number.ilike.${term}`,
+                        { referencedTable: 'properties' }
+                    )
+                }
 
-                    // Search in tenants (first_name, last_name) via contract_tenants
-                    supabase
-                        .from('contract_tenants')
-                        .select('contract_id, tenant:tenants!inner(first_name, last_name)')
-                        .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm}`, { referencedTable: 'tenants' }),
-                ])
-
-                // Combine unique contract IDs from both searches
+                const propertyResult = await propertySearchQuery
                 const propertyContractIds = propertyResult.data?.map(c => c.id) ?? []
-                const tenantContractIds = tenantResult.data?.map(ct => ct.contract_id) ?? []
-                contractIdsFromSearch = [...new Set([...propertyContractIds, ...tenantContractIds])]
 
-                // If no matches found, return empty result
-                if (contractIdsFromSearch.length === 0) {
-                    contracts.value = []
-                    return { data: [], totalCount: 0 }
+                // Only narrow the main query when address pre-filter found matches.
+                // If empty, contractIdsFromSearch stays null so all contracts are fetched
+                // and the client-side filter handles tenant name matching.
+                if (propertyContractIds.length > 0) {
+                    contractIdsFromSearch = propertyContractIds
                 }
             }
 
@@ -238,7 +236,23 @@ export function useContracts() {
 
             if (fetchError) throw fetchError
 
-            const result = (data ?? []) as ContractWithRelations[]
+            let result = (data ?? []) as ContractWithRelations[]
+
+            // Client-side accent-insensitive secondary filter
+            if (filters?.search) {
+                const tokens = normalize(filters.search).split(/\s+/).filter(Boolean)
+                result = result.filter(contract =>
+                    tokens.every(token =>
+                        normalize(contract.property?.address_street ?? '').includes(token) ||
+                        normalize(contract.property?.address_number ?? '').includes(token) ||
+                        (contract.tenants ?? []).some(ct =>
+                            normalize(ct.tenant?.first_name ?? '').includes(token) ||
+                            normalize(ct.tenant?.last_name ?? '').includes(token)
+                        )
+                    )
+                )
+            }
+
             contracts.value = result
             return {
                 data: result,

@@ -18,15 +18,46 @@
         class="pia-org-logo"
         :style="{ backgroundImage: `url(${organization.logo_url})`, backgroundSize: 'cover' }"
       />
-      <div v-else class="pia-org-logo">{{ orgInitials }}</div>
+      <!-- <div v-else class="pia-org-logo">{{ orgInitials }}</div> -->
     </div>
 
-    <div class="pia-search">
+    <div ref="searchContainerRef" class="pia-search">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
       </svg>
-      <input ref="searchInput" v-model="filterStore.search" :placeholder="t('nav.searchPlaceholder')" />
+      <input
+        ref="searchInput"
+        v-model="searchQuery"
+        :placeholder="t('nav.searchPlaceholder')"
+        autocomplete="off"
+        @focus="showDropdown = true"
+        @keydown.esc.prevent="closeSearch"
+      />
       <span class="pia-kbd">⌘K</span>
+
+      <div v-if="showSearchDropdown" class="pia-search-dropdown">
+        <template v-if="isPending || searchLoading">
+          <div class="pia-search-status">{{ t('common.loading') }}</div>
+        </template>
+        <template v-else-if="searchGroups.length === 0">
+          <div class="pia-search-status">{{ t('nav.noResults') }}</div>
+        </template>
+        <template v-else>
+          <div v-for="group in searchGroups" :key="group.type" class="pia-search-group">
+            <div class="pia-search-group-label">{{ t(group.labelKey) }}</div>
+            <button
+              v-for="item in group.items"
+              :key="item.id"
+              class="pia-search-result"
+              @mousedown.prevent
+              @click="selectResult(item)"
+            >
+              <span class="pia-search-result-primary">{{ item.primary }}</span>
+              <span v-if="item.secondary" class="pia-search-result-secondary">{{ item.secondary }}</span>
+            </button>
+          </div>
+        </template>
+      </div>
     </div>
 
     <div class="pia-topbar-right">
@@ -97,28 +128,52 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSidebarStore } from '@/stores/useSidebarStore'
-import { useFilterStore } from '@/stores/useFilterStore'
 import { useTheme } from '@/composables/useTheme'
 import { useProfile } from '@/composables/useProfile'
 import { useOrganization } from '@/composables/useOrganization'
 import { useNotifications } from '@/composables/useNotifications'
+import { useDebounce } from '@/composables/useDebounce'
+import { useGlobalSearch, type SearchResult } from '@/composables/useGlobalSearch'
 
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const sidebarStore = useSidebarStore()
-const filterStore = useFilterStore()
 const { isDark, toggleTheme } = useTheme()
 const { getInitials, getAvatarColor } = useProfile()
 const { organization, getInitials: getOrgInitials, fetchOrganization } = useOrganization()
 const { unreadCount, initialize: initNotifications } = useNotifications()
 
+// Search
+const searchQuery = ref('')
+const showDropdown = ref(false)
+const searchContainerRef = ref<HTMLElement | null>(null)
 const searchInput = ref<HTMLInputElement | null>(null)
+const debouncedQuery = useDebounce(searchQuery, 300)
+const { groups: searchGroups, loading: searchLoading } = useGlobalSearch(debouncedQuery)
+
+const isPending = computed(() =>
+  searchQuery.value.trim() !== '' && searchQuery.value !== debouncedQuery.value
+)
+const showSearchDropdown = computed(() =>
+  showDropdown.value && searchQuery.value.trim().length > 0
+)
+
+function closeSearch() {
+  showDropdown.value = false
+}
+
+function selectResult(item: SearchResult) {
+  searchQuery.value = ''
+  showDropdown.value = false
+  router.push(item.route)
+}
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault()
     searchInput.value?.focus()
+    showDropdown.value = true
   }
 }
 
@@ -149,8 +204,12 @@ function toggleUserDropdown() {
 }
 
 function handleClickOutside(event: MouseEvent) {
-  if (userDropdownRef.value && !userDropdownRef.value.contains(event.target as Node)) {
+  const target = event.target as Node
+  if (userDropdownRef.value && !userDropdownRef.value.contains(target)) {
     showUserDropdown.value = false
+  }
+  if (searchContainerRef.value && !searchContainerRef.value.contains(target)) {
+    showDropdown.value = false
   }
 }
 

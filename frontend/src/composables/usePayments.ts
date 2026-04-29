@@ -10,6 +10,7 @@ import type {
 import { useAuth } from './useAuth'
 import { useDate } from './useDate'
 import { useFormatCurrency } from './useFormatCurrency'
+import { normalize } from '@/utils/normalize'
 
 export interface PaymentFilters {
   search?: string
@@ -116,55 +117,56 @@ export function usePayments() {
       let paymentIdsFromSearch: string[] | null = null
 
       if (filters?.search) {
-        const searchTerm = `%${filters.search}%`
+        const tokens = normalize(filters.search).split(/\s+/).filter(Boolean)
 
-        // Run independent search queries in parallel
-        const [referenceResult, propertyResult, tenantContractsResult] = await Promise.all([
-          // Search in reference_number (directly on payments table)
-          supabase
-            .from('payments')
-            .select('id')
-            .eq('organization_id', organizationId.value)
-            .ilike('reference_number', searchTerm),
-
-          // Search in properties (address_street, address_number) via contracts
-          supabase
-            .from('payments')
-            .select('id, contract:contracts!inner(property:properties!inner(address_street, address_number))')
-            .eq('organization_id', organizationId.value)
-            .or(`address_street.ilike.${searchTerm},address_number.ilike.${searchTerm}`, { referencedTable: 'contracts.properties' }),
-
-          // Search in tenants (first_name, last_name) via contract_tenants
-          // Get contract_ids that match tenant search
-          supabase
-            .from('contract_tenants')
-            .select('contract_id, tenant:tenants!inner(first_name, last_name)')
-            .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm}`, { referencedTable: 'tenants' }),
-        ])
-
-        // Then get payment IDs for tenant contracts (depends on tenantContractsResult)
-        let tenantPaymentIds: string[] = []
-        const tenantContracts = tenantContractsResult.data
-        if (tenantContracts && tenantContracts.length > 0) {
-          const contractIds = [...new Set(tenantContracts.map(ct => ct.contract_id))]
-          const { data: tenantPayments } = await supabase
-            .from('payments')
-            .select('id')
-            .eq('organization_id', organizationId.value)
-            .in('contract_id', contractIds)
-
-          tenantPaymentIds = tenantPayments?.map(p => p.id) ?? []
+        // Pre-filter by ASCII-safe fields only (reference_number, property address)
+        // Tenant name matching is handled client-side to support accented names
+        let referenceQuery = supabase
+          .from('payments')
+          .select('id')
+          .eq('organization_id', organizationId.value)
+        for (const token of tokens) {
+          referenceQuery = referenceQuery.ilike('reference_number', `%${token}%`)
         }
 
-        // Combine unique payment IDs from all searches
-        const referencePaymentIds = referenceResult.data?.map(p => p.id) ?? []
-        const propertyPaymentIds = propertyResult.data?.map(p => p.id) ?? []
-        paymentIdsFromSearch = [...new Set([...referencePaymentIds, ...propertyPaymentIds, ...tenantPaymentIds])]
+        let propertyContractsQuery = supabase
+          .from('contracts')
+          .select('id, property:properties!inner(address_street, address_number)')
+          .eq('organization_id', organizationId.value)
+          .is('deleted_at', null)
+        for (const token of tokens) {
+          const term = `%${token}%`
+          propertyContractsQuery = propertyContractsQuery.or(
+            `address_street.ilike.${term},address_number.ilike.${term}`,
+            { referencedTable: 'properties' }
+          )
+        }
 
-        // If no matches found, return empty result
-        if (paymentIdsFromSearch.length === 0) {
-          payments.value = []
-          return { data: [], totalCount: 0 }
+        const [referenceResult, propertyContractsResult] = await Promise.all([
+          referenceQuery,
+          propertyContractsQuery,
+        ])
+
+        const propertyContractIds = [...new Set(propertyContractsResult.data?.map(c => c.id) ?? [])]
+
+        let contractPaymentIds: string[] = []
+        if (propertyContractIds.length > 0) {
+          const { data: contractPayments } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('organization_id', organizationId.value)
+            .in('contract_id', propertyContractIds)
+          contractPaymentIds = contractPayments?.map(p => p.id) ?? []
+        }
+
+        const referencePaymentIds = referenceResult.data?.map(p => p.id) ?? []
+        const asciiMatchedIds = [...new Set([...referencePaymentIds, ...contractPaymentIds])]
+
+        // Only narrow the main query when ASCII pre-filters found matches.
+        // If empty, paymentIdsFromSearch stays null so all payments are fetched
+        // and the client-side filter handles tenant name matching.
+        if (asciiMatchedIds.length > 0) {
+          paymentIdsFromSearch = asciiMatchedIds
         }
       }
 
@@ -231,7 +233,7 @@ export function usePayments() {
       if (fetchError) throw fetchError
 
       // Transform tenant data structure
-      const result = (data ?? []).map(payment => ({
+      let result = (data ?? []).map(payment => ({
         ...payment,
         contract: {
           ...payment.contract,
@@ -241,6 +243,22 @@ export function usePayments() {
           })),
         },
       })) as PaymentWithDetails[]
+
+      // Client-side accent-insensitive secondary filter
+      if (filters?.search) {
+        const tokens = normalize(filters.search).split(/\s+/).filter(Boolean)
+        result = result.filter(payment =>
+          tokens.every(token =>
+            normalize(payment.reference_number ?? '').includes(token) ||
+            normalize(payment.contract?.property?.address_street ?? '').includes(token) ||
+            normalize(payment.contract?.property?.address_number ?? '').includes(token) ||
+            (payment.contract?.tenants ?? []).some(ct =>
+              normalize(ct.tenant?.first_name ?? '').includes(token) ||
+              normalize(ct.tenant?.last_name ?? '').includes(token)
+            )
+          )
+        )
+      }
 
       payments.value = result
       return {

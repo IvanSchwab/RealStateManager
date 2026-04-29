@@ -144,6 +144,7 @@ import { useDebounce } from '@/composables/useDebounce'
 import { useToast } from '@/composables/useToast'
 import { supabase } from '@/lib/supabase'
 import { storeToRefs } from 'pinia'
+import { normalize } from '@/utils/normalize'
 
 const { formatDate } = useDate()
 const toast = useToast()
@@ -183,9 +184,9 @@ const filteredDocuments = computed(() => {
 
   // Filter by search (property name)
   if (debouncedSearch.value) {
-    const searchLower = debouncedSearch.value.toLowerCase()
+    const searchNorm = normalize(debouncedSearch.value)
     result = result.filter(doc =>
-      doc.property_name?.toLowerCase().includes(searchLower)
+      doc.property_name != null && normalize(doc.property_name).includes(searchNorm)
     )
   }
 

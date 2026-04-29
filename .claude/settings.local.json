@@ -26,7 +26,8 @@
       "Bash(xargs grep *)",
       "Bash(grep -rn --include=\"*.vue\" -E \">[A-ZÁÉÍÓÚÑ][a-záéíóúñ ]{3,}<\" src/components/ src/views/)",
       "Bash(grep -v \"//.*>\")",
-      "Bash(grep -v '$t\\\\|t\\('\\\\''')"
+      "Bash(grep -v '$t\\\\|t\\('\\\\''')",
+      "Bash(printf 'export const normalize = \\(str: string\\): string =>\\\\n  str.normalize\\('\\\\''NFD'\\\\''\\).replace\\(/[\\\\\\\\u0300-\\\\\\\\u036f]/g, '\\\\'''\\\\''\\).toLowerCase\\(\\)\\\\n')"
     ]
   }
 }

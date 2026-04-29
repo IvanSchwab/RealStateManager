@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { Owner, OwnerFormData, OwnerWithProperties, Property } from '@/types'
 import { useAuth } from './useAuth'
+import { normalize } from '@/utils/normalize'
 
 export interface OwnerFilters {
     search?: string
@@ -62,13 +63,9 @@ export function useOwners() {
                 .is('deleted_at', null)
                 .order('full_name', { ascending: true })
 
-            // Apply search filter server-side
-            if (filters?.search) {
-                const searchTerm = `%${filters.search}%`
-                query = query.or(
-                    `full_name.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm}`
-                )
-            }
+            // No DB search filter — Postgres ilike is accent-sensitive and multi-word AND logic
+            // would block name records from reaching the client-side normalize() filter.
+            // Client-side filter below handles all name/email/phone matching.
 
             // Apply hasProperties filter server-side using IN/NOT IN
             if (needsPropertyFilter && ownerIdsWithProperties) {
@@ -91,8 +88,8 @@ export function useOwners() {
                 }
             }
 
-            // Apply pagination using .range()
-            if (pagination) {
+            // Apply pagination — skipped when searching so all records reach the client-side filter
+            if (pagination && !filters?.search) {
                 const from = (pagination.page - 1) * pagination.pageSize
                 const to = from + pagination.pageSize - 1
                 query = query.range(from, to)
@@ -102,9 +99,24 @@ export function useOwners() {
 
             if (fetchError) throw fetchError
 
-            owners.value = data ?? []
+            // Client-side accent-insensitive secondary filter
+            let resultData = data ?? []
+            if (filters?.search) {
+                const tokens = normalize(filters.search).split(/\s+/).filter(Boolean)
+                console.log('[useOwners] DB returned', resultData.length, 'records for tokens:', tokens)
+                resultData = resultData.filter(owner =>
+                    tokens.every(token =>
+                        normalize(owner.full_name).includes(token) ||
+                        normalize(owner.email ?? '').includes(token) ||
+                        normalize(owner.phone ?? '').includes(token)
+                    )
+                )
+                console.log('[useOwners] client-side filtered to', resultData.length, 'records')
+            }
+
+            owners.value = resultData
             return {
-                data: data ?? [],
+                data: resultData,
                 totalCount: count ?? 0,
             }
         } catch (e) {
