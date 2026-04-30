@@ -33,6 +33,7 @@
         :initial-data="propertyData"
         :is-edit="isEditMode"
         :is-submitting="isSubmitting"
+        :locked-owner-id="lockedOwnerId"
         @submit="handleSubmit"
         @cancel="$emit('update:open', false)"
       />
@@ -63,6 +64,7 @@ const toast = useToast()
 const props = defineProps<{
   open: boolean
   propertyId?: string | null
+  lockedOwnerId?: string
 }>()
 
 const emit = defineEmits<{
@@ -83,6 +85,8 @@ const isEditMode = computed(() => !!props.propertyId)
 watch([() => props.open, () => props.propertyId], async ([open, id]) => {
   if (open && id) {
     await loadPropertyData()
+  } else if (open && !id && props.lockedOwnerId) {
+    propertyData.value = { owner_id: props.lockedOwnerId }
   } else if (!open) {
     // Reset state when dialog closes
     propertyData.value = undefined

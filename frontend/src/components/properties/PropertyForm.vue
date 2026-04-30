@@ -5,6 +5,7 @@
       <CreateOwnerInline
         v-model="form.owner_id"
         :owners="owners"
+        :disabled="!!props.lockedOwnerId"
         @owner-created="handleOwnerCreated"
       />
 
@@ -290,6 +291,7 @@ const props = defineProps<{
   initialData?: Partial<Property>
   isEdit?: boolean
   isSubmitting?: boolean
+  lockedOwnerId?: string
 }>()
 
 const emit = defineEmits<{
@@ -301,7 +303,7 @@ const { t } = useI18n()
 const { owners, fetchOwners } = useOwners()
 
 const form = ref<PropertyFormData>({
-  owner_id: '',
+  owner_id: props.lockedOwnerId || '',
   name: '',
   property_type: 'departamento',
   purpose: 'alquiler',
@@ -332,7 +334,7 @@ const errors = reactive<FormErrors>({
 watch(() => props.initialData, (newData) => {
   if (newData) {
     form.value = {
-      owner_id: newData.owner_id ?? '',
+      owner_id: newData.owner_id ?? props.lockedOwnerId ?? '',
       name: newData.name ?? '',
       property_type: newData.property_type ?? 'departamento',
       purpose: newData.purpose ?? 'alquiler',

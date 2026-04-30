@@ -227,6 +227,9 @@
     <!-- Edit dialog -->
     <OwnerDialog v-model:open="dialogOpen" :owner-id="ownerId" @success="handleEditSuccess" />
 
+    <!-- New property dialog (with owner pre-filled) -->
+    <PropertyDialog v-model:open="propertyDialogOpen" :locked-owner-id="ownerId" @success="loadOwner" />
+
     <!-- Delete dialog -->
     <DeleteOwnerDialog
       v-if="owner"
@@ -245,6 +248,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import OwnerDialog from '@/components/owners/OwnerDialog.vue'
 import DeleteOwnerDialog from '@/components/owners/DeleteOwnerDialog.vue'
+import PropertyDialog from '@/components/properties/PropertyDialog.vue'
 import ContractHistoryList from '@/components/contracts/ContractHistoryList.vue'
 import {
   ArrowLeft,
@@ -268,6 +272,7 @@ const { formatDate, formatDateTime } = useDate()
 const owner = ref<OwnerWithProperties | null>(null)
 const dialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
+const propertyDialogOpen = ref(false)
 
 const ownerId = computed(() => route.params.id as string)
 
@@ -338,7 +343,7 @@ function navigateToProperty(propertyId: string) {
 }
 
 function navigateToNewProperty() {
-  router.push({ name: 'properties' })
+  propertyDialogOpen.value = true
 }
 
 async function loadOwner() {

@@ -517,6 +517,29 @@
 
           <!-- Sidebar -->
           <div class="space-y-6">
+            <!-- Owner Card -->
+            <Card v-if="propertyOwner">
+              <CardHeader>
+                <CardTitle class="text-lg">{{ $t('properties.owner') }}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <User class="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <RouterLink
+                      :to="{ name: 'owner-details', params: { id: propertyOwner.id } }"
+                      class="font-medium text-primary hover:underline"
+                    >
+                      {{ propertyOwner.full_name }}
+                    </RouterLink>
+                    <p class="text-sm text-muted-foreground">{{ propertyOwner.phone }}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <!-- Tenants Card -->
             <Card>
               <CardHeader>
@@ -837,6 +860,8 @@ const coTitulares = computed<Tenant[]>(() => {
   if (!contract.value) return []
   return getCoTitulares(contract.value) as Tenant[]
 })
+
+const propertyOwner = computed(() => contract.value?.property?.owner ?? null)
 
 const contractDuration = computed(() => {
   if (!contract.value) return 0

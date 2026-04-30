@@ -32,6 +32,7 @@
         v-else
         :contract="contractData"
         :mode="isEditMode ? 'edit' : 'create'"
+        :initial-property-id="initialPropertyId"
         @submit="handleSubmit"
         @cancel="handleCancel"
       />
@@ -133,6 +134,7 @@ const { formatCurrency } = useFormatCurrency()
 const props = defineProps<{
   open: boolean
   contractId?: string | null
+  initialPropertyId?: string
 }>()
 
 const emit = defineEmits<{

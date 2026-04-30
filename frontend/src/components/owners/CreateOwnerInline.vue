@@ -1,7 +1,12 @@
 <template>
   <div class="space-y-2">
     <Label>Propietario</Label>
-    <div class="flex items-center gap-2">
+    <!-- Read-only display when disabled (owner locked from parent context) -->
+    <div v-if="disabled" class="flex items-center rounded-md border px-3 py-2 text-sm" style="background: var(--pia-surface-2, #f9fafb); color: var(--pia-text-2)">
+      {{ lockedOwnerName }}
+    </div>
+    <!-- Normal Select + New button -->
+    <div v-else class="flex items-center gap-2">
       <div class="flex-1">
         <Select v-model="selectedId">
           <SelectTrigger>
@@ -54,6 +59,7 @@ import type { Owner } from '@/types'
 const props = defineProps<{
   modelValue: string | null
   owners: Owner[]
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -68,6 +74,11 @@ const selectedId = computed({
   get: () => props.modelValue || '',
   set: (value: string) => emit('update:modelValue', value)
 })
+
+// Display name when owner is locked (disabled mode)
+const lockedOwnerName = computed(() =>
+  props.owners.find(o => o.id === props.modelValue)?.full_name ?? '—'
+)
 
 function openDialog() {
   dialogOpen.value = true

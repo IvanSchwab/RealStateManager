@@ -373,6 +373,10 @@
       <div v-if="activeTab === 'contratos'" class="pia-card" style="padding: 0; overflow: hidden">
         <div class="pia-detail-section-head">
           <span class="pia-detail-section-label">Contratos asociados</span>
+          <button class="pia-btn pia-btn-primary pia-btn-sm" @click="contractDialogOpen = true">
+            <Plus class="w-3.5 h-3.5" />
+            Nuevo contrato
+          </button>
         </div>
 
         <!-- Loading -->
@@ -416,6 +420,10 @@
           </div>
           <div>No hay contratos asociados</div>
           <p style="font-size: 12px; color: var(--pia-text-4)">Los contratos de esta propiedad aparecerán aquí</p>
+          <button class="pia-btn pia-btn-primary pia-btn-sm" @click="contractDialogOpen = true">
+            <Plus class="w-3.5 h-3.5" />
+            Nuevo contrato
+          </button>
         </div>
       </div>
 
@@ -563,6 +571,13 @@
       </AlertDialogContent>
     </AlertDialog>
 
+    <!-- New contract dialog (with property pre-filled) -->
+    <ContractDialog
+      v-model:open="contractDialogOpen"
+      :initial-property-id="propertyId"
+      @success="loadContracts"
+    />
+
     <!-- Image lightbox -->
     <AlertDialog v-model:open="lightboxOpen">
       <AlertDialogContent class="max-w-4xl p-0 overflow-hidden">
@@ -635,6 +650,7 @@ import {
   Expand,
   MapPin,
 } from 'lucide-vue-next'
+import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import { useProperties } from '@/composables/useProperties'
 import { usePropertyImages, type PropertyImage } from '@/composables/usePropertyImages'
 import { useOwners } from '@/composables/useOwners'
@@ -686,6 +702,7 @@ const saving = ref(false)
 const contracts = ref<PropertyContract[]>([])
 const loadingContracts = ref(false)
 const contractsLoaded = ref(false)
+const contractDialogOpen = ref(false)
 
 const legalDocuments = ref<PropertyLegalDocument[]>([])
 const loadingLegalDocs = ref(false)
@@ -893,6 +910,11 @@ async function loadContractsIfNeeded() {
   } finally {
     loadingContracts.value = false
   }
+}
+
+async function loadContracts() {
+  contractsLoaded.value = false
+  await loadContractsIfNeeded()
 }
 
 async function loadLegalDocumentsIfNeeded() {

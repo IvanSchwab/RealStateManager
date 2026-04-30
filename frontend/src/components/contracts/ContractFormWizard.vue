@@ -45,7 +45,7 @@
 
         <div class="space-y-2">
           <Label for="property_id">Propiedad *</Label>
-          <Select v-model="form.property_id" :disabled="mode === 'edit'">
+          <Select v-model="form.property_id" :disabled="mode === 'edit' || !!props.initialPropertyId">
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar propiedad" />
             </SelectTrigger>
@@ -689,6 +689,7 @@ import type {
 interface Props {
   contract?: Contract | null
   mode: 'create' | 'edit'
+  initialPropertyId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -783,6 +784,12 @@ const availableProperties = computed(() => {
     // In edit mode, show the current property
     return properties.value.filter(
       p => p.id === props.contract?.property_id || p.status === 'disponible'
+    )
+  }
+  if (props.initialPropertyId) {
+    // Include the locked property even if its status isn't 'disponible'
+    return properties.value.filter(
+      p => p.id === props.initialPropertyId || p.status === 'disponible'
     )
   }
   // In create mode, only show available properties
@@ -1042,5 +1049,8 @@ onMounted(async () => {
     fetchProperties(),
     fetchTenants(),
   ])
+  if (props.initialPropertyId && props.mode === 'create') {
+    form.value.property_id = props.initialPropertyId
+  }
 })
 </script>
