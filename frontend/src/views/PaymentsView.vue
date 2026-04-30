@@ -282,6 +282,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import PaymentCard from '@/components/payments/PaymentCard.vue'
@@ -298,8 +299,11 @@ import { useDebounce } from '@/composables/useDebounce'
 import { usePaymentsFilterStore } from '@/stores/filters/usePaymentsFilterStore'
 import { storeToRefs } from 'pinia'
 import type { PaymentWithDetails, PaymentStatus } from '@/types'
+import { useNavResetStore } from '@/stores/useNavResetStore'
 
 const { t } = useI18n()
+const route = useRoute()
+const navResetStore = useNavResetStore()
 const { payments, loading, fetchPayments, fetchPaymentsByIds, updateOverduePayments, getMonthSummary, formatCurrency, getPeriodLabel, formatPropertyAddress, getStatusLabel, getDaysOverdue } = usePayments()
 const { formatDate, getMonthName } = useDate()
 const { printReceiptPDF } = useReceiptPDF()
@@ -451,5 +455,8 @@ async function loadPayments() {
 
 watch(() => [filterStore.status, filterStore.month, filterStore.year], () => { filterStore.resetPage(); selectedPayments.value = []; loadPayments() })
 watch(debouncedSearch, () => { filterStore.resetPage(); selectedPayments.value = []; loadPayments() })
+watch(() => navResetStore.signals[route.path], (val) => {
+  if (val && val > 0) clearFilters()
+})
 onMounted(async () => { await updateOverduePayments(); await loadPayments() })
 </script>

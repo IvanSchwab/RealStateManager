@@ -141,7 +141,7 @@ const authStore = useAuthStore()
 const sidebarStore = useSidebarStore()
 const { isDark, toggleTheme } = useTheme()
 const { getInitials, getAvatarColor } = useProfile()
-const { organization, getInitials: getOrgInitials, fetchOrganization } = useOrganization()
+const { organization, fetchOrganization } = useOrganization()
 const { unreadCount, initialize: initNotifications } = useNotifications()
 
 // Search
@@ -193,10 +193,6 @@ const initials = computed(() =>
 
 const avatarColor = computed(() =>
   getAvatarColor(authStore.profile?.full_name ?? null, authStore.profile?.email)
-)
-
-const orgInitials = computed(() =>
-  organization.value?.name ? getOrgInitials(organization.value.name) : null
 )
 
 function toggleUserDropdown() {

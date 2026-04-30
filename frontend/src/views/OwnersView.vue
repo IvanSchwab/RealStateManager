@@ -206,7 +206,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import OwnerDialog from '@/components/owners/OwnerDialog.vue'
 import DeleteOwnerDialog from '@/components/owners/DeleteOwnerDialog.vue'
@@ -217,9 +217,12 @@ import { useOwnersFilterStore } from '@/stores/filters/useOwnersFilterStore'
 import { storeToRefs } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import type { Owner } from '@/types'
+import { useNavResetStore } from '@/stores/useNavResetStore'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
+const navResetStore = useNavResetStore()
 const { owners, loading, fetchOwners, getOwnerPropertyCount } = useOwners()
 const { formatCurrency } = useFormatCurrency()
 const filterStore = useOwnersFilterStore()
@@ -446,8 +449,12 @@ function openLiquidaciones() {
 
 // Context menu
 function openMoreMenu(owner: Owner, event: MouseEvent) {
+  const MENU_WIDTH = 160
+  const x = event.clientX + MENU_WIDTH > window.innerWidth
+    ? event.clientX - MENU_WIDTH
+    : event.clientX
   menuOwner.value = owner
-  menuPosition.value = { x: event.clientX, y: event.clientY }
+  menuPosition.value = { x, y: event.clientY }
   menuOpen.value = true
 }
 
@@ -498,6 +505,10 @@ watch(
 watch(debouncedSearch, () => {
   filterStore.resetPage()
   loadOwners()
+})
+
+watch(() => navResetStore.signals[route.path], (val) => {
+  if (val && val > 0) clearFilters()
 })
 
 // Initialize properties filter from store

@@ -348,14 +348,19 @@ export function useTenants() {
 
     // Soft delete tenant (set deleted_at)
     async function deleteTenant(id: string) {
+        if (!organizationId.value) {
+            throw new Error('No organization_id available, cannot delete tenant')
+        }
+
         loading.value = true
         error.value = null
 
         try {
             const { error: deleteError } = await supabase
-                .from('tenants')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('id', id)
+                .rpc('soft_delete_tenant', {
+                    p_tenant_id: id,
+                    p_organization_id: organizationId.value,
+                })
 
             if (deleteError) throw deleteError
 

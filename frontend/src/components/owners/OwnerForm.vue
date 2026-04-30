@@ -137,6 +137,7 @@ const props = defineProps<{
   initialData?: Partial<Owner>
   isEdit?: boolean
   inline?: boolean
+  isSubmitting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -145,7 +146,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const isSubmitting = ref(false)
 
 const form = ref<OwnerFormState>({
   full_name: '',

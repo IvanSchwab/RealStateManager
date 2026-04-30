@@ -289,6 +289,7 @@ interface FormErrors {
 const props = defineProps<{
   initialData?: Partial<Property>
   isEdit?: boolean
+  isSubmitting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -298,7 +299,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { owners, fetchOwners } = useOwners()
-const isSubmitting = ref(false)
 
 const form = ref<PropertyFormData>({
   owner_id: '',

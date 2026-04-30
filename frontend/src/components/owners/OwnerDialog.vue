@@ -33,6 +33,7 @@
         :initial-data="ownerData"
         :is-edit="isEditMode"
         :inline="inline"
+        :is-submitting="isSubmitting"
         @submit="handleSubmit"
         @cancel="$emit('update:open', false)"
       />

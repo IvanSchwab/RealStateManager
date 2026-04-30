@@ -32,6 +32,7 @@
         v-else
         :initial-data="tenantData"
         :is-edit="isEditMode"
+        :is-submitting="isSubmitting"
         @submit="handleSubmit"
         @cancel="$emit('update:open', false)"
       />

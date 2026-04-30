@@ -49,7 +49,7 @@
         to="/"
         class="pia-nav-item"
         :class="{ active: isActive('/') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
@@ -66,7 +66,7 @@
         to="/properties"
         class="pia-nav-item"
         :class="{ active: isActive('/properties') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/properties')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>
@@ -77,7 +77,7 @@
         to="/owners"
         class="pia-nav-item"
         :class="{ active: isActive('/owners') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/owners')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/>
@@ -89,7 +89,7 @@
         to="/tenants"
         class="pia-nav-item"
         :class="{ active: isActive('/tenants') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/tenants')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3.5-6 7-6s6.5 2 7 6"/>
@@ -100,7 +100,7 @@
         to="/contracts"
         class="pia-nav-item"
         :class="{ active: isActive('/contracts') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/contracts')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
@@ -112,7 +112,7 @@
         to="/payments"
         class="pia-nav-item"
         :class="{ active: isActive('/payments') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/payments')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h3"/>
@@ -128,7 +128,7 @@
         to="/documents"
         class="pia-nav-item"
         :class="{ active: isActive('/documents') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/documents')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
@@ -153,7 +153,7 @@
         to="/settings"
         class="pia-nav-item"
         :class="{ active: isActive('/settings') }"
-        @click="handleNavClick"
+        @click="handleNavClick('/settings')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
@@ -175,10 +175,12 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSidebarStore } from '@/stores/useSidebarStore'
 import { useOrganization } from '@/composables/useOrganization'
+import { useNavResetStore } from '@/stores/useNavResetStore'
 
 const { t } = useI18n()
 const route = useRoute()
 const sidebarStore = useSidebarStore()
+const navResetStore = useNavResetStore()
 const { organization, fetchOrganization } = useOrganization()
 
 onMounted(() => {
@@ -206,8 +208,10 @@ const isActive = (path: string) => {
   return route.path.startsWith(path)
 }
 
-function handleNavClick() {
-  // Close sidebar on mobile after navigation
+function handleNavClick(path: string) {
+  if (route.path === path) {
+    navResetStore.trigger(path)
+  }
   if (window.innerWidth < 1024) {
     sidebarStore.close()
   }

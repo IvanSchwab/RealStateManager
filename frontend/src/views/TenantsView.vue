@@ -257,7 +257,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import TenantDialog from '@/components/tenants/TenantDialog.vue'
 import DeleteTenantDialog from '@/components/tenants/DeleteTenantDialog.vue'
@@ -266,9 +266,12 @@ import { useFormatCurrency } from '@/composables/useFormatCurrency'
 import { useDebounce } from '@/composables/useDebounce'
 import { useTenantsFilterStore } from '@/stores/filters/useTenantsFilterStore'
 import { storeToRefs } from 'pinia'
+import { useNavResetStore } from '@/stores/useNavResetStore'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
+const navResetStore = useNavResetStore()
 const { tenants, loading, fetchTenants } = useTenants()
 const { formatCurrency } = useFormatCurrency()
 const filterStore = useTenantsFilterStore()
@@ -368,8 +371,12 @@ function goToPreviousPage() { filterStore.setPage(filterStore.currentPage - 1); 
 function goToNextPage() { filterStore.setPage(filterStore.currentPage + 1); loadTenants() }
 
 function openMoreMenu(tenant: TenantWithContract, event: MouseEvent) {
+  const MENU_WIDTH = 160
+  const x = event.clientX + MENU_WIDTH > window.innerWidth
+    ? event.clientX - MENU_WIDTH
+    : event.clientX
   menuTenant.value = tenant
-  menuPosition.value = { x: event.clientX, y: event.clientY }
+  menuPosition.value = { x, y: event.clientY }
   menuOpen.value = true
 }
 
@@ -436,6 +443,9 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 watch(debouncedSearch, () => { filterStore.resetPage(); loadTenants() })
+watch(() => navResetStore.signals[route.path], (val) => {
+  if (val && val > 0) clearFilters()
+})
 
 onMounted(() => {
   loadTenants()

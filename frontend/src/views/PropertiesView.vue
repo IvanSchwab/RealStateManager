@@ -213,8 +213,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   AlertDialog,
@@ -233,9 +233,12 @@ import { useToast } from '@/composables/useToast'
 import { useDebounce } from '@/composables/useDebounce'
 import type { Property, PropertyType, PropertyStatus, PropertyPurpose } from '@/types'
 import { normalize } from '@/utils/normalize'
+import { useNavResetStore } from '@/stores/useNavResetStore'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
+const navResetStore = useNavResetStore()
 const toast = useToast()
 const {
   properties,
@@ -395,6 +398,10 @@ async function executeDelete() {
 async function loadProperties() {
   await fetchProperties()
 }
+
+watch(() => navResetStore.signals[route.path], (val) => {
+  if (val && val > 0) clearFilters()
+})
 
 onMounted(() => {
   loadProperties()

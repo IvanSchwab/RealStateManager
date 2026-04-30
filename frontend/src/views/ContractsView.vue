@@ -172,7 +172,7 @@
                     @click="handleRenew(contract)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
                   </button>
-                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Más opciones">
+                  <button class="pia-icon-btn" style="width:28px;height:28px" title="Más opciones" @click="openMoreMenu(contract, $event)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                   </button>
                 </div>
@@ -190,6 +190,28 @@
       </div>
     </div>
     </template>
+
+    <!-- Context Menu -->
+    <Teleport to="body">
+      <div v-if="menuOpen" class="context-menu" :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }" @click.stop>
+        <button @click="handleMenuAction('view')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          Ver detalle
+        </button>
+        <button @click="handleMenuAction('edit')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
+        <button
+          :disabled="menuContract ? calculateDisplayStatus(menuContract) === 'cancelled' : false"
+          style="color:var(--terra)"
+          @click="handleMenuAction('cancel')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Rescindir
+        </button>
+      </div>
+      <div v-if="menuOpen" class="context-menu-overlay" @click="closeMenu" />
+    </Teleport>
 
     <!-- Dialogs -->
     <ContractDialog
@@ -209,8 +231,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ContractDialog from '@/components/contracts/ContractDialog.vue'
 import CancelContractDialog from '@/components/contracts/CancelContractDialog.vue'
@@ -222,8 +244,11 @@ import { useContractsFilterStore } from '@/stores/filters/useContractsFilterStor
 import { storeToRefs } from 'pinia'
 import type { ContractWithRelations, ContractDisplayStatus } from '@/types'
 import { useDate } from '@/composables/useDate'
+import { useNavResetStore } from '@/stores/useNavResetStore'
 
 const router = useRouter()
+const route = useRoute()
+const navResetStore = useNavResetStore()
 const { t } = useI18n()
 const toast = useToast()
 const { formatDate } = useDate()
@@ -237,6 +262,10 @@ const dialogOpen = ref(false)
 const editingContractId = ref<string | null>(null)
 const cancelDialogOpen = ref(false)
 const cancellingContract = ref<ContractWithRelations | null>(null)
+
+const menuOpen = ref(false)
+const menuPosition = ref({ x: 0, y: 0 })
+const menuContract = ref<ContractWithRelations | null>(null)
 
 const hasActiveFilters = computed(() =>
   filterStore.search !== '' || filterStore.status !== 'all' || filterStore.contractType !== 'all'
@@ -404,9 +433,47 @@ async function loadContracts() {
 async function handleDialogSuccess() { await loadContracts() }
 async function handleRescindSuccess() { cancellingContract.value = null; await loadContracts() }
 
+function openMoreMenu(contract: ContractWithRelations, event: MouseEvent) {
+  const MENU_WIDTH = 160
+  const x = event.clientX + MENU_WIDTH > window.innerWidth
+    ? event.clientX - MENU_WIDTH
+    : event.clientX
+  menuContract.value = contract
+  menuPosition.value = { x, y: event.clientY }
+  menuOpen.value = true
+}
+
+function closeMenu() {
+  menuOpen.value = false
+  menuContract.value = null
+}
+
+function handleMenuAction(action: 'view' | 'edit' | 'cancel') {
+  if (!menuContract.value) return
+  if (action === 'view') {
+    viewContract(menuContract.value.id)
+  } else if (action === 'edit') {
+    openEditDialog(menuContract.value.id)
+  } else if (action === 'cancel') {
+    cancellingContract.value = menuContract.value
+    cancelDialogOpen.value = true
+  }
+  closeMenu()
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && menuOpen.value) {
+    closeMenu()
+  }
+}
+
 watch(() => [filterStore.status, filterStore.contractType], () => { filterStore.resetPage(); loadContracts() })
 watch(debouncedSearch, () => { filterStore.resetPage(); loadContracts() })
-onMounted(() => loadContracts())
+watch(() => navResetStore.signals[route.path], (val) => {
+  if (val && val > 0) clearFilters()
+})
+onMounted(() => { loadContracts(); document.addEventListener('keydown', handleKeydown) })
+onUnmounted(() => { document.removeEventListener('keydown', handleKeydown) })
 </script>
 
 <style scoped>
@@ -460,6 +527,43 @@ onMounted(() => loadContracts())
   flex: 1;
   padding: 14px 16px;
   min-width: 0;
+}
+
+/* Context menu */
+.context-menu {
+  position: fixed;
+  background: var(--pia-bg-card);
+  border: 1px solid var(--pia-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  min-width: 140px;
+  z-index: 1000;
+}
+
+.context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--pia-text);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.context-menu button:hover {
+  background: var(--pia-bg-hover);
+}
+
+.context-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
 }
 
 /* Chip styles for contract types */

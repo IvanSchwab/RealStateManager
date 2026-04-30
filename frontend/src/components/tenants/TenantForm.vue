@@ -259,6 +259,7 @@ interface FormErrors {
 const props = defineProps<{
   initialData?: Partial<Tenant>
   isEdit?: boolean
+  isSubmitting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -267,7 +268,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const isSubmitting = ref(false)
 
 const form = ref<TenantFormState>({
   first_name: '',
